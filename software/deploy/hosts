@@ -1,0 +1,6 @@
+nodes:
+  hosts:
+    beaglebone0:
+    beaglebone1:
+  vars:
+    ansible_user: joe

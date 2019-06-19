@@ -1,0 +1,5 @@
+---
+- hosts: nodes
+  roles:
+     - ptp-slave
+  become: yes

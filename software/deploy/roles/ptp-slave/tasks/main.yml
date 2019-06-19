@@ -1,0 +1,38 @@
+---
+- name: Install ptp package
+  apt:
+    update_cache: yes
+    name: linuxptp
+    state: present
+  tags: ptp
+
+- name: Disable systemd-timesyncd
+  systemd:
+    name: systemd-timesyncd
+    state: stopped
+    masked: yes
+    daemon_reload: yes
+  tags: conf
+
+- name: Deploy unit files
+  template:
+    src: '{{ item }}'
+    dest: '/etc/systemd/system/'
+    mode: 0644
+  with_items:
+   - ptp4l.service
+   - ptp4l.path
+   - phc2sys.service
+  tags: conf
+
+- name: Enable services
+  systemd:
+    name: '{{ item.name }}'
+    state: restarted
+    enabled: '{{ item.enabled }}'
+    daemon_reload: yes
+  with_items:
+   - { name: phc2sys.service, enabled: yes }
+   - { name: ptp4l.service, enabled: no }
+   - { name: ptp4l.path, enabled: yes }
+  tags: conf
