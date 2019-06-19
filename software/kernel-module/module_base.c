@@ -89,13 +89,14 @@ static void __exit mod_exit(void)
 {
     sysfs_interface_exit();
     pru_comm_exit();
+    sync_exit();
+    rpmsg_pru_exit();
+
     rproc_shutdown(rproc_prus[0]);
     rproc_put(rproc_prus[0]);
     rproc_shutdown(rproc_prus[1]);
     rproc_put(rproc_prus[1]);
-
-    rpmsg_pru_exit();
-    sync_exit();
+    
     printk(KERN_INFO "shprd: module exited from kernel!!!\n");
 }
 
