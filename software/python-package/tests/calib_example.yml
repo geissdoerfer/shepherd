@@ -1,0 +1,23 @@
+node: serial number
+calibration:
+  emulation:
+    current:
+      gain: 4934456.47714108
+      offset: 3145.7172879384743
+    voltage:
+      gain: 87380.98224767964
+      offset: 0.038835992134409025
+  harvesting:
+    current:
+      gain: 3.822167808088151e-07
+      offset: -0.050097855530474036
+    voltage:
+      gain: 1.953125e-05
+      offset: 0.0
+  load:
+    current:
+      gain: 3.822167808088151e-07
+      offset: -0.050097855530474036
+    voltage:
+      gain: 1.953125e-05
+      offset: 0.0
