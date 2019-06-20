@@ -15,8 +15,8 @@
 /* This is external to expose some of the attributes through sysfs */
 extern void __iomem * pru_shared_mem_io;
 
-enum shepherd_mode_e{MODE_HARVESTING, MODE_LOAD, MODE_BOTH, MODE_EMULATION};
-enum shepherd_state_e{STATE_UNKNOWN, STATE_IDLE, STATE_ARMED, STATE_RUNNING, STATE_FAULT};
+enum ShepherdMode{MODE_HARVESTING, MODE_LOAD, MODE_EMULATION, MODE_DEBUG};
+enum ShepherdState{STATE_UNKNOWN, STATE_IDLE, STATE_ARMED, STATE_RUNNING, STATE_FAULT};
 
 struct SharedMem
 {
@@ -89,7 +89,7 @@ int pru_comm_cancel_delayed_start(void);
  * the state from the shared memory structure, we can check in which state
  * the PRUs actually are.
  */
-enum shepherd_state_e pru_comm_get_state(void);
+enum ShepherdState pru_comm_get_state(void);
 /**
  * Set the 'shepherd state'
  * 
@@ -100,7 +100,7 @@ enum shepherd_state_e pru_comm_get_state(void);
  * @param state new shepherd state
  * @see SharedMem
  */
-int pru_comm_set_state(enum shepherd_state_e state);
+int pru_comm_set_state(enum ShepherdState state);
 
 /**
  * Reads the buffer period from the PRUs

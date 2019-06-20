@@ -13,6 +13,9 @@
 #define MSG_ERR_INVALIDCMD 4
 #define MSG_ERR_NOFREEBUF 5
 
+#define MSG_DBG_ADC 0xF0
+#define MSG_DBG_DAC 0xF1
+
 struct rpmsg_msg_s
 {
 	  uint32_t msg_type;

@@ -185,10 +185,10 @@ static ssize_t sysfs_mode_show(
 			return sprintf(buf, "harvesting");
 		case MODE_LOAD:
 			return sprintf(buf, "load");
-		case MODE_BOTH:
-			return sprintf(buf, "both");
 		case MODE_EMULATION:
 			return sprintf(buf, "emulation");
+		case MODE_DEBUG:
+			return sprintf(buf, "debug");
 		default:
 			return -EINVAL;
 	}
@@ -226,17 +226,17 @@ static ssize_t sysfs_mode_store(
 
 		mode = MODE_LOAD;
 	}
-	else if(strncmp(buf, "both", 4) == 0) {
-		if((count < 4) || (count > 5))
-		return -EINVAL;
-
-		mode = MODE_BOTH;
-	}
 	else if(strncmp(buf, "emulation", 9) == 0) {
 		if((count < 9) || (count > 10))
 			return -EINVAL;
 
 		mode = MODE_EMULATION;
+	}
+	else if(strncmp(buf, "debug", 5) == 0) {
+		if((count < 5) || (count > 6))
+		return -EINVAL;
+
+		mode = MODE_DEBUG;
 	}
 	else
 		return -EINVAL;

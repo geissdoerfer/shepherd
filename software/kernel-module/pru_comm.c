@@ -75,11 +75,11 @@ int pru_comm_trigger(unsigned int system_event) {
     return 0;
 }
 
-enum shepherd_state_e pru_comm_get_state(void) {
-    return (enum shepherd_state_e) readl(pru_shared_mem_io + offsetof(struct SharedMem, shepherd_state));
+enum ShepherdState pru_comm_get_state(void) {
+    return (enum ShepherdState) readl(pru_shared_mem_io + offsetof(struct SharedMem, shepherd_state));
 }
 
-int pru_comm_set_state(enum shepherd_state_e state) {
+int pru_comm_set_state(enum ShepherdState state) {
     writel(state, pru_shared_mem_io + offsetof(struct SharedMem, shepherd_state));
     return 0;
 }

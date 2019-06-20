@@ -4,7 +4,9 @@
 #include "pru_comm_format.h"
 #include "rpmsg_format.h"
 
-void sampling_init(enum shepherd_mode_e mode, unsigned int harvesting_voltage);
-void sample(struct SampleBuffer * current_buffer, unsigned int sample_idx, enum shepherd_mode_e mode);
+void sampling_init(enum ShepherdMode mode, unsigned int harvesting_voltage);
+void sample(struct SampleBuffer * current_buffer, unsigned int sample_idx, enum ShepherdMode mode);
+unsigned int sample_dbg_adc(unsigned int channel_no);
+void sample_dbg_dac(unsigned int value);
 
 #endif /* __SAMPLING_H_ */

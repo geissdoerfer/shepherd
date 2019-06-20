@@ -51,7 +51,6 @@ static inline void sample_emulation(struct SampleBuffer * buffer, unsigned int s
 	/* write the emulation current value from buffer to DAC */
 	dac_write(SPI_CS_DAC, buffer->values_voltage[sample_idx] | DAC_CH_V_ADDR);
 
-
 	/* read the load current value from ADC to buffer and select load voltage for next reading */
 	buffer->values_current[sample_idx] = adc_readwrite(SPI_CS_ADC, MAN_CH_SLCT | (ADC_CH_V_OUT << 10));
 	/* read the load voltage value from ADC to buffer and select load current for next reading */
@@ -59,7 +58,7 @@ static inline void sample_emulation(struct SampleBuffer * buffer, unsigned int s
 
 }
 
-void sample(struct SampleBuffer * current_buffer, unsigned int sample_idx, enum shepherd_mode_e mode)
+void sample(struct SampleBuffer * current_buffer, unsigned int sample_idx, enum ShepherdMode mode)
 {
     switch(mode) {
         case MODE_HARVESTING:
@@ -74,11 +73,25 @@ void sample(struct SampleBuffer * current_buffer, unsigned int sample_idx, enum 
     }
 }
 
-void sampling_init(enum shepherd_mode_e mode, unsigned int harvesting_voltage)
+unsigned int sample_dbg_adc(unsigned int channel_no)
+{
+    unsigned int result;
+    adc_readwrite(SPI_CS_ADC, MAN_CH_SLCT | (channel_no << 10));
+    result = adc_readwrite(SPI_CS_ADC, MAN_CH_SLCT | (channel_no << 10));
+    return result;
+}
+
+void sample_dbg_dac(unsigned int value)
+{
+    dac_write(SPI_CS_DAC, value);
+}
+
+void sampling_init(enum ShepherdMode mode, unsigned int harvesting_voltage)
 {
 	/* Chip-Select signals are active low */
 	_GPIO_ON(SPI_CS_ADC);
 	_GPIO_ON(SPI_CS_DAC);
+
 	_GPIO_OFF(SPI_SCLK);
 	_GPIO_OFF(SPI_MOSI);
 
