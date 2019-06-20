@@ -83,6 +83,13 @@ def shepherd_up(fake_hardware, kernel_module_up):
 
     with open("/sys/shepherd/state", "w") as f:
         f.write('stop')
+
+    with open("/sys/shepherd/mode", "w") as f:
+        f.write('harvesting')
+
+    with open("/sys/shepherd/harvesting_voltage", "w") as f:
+        f.write('0')
+
     time.sleep(2)
     yield
     with open("/sys/shepherd/state", "w") as f:
