@@ -2,6 +2,7 @@
 #include <linux/module.h>
 #include <linux/kernel.h>
 #include <linux/delay.h>
+#include <linux/errno.h>
 #include <linux/remoteproc.h>
 #include <asm/io.h>
 
@@ -51,11 +52,12 @@ static int __init mod_init(void)
     /* Boot the two PRU cores with the corresponding the shepherd firmware */
     for(i=0; i<2; i++){
 
+        /* We'll wait a bit in case remoteproc is not yet up and running */
         counter = 0;
-        while((rproc_prus[i] = rproc_get_by_phandle(pru_phandles[i])) == NULL){
+        while((rproc_prus[i] = rproc_get_by_phandle(pru_phandles[i])) == NULL) {
             if(counter++ == 100) {
                 printk(KERN_ERR "shprd: Could not get PRU%d by phandle 0x%02X", i, pru_phandles[i]);
-                return -1;
+                return -ENXIO;
             }
             msleep(100);
         }
@@ -65,7 +67,11 @@ static int __init mod_init(void)
 
         sprintf(rproc_prus[i]->firmware, "am335x-pru%u-shepherd-fw", i);
 
-        rproc_boot(rproc_prus[i]);
+        if((ret=rproc_boot(rproc_prus[i]))) {
+            printk(KERN_ERR "shprd: Couldn't boot PRU%d", i);
+            return ret;
+        }
+
     }
     printk(KERN_INFO "shprd: PRUs started!");
 
