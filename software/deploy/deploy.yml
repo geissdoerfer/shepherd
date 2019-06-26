@@ -1,5 +1,7 @@
 ---
-- hosts: nodes
+- hosts: sheep
   roles:
      - ptp-slave
+     - dev-host
+     - sheep
   become: yes

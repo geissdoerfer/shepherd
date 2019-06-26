@@ -1,0 +1,4 @@
+---
+ti_path: /usr/share/ti
+pru_cgt_path: /usr/share/ti/cgt-pru
+pru_support_package: pru-software-support-package-5.4.0

@@ -1,0 +1,26 @@
+---
+- name: Add systemd unit
+  template:
+    src: 'files/{{ item }}.service'
+    dest: /etc/systemd/system/
+  with_items:
+   - shepherd
+   - shepherd-gui
+   - shepherd-rpc
+  tags:
+    - install
+    - systemd
+
+- name: Register systemd services
+  systemd:
+    name: '{{ item }}'
+    state: stopped
+    enabled: no
+    daemon_reload: yes
+  with_items:
+   - shepherd
+   - shepherd-gui
+   - shepherd-rpc
+  tags:
+    - install
+    - systemd

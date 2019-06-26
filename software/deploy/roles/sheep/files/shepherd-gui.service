@@ -1,0 +1,6 @@
+[Unit]
+Description=Shepherd debug gui
+
+[Service]
+ExecStart=/usr/local/bin/shepherd-sheep gui
+Restart=always

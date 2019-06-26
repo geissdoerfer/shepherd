@@ -1,0 +1,76 @@
+---
+- name: Make sure TI software path exists
+  file:
+    path: '{{ ti_path }}'
+    state: directory
+  become: yes
+  tags:
+    - pru-tools
+
+- name: Download and extract pru software support package
+  unarchive:
+    src: 'http://git.ti.com/cgit/cgit.cgi/pru-software-support-package/pru-software-support-package.git/snapshot/{{ pru_support_package }}.tar.gz'
+    dest: '{{ ti_path }}'
+    remote_src: yes
+  become: yes
+  tags:
+    - pru-tools
+
+- name: Download PRU Code Generation tools installer
+  get_url:
+    url: http://software-dl.ti.com/codegen/esd/cgt_public_sw/PRU/2.3.1/ti_cgt_pru_2.3.1_armlinuxa8hf_busybox_installer.sh
+    dest: /tmp/
+  register: get_url_ret
+  tags:
+    - pru-tools
+
+- name: Make PRU Code Generation tools installer executable
+  file:
+    dest: '{{ get_url_ret.dest }}'
+    mode: a+x
+  become: yes
+  tags:
+    - pru-tools
+
+- name: Install PRU Code Generation tools
+  shell: '{{ get_url_ret.dest }}'
+  become: yes
+  tags:
+    - pru-tools
+
+- name: Prepare path to link binaries
+  file:
+    path: '{{ pru_cgt_path }}/bin'
+    state: directory
+    recurse: yes
+  become: yes
+  tags:
+    - pru-tools
+
+- name: Symlink PRU compiler and linker
+  file:
+    src: '{{ item.src }}'
+    dest: '{{ item.dest }}'
+    state: link
+  with_items:
+   - { src: /usr/bin/clpru, dest: '{{ pru_cgt_path }}/bin/clpru' }
+   - { src: /usr/bin/lnkpru, dest: '{{ pru_cgt_path }}/bin/lnkpru' }
+  become: yes
+  tags:
+    - pru-tools
+
+- name: Adding PRU environment vars in bashrc file
+  lineinfile:
+    dest: '{{ item[1] }}/.bashrc'
+    line: 'export {{ item[0]["name"] }}={{ item[0]["path"] }}'
+    insertafter: 'EOF'
+    state: present
+  with_nested:
+   - [
+      { name: PRU_CGT, path: '{{ pru_cgt_path }}' },
+      { name: PRU_SUPPORT, path: '{{ ti_path }}/{{ pru_support_package }}' }
+     ]
+   - ['/home/{{ ansible_user }}', '/root']
+  become: yes
+  tags:
+    - pru-tools

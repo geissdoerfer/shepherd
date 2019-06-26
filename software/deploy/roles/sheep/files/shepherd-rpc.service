@@ -1,0 +1,6 @@
+[Unit]
+Description=shepherd zero rpc server
+
+[Service]
+ExecStart=/usr/local/bin/shepherd-sheep -vv rpc
+Restart=on-failure

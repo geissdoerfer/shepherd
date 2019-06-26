@@ -1,0 +1,14 @@
+---
+- name: restart device
+  shell: sleep 2 && shutdown -r now "Ansible restart"
+  async: 1
+  poll: 0
+  ignore_errors: true
+  become: yes
+  notify:
+   - waiting to come back
+
+- name: waiting to come back
+  wait_for_connection:
+    delay: 15
+    timeout: 300

@@ -1,0 +1,35 @@
+---
+- name: Build and install kernel module
+  make:
+    chdir: "{{ shepherd_install_path }}/kernel-module"
+    target: install
+  tags:
+    - install
+
+- name: Reload kernel modules
+  command: depmod -a
+  tags:
+    - install
+
+- name: Build and install PRU firmware
+  make:
+    chdir: "{{ shepherd_install_path }}/firmware/{{ item }}-shepherd-fw"
+    target: install
+  environment:
+    PRU_CGT: '{{ pru_cgt_path }}'
+    PRU_SUPPORT: '{{ ti_path }}/{{ pru_support_package }}'
+  with_items:
+    - pru0
+    - pru1
+  tags:
+    - install
+
+- name: Build and install device tree overlay
+  make:
+    chdir: "{{ shepherd_install_path }}/device-tree"
+    target: install
+  notify:
+    - restart device
+  tags:
+    - install
+    - device-tree

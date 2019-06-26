@@ -1,4 +1,4 @@
-nodes:
+sheep:
   hosts:
     beaglebone0:
     beaglebone1:
