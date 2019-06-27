@@ -10,6 +10,7 @@ logger = logging.getLogger("shepherd")
 logger.addHandler(consoleHandler)
 logger.setLevel(logging.DEBUG)
 
+
 @pytest.fixture(params=["harvesting", "load"])
 def mode(request):
     return request.param
@@ -19,8 +20,11 @@ def mode(request):
 def log_writer(tmp_path, mode):
     calib = CalibrationData.from_default()
     with LogWriter(
-            mode=mode, calibration_data=calib, force=True,
-            store_name=tmp_path / 'test.h5') as lw:
+        mode=mode,
+        calibration_data=calib,
+        force=True,
+        store_name=tmp_path / "test.h5",
+    ) as lw:
         yield lw
 
 
@@ -50,4 +54,4 @@ def test_recording(log_writer, recorder):
     for _ in range(100):
         idx, buf = recorder.get_buffer()
         log_writer.write_data(buf)
-        recorder.put_buffer(idx)
+        recorder.release_buffer(idx)

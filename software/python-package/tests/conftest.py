@@ -8,6 +8,7 @@ import time
 import shepherd
 from shepherd import sysfs_interface
 
+
 def check_beagleboard():
     try:
         with open("/proc/cpuinfo") as info:
@@ -37,8 +38,10 @@ def fake_hardware(request):
 
 def pytest_addoption(parser):
     parser.addoption(
-        "--fake", action="store_true", default=False,
-        help="run fake hardware tests"
+        "--fake",
+        action="store_true",
+        default=False,
+        help="run fake hardware tests",
     )
 
 
@@ -57,15 +60,9 @@ def pytest_collection_modifyitems(config, items):
         if "fake_hardware" in item.keywords and not config.getoption("--fake"):
             item.add_marker(skip_fake)
 
-@pytest.fixture()
-def kernel_module_up(fake_hardware):
-    if fake_hardware is None:
-        subprocess.run(["modprobe", "shepherd"])
-        time.sleep(3)
-
 
 @pytest.fixture()
-def shepherd_up(fake_hardware, kernel_module_up):
+def shepherd_up(fake_hardware, shepherd_down):
     if fake_hardware is not None:
         files = [
             ("/sys/kernel/shepherd/state", "idle"),
@@ -75,28 +72,21 @@ def shepherd_up(fake_hardware, kernel_module_up):
             ("/sys/kernel/shepherd/memory/address", "1"),
             ("/sys/kernel/shepherd/memory/size", "1"),
             ("/sys/kernel/shepherd/samples_per_buffer", "1"),
-            ("/sys/kernel/shepherd/buffer_period_ns", "1")
+            ("/sys/kernel/shepherd/buffer_period_ns", "1"),
         ]
         for file_, content in files:
             fake_hardware.create_file(file_, contents=content)
-        return
-
-    with open("/sys/shepherd/state", "w") as f:
-        f.write('stop')
-
-    with open("/sys/shepherd/mode", "w") as f:
-        f.write('harvesting')
-
-    with open("/sys/shepherd/harvesting_voltage", "w") as f:
-        f.write('0')
-
-    time.sleep(2)
-    yield
-    with open("/sys/shepherd/state", "w") as f:
-        f.write('stop')
+        yield
+    else:
+        subprocess.run(["modprobe", "shepherd"])
+        time.sleep(3)
+        yield
+        subprocess.run(["rmmod", "shepherd"])
+        time.sleep(3)
 
 
 @pytest.fixture()
 def shepherd_down(fake_hardware):
     if fake_hardware is None:
         subprocess.run(["rmmod", "shepherd"])
+        time.sleep(3)
