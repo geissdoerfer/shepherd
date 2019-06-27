@@ -1,25 +1,7 @@
 #ifndef __SYNC_CTRL_H_
 #define __SYNC_CTRL_H_
 
-#define MSG_ID_CTRL_REQ 0xF0
-#define MSG_ID_CTRL_REP 0xF1
-
-/* Control request message sent from PRU0 to this kernel module */
-struct msg_ctrl_req_s {
-    /* This is used to identify message type at receiver */
-    char identifier;
-    /* Number of ticks passed on the PRU's IEP timer */
-    uint32_t ticks_iep;
-    /* Previous buffer period in IEP ticks */
-    uint32_t old_period;
-} __attribute__((packed));
-
-/* Control reply message sent from this kernel module to PRU0 after running the control loop */
-struct msg_ctrl_rep_s {
-    char identifier;
-    int32_t clock_corr;
-    uint64_t next_timestamp_ns;
-} __attribute__((packed));
+#include "commons.h"
 
 /**
  * Initializes snychronization procedure between our Linux clock and PRU0
@@ -50,6 +32,6 @@ int sync_reset(void);
  * @param ctrl_rep Buffer to store the result of the control loop
  * @param ctrl_req Control request that was received from PRU0
  */
-int sync_loop(struct msg_ctrl_rep_s * ctrl_rep, struct msg_ctrl_req_s * ctrl_req);
+int sync_loop(struct CtrlRepMsg *ctrl_rep, struct CtrlReqMsg *ctrl_req);
 
 #endif /* __SYNC_CTRL_H_ */

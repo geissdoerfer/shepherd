@@ -14,8 +14,7 @@
 #include "ringbuffer.h"
 #include "sampling.h"
 #include "hw_config.h"
-#include "pru_comm_format.h"
-#include "rpmsg_format.h"
+#include "commons.h"
 #include "shepherd_config.h"
 
 #define CHECK_EVENT(x) CT_INTC.SECR0 &(1U << x)
@@ -33,11 +32,11 @@ volatile struct SharedMem *shared_mem =
 
 static void send_message(unsigned int msg_id, unsigned int value)
 {
-	struct rpmsg_msg_s msg_out;
+	struct DEPMsg msg_out;
 
 	msg_out.msg_type = msg_id;
 	msg_out.value = value;
-	rpmsg_putraw((void *)&msg_out, sizeof(struct rpmsg_msg_s));
+	rpmsg_putraw((void *)&msg_out, sizeof(struct DEPMsg));
 }
 
 unsigned int handle_block_end(volatile struct SharedMem *shared_mem,
@@ -63,17 +62,17 @@ unsigned int handle_block_end(volatile struct SharedMem *shared_mem,
 	} else {
 		next_buffer_idx = NO_BUFFER;
 		shared_mem->gpio_edges = NULL;
-		send_message(MSG_ERR_NOFREEBUF, 0);
+		send_message(MSG_DEP_ERR_NOFREEBUF, 0);
 	}
 	simple_mutex_exit(&shared_mem->gpio_edges_mutex);
 
 	/* If we currently have a valid buffer, return it to host */
 	if (current_buffer_idx != NO_BUFFER) {
 		if (sample_idx != SAMPLES_PER_BUFFER)
-			send_message(MSG_ERR_INCOMPLETE, sample_idx);
+			send_message(MSG_DEP_ERR_INCMPLT, sample_idx);
 
 		(buffers + current_buffer_idx)->len = sample_idx;
-		send_message(MSG_BUFFER_FROM_PRU, current_buffer_idx);
+		send_message(MSG_DEP_BUF_FROM_PRU, current_buffer_idx);
 	}
 
 	return next_buffer_idx;
@@ -82,7 +81,7 @@ unsigned int handle_block_end(volatile struct SharedMem *shared_mem,
 int handle_rpmsg(struct RingBuffer *free_buffers, enum ShepherdMode mode,
 		 enum ShepherdState state)
 {
-	struct rpmsg_msg_s msg_in;
+	struct DEPMsg msg_in;
 
 	/* 
 	 * TI's implementation of RPMSG on the PRU triggers the same interrupt
@@ -90,7 +89,7 @@ int handle_rpmsg(struct RingBuffer *free_buffers, enum ShepherdMode mode,
 	 * the message. We therefore need to check the length of the potential
 	 * message
 	 */
-	if (rpmsg_get((void *)&msg_in) != sizeof(struct rpmsg_msg_s))
+	if (rpmsg_get((void *)&msg_in) != sizeof(struct DEPMsg))
 		return 0;
 
 	_GPIO_TOGGLE(P8_12);
@@ -98,25 +97,25 @@ int handle_rpmsg(struct RingBuffer *free_buffers, enum ShepherdMode mode,
 	if ((mode == MODE_DEBUG) && (state == STATE_RUNNING)) {
 		switch (msg_in.msg_type) {
 			unsigned int res;
-		case MSG_DBG_ADC:
+		case MSG_DEP_DBG_ADC:
 			res = sample_dbg_adc(msg_in.value);
-			send_message(MSG_DBG_ADC, res);
+			send_message(MSG_DEP_DBG_ADC, res);
 			return 0;
 
-		case MSG_DBG_DAC:
+		case MSG_DEP_DBG_DAC:
 			sample_dbg_dac(msg_in.value);
 			return 0;
 
 		default:
-			send_message(MSG_ERR_INVALIDCMD, msg_in.msg_type);
+			send_message(MSG_DEP_ERR_INVLDCMD, msg_in.msg_type);
 			return -1;
 		}
 	} else {
-		if (msg_in.msg_type == MSG_BUFFER_FROM_HOST) {
+		if (msg_in.msg_type == MSG_DEP_BUF_FROM_HOST) {
 			ring_put(free_buffers, (char)msg_in.value);
 			return 0;
 		} else {
-			send_message(MSG_ERR_INVALIDCMD, msg_in.msg_type);
+			send_message(MSG_DEP_ERR_INVLDCMD, msg_in.msg_type);
 			return -1;
 		}
 	}

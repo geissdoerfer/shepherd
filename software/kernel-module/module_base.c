@@ -11,8 +11,8 @@
 #include "pru_comm.h"
 #include "sysfs_interface.h"
 
-static struct rproc * rproc_prus[2];
-static phandle pru_phandles[] = {0xF4, 0xF5};
+static struct rproc *rproc_prus[2];
+static phandle pru_phandles[] = { 0xF5, 0xF6 };
 
 /*
  * Handler for incoming RPMSG messages from PRU1. We only expect one type of
@@ -21,89 +21,88 @@ static phandle pru_phandles[] = {0xF4, 0xF5};
  * of any other message, we print it to kernel console. This way, PRU1 can
  * send arbitrary messages to user space
  */
-int pru_recvd(void * data, unsigned int len)
+int pru_recvd(void *data, unsigned int len)
 {
+	char *msg;
+	struct CtrlRepMsg ctrl_rep;
+	msg = (char *)(data);
 
-    char * msg;
-    struct msg_ctrl_rep_s ctrl_rep;
-    msg = (char *) (data);
-
-    switch(msg[0]) {
-        case MSG_ID_CTRL_REQ:
-            /* Run the clock synchronization control loop */
-            sync_loop(&ctrl_rep, (struct msg_ctrl_req_s *) data);
-            /* Send the result back as RPMSG */
-            rpmsg_pru_send(&ctrl_rep, sizeof(struct msg_ctrl_rep_s));
-            break;
-        default:
-            printk(KERN_INFO "shprd: RPMSG: %s\n", msg);
-    }
-    return 0;
-
+	switch (msg[0]) {
+	case MSG_SYNC_CTRL_REQ:
+		/* Run the clock synchronization control loop */
+		sync_loop(&ctrl_rep, (struct CtrlReqMsg *)data);
+		/* Send the result back as RPMSG */
+		rpmsg_pru_send(&ctrl_rep, sizeof(struct CtrlRepMsg));
+		break;
+	default:
+		printk(KERN_INFO "shprd: RPMSG: %s\n", msg);
+	}
+	return 0;
 }
 
 static int __init mod_init(void)
 {
-    int i;
-    int counter;
-    int ret = 0;
-    printk(KERN_INFO "shprd: module inserted into kernel!!!\n");
+	int i;
+	int counter;
+	int ret = 0;
+	printk(KERN_INFO "shprd: module inserted into kernel!!!\n");
 
-    /* Boot the two PRU cores with the corresponding the shepherd firmware */
-    for(i=0; i<2; i++){
+	/* Boot the two PRU cores with the corresponding the shepherd firmware */
+	for (i = 0; i < 2; i++) {
+		/* We'll wait a bit in case remoteproc is not yet up and running */
+		counter = 0;
+		while ((rproc_prus[i] = rproc_get_by_phandle(
+				pru_phandles[i])) == NULL) {
+			if (counter++ == 100) {
+				printk(KERN_ERR
+				       "shprd: Could not get PRU%d by phandle 0x%02X",
+				       i, pru_phandles[i]);
+				return -ENXIO;
+			}
+			msleep(100);
+		}
 
-        /* We'll wait a bit in case remoteproc is not yet up and running */
-        counter = 0;
-        while((rproc_prus[i] = rproc_get_by_phandle(pru_phandles[i])) == NULL) {
-            if(counter++ == 100) {
-                printk(KERN_ERR "shprd: Could not get PRU%d by phandle 0x%02X", i, pru_phandles[i]);
-                return -ENXIO;
-            }
-            msleep(100);
-        }
+		if (rproc_prus[i]->state == RPROC_RUNNING)
+			rproc_shutdown(rproc_prus[i]);
 
-        if(rproc_prus[i]->state == RPROC_RUNNING)
-            rproc_shutdown(rproc_prus[i]);
+		sprintf(rproc_prus[i]->firmware, "am335x-pru%u-shepherd-fw", i);
 
-        sprintf(rproc_prus[i]->firmware, "am335x-pru%u-shepherd-fw", i);
+		if ((ret = rproc_boot(rproc_prus[i]))) {
+			printk(KERN_ERR "shprd: Couldn't boot PRU%d", i);
+			return ret;
+		}
+	}
+	printk(KERN_INFO "shprd: PRUs started!");
 
-        if((ret=rproc_boot(rproc_prus[i]))) {
-            printk(KERN_ERR "shprd: Couldn't boot PRU%d", i);
-            return ret;
-        }
+	/* Initialize shared memory and PRU interrupt controller */
+	pru_comm_init();
 
-    }
-    printk(KERN_INFO "shprd: PRUs started!");
+	/* Initialize RPMSG and register the 'received' callback function */
+	if ((ret = rpmsg_pru_init(NULL, NULL, pru_recvd)))
+		return ret;
 
-    /* Initialize shared memory and PRU interrupt controller */
-    pru_comm_init();
+	/* Initialize synchronization mechanism between PRU1 and our clock */
+	sync_init(pru_comm_get_buffer_period_ns());
 
-    /* Initialize RPMSG and register the 'received' callback function */
-    if((ret = rpmsg_pru_init(NULL, NULL, pru_recvd)))
-        return ret;
+	/* Setup the sysfs interface for access from userspace */
+	sysfs_interface_init();
 
-    /* Initialize synchronization mechanism between PRU1 and our clock */
-    sync_init(pru_comm_get_buffer_period_ns());
-
-    /* Setup the sysfs interface for access from userspace */
-    sysfs_interface_init();
-
-    return 0;
+	return 0;
 }
 
 static void __exit mod_exit(void)
 {
-    sysfs_interface_exit();
-    pru_comm_exit();
-    sync_exit();
-    rpmsg_pru_exit();
+	sysfs_interface_exit();
+	pru_comm_exit();
+	sync_exit();
+	rpmsg_pru_exit();
 
-    rproc_shutdown(rproc_prus[0]);
-    rproc_put(rproc_prus[0]);
-    rproc_shutdown(rproc_prus[1]);
-    rproc_put(rproc_prus[1]);
-    
-    printk(KERN_INFO "shprd: module exited from kernel!!!\n");
+	rproc_shutdown(rproc_prus[0]);
+	rproc_put(rproc_prus[0]);
+	rproc_shutdown(rproc_prus[1]);
+	rproc_put(rproc_prus[1]);
+
+	printk(KERN_INFO "shprd: module exited from kernel!!!\n");
 }
 
 module_init(mod_init);

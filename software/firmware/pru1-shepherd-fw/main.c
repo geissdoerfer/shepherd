@@ -9,8 +9,7 @@
 #include "iep.h"
 #include "gpio.h"
 
-#include "kernel_pru_comm.h"
-#include "pru_comm_format.h"
+#include "commons.h"
 #include "shepherd_config.h"
 
 /* The IEP is clocked with 200 MHz -> 5 nanoseconds per tick */
@@ -38,13 +37,13 @@ enum SyncState {
 	REPLY_PENDING
 };
 
-static inline int check_control_reply(struct msg_ctrl_rep_s *ctrl_rep)
+static inline int check_control_reply(struct CtrlRepMsg *ctrl_rep)
 {
 	int n;
 	n = rpmsg_get((void *)ctrl_rep);
 
-	if (n == sizeof(struct msg_ctrl_rep_s)) {
-		if (ctrl_rep->identifier != MSG_ID_CTRL_REP) {
+	if (n == sizeof(struct CtrlRepMsg)) {
+		if (ctrl_rep->identifier != MSG_SYNC_CTRL_REP) {
 			printf("Wrong RPMSG ID");
 			while (true)
 				;
@@ -154,11 +153,10 @@ void event_loop(volatile struct SharedMem *shared_mem)
      * needs to be large enough to hold the largest possible RPMSG
      */
 	char rpmsg_buffer[256];
-	struct msg_ctrl_rep_s *ctrl_rep =
-		(struct msg_ctrl_rep_s *)&rpmsg_buffer;
+	struct CtrlRepMsg *ctrl_rep = (struct CtrlRepMsg *)&rpmsg_buffer;
 
 	/* Prepare message that will be sent to Linux kernel module */
-	struct msg_ctrl_req_s ctrl_req = { .identifier = MSG_ID_CTRL_REQ };
+	struct CtrlReqMsg ctrl_req = { .identifier = MSG_SYNC_CTRL_REQ };
 
 	/* This tracks our local state, allowing to execute actions at the right time */
 	enum SyncState sync_state = IDLE;
@@ -277,7 +275,7 @@ void event_loop(volatile struct SharedMem *shared_mem)
 				}
 			} else if (sync_state == REQUEST_PENDING) {
 				rpmsg_putraw(&ctrl_req,
-					     sizeof(struct msg_ctrl_req_s));
+					     sizeof(struct CtrlReqMsg));
 				_GPIO_TOGGLE(P8_41);
 				sync_state = REPLY_PENDING;
 			}

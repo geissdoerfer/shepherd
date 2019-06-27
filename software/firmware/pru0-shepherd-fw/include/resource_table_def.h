@@ -39,7 +39,7 @@
 #include "pru_virtio_ids.h"
 #include "resource_table.h"
 
-#include "pru_comm_format.h"
+#include "commons.h"
 
 /*
  * Sizes of the virtqueues (expressed in number of buffers supported,

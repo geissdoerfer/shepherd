@@ -9,6 +9,7 @@ from .eeprom import CapeData
 from .calibration import CalibrationData
 from .shepherd_io import ShepherdIOException
 from .shepherd_io import ShepherdIO
+from . import commons
 
 # Set default logging handler to avoid "No handler found" warnings.
 logging.getLogger(__name__).addHandler(NullHandler())
@@ -165,9 +166,6 @@ class ShepherdDebug(ShepherdIO):
     with the ADC and DAC.
     """
 
-    MSG_DBG_ADC = 0xF0
-    MSG_DBG_DAC = 0xF1
-
     def __init__(self):
         super().__init__("debug", False, "artificial")
 
@@ -191,13 +189,13 @@ class ShepherdDebug(ShepherdIO):
         else:
             raise ValueError(f"ADC channel { channel } unknown")
 
-        self.send_msg(ShepherdDebug.MSG_DBG_ADC, channel_no)
+        self.send_msg(commons.MSG_DEP_DBG_ADC, channel_no)
 
         msg_type, value = self.get_msg()
-        if msg_type != ShepherdDebug.MSG_DBG_ADC:
+        if msg_type != commons.MSG_DEP_DBG_ADC:
             raise ShepherdIOException(
                 (
-                    f"Expected msg type { ShepherdDebug.MSG_DBG_ADC } "
+                    f"Expected msg type { commons.MSG_DEP_DBG_ADC } "
                     f"got { msg_type }[{ value }]"
                 )
             )
@@ -222,7 +220,7 @@ class ShepherdDebug(ShepherdIO):
         else:
             raise ValueError(f"DAC channel { channel } unknown")
 
-        self.send_msg(ShepherdDebug.MSG_DBG_DAC, dac_command)
+        self.send_msg(commons.MSG_DEP_DBG_DAC, dac_command)
 
     def get_buffer(self, timeout=None):
         raise NotImplementedError("Method not implemented for debugging mode")

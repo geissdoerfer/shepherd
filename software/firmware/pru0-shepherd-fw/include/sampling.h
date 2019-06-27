@@ -1,11 +1,11 @@
 #ifndef __SAMPLING_H_
 #define __SAMPLING_H_
 
-#include "pru_comm_format.h"
-#include "rpmsg_format.h"
+#include "commons.h"
 
 void sampling_init(enum ShepherdMode mode, unsigned int harvesting_voltage);
-void sample(struct SampleBuffer * current_buffer, unsigned int sample_idx, enum ShepherdMode mode);
+void sample(struct SampleBuffer *current_buffer, unsigned int sample_idx,
+	    enum ShepherdMode mode);
 unsigned int sample_dbg_adc(unsigned int channel_no);
 void sample_dbg_dac(unsigned int value);
 

@@ -24,19 +24,9 @@ from pathlib import Path
 from periphery import GPIO
 
 from . import sysfs_interface
-
+from . import commons
 
 logger = logging.getLogger(__name__)
-
-MAX_GPIO_EVT_PER_BUFFER = 16384
-
-MSG_ERROR = 0
-MSG_BUFFER_FROM_HOST = 1
-MSG_BUFFER_FROM_PRU = 2
-
-MSG_ERR_INCOMPLETE = 3
-MSG_ERR_INVALIDCMD = 4
-MSG_ERR_NOFREEBUF = 5
 
 ID_ERR_TIMEOUT = 100
 
@@ -144,9 +134,9 @@ class SharedMem(object):
             # GPIO edge count
             + 4
             # 8B timestamp per GPIO event
-            + 8 * MAX_GPIO_EVT_PER_BUFFER
+            + 8 * commons.MAX_GPIO_EVT_PER_BUFFER
             # 1B GPIO state per GPIO event
-            + MAX_GPIO_EVT_PER_BUFFER  # GPIO edge data
+            + commons.MAX_GPIO_EVT_PER_BUFFER  # GPIO edge data
         )
 
         logger.debug(f"Individual buffer size: { self.buffer_size }B")
@@ -232,7 +222,9 @@ class SharedMem(object):
         gpio_timestamps_ns = np.frombuffer(
             self.mapped_mem, "=u8", count=n_gpio_events, offset=gpio_ts_offset
         )
-        gpio_values_offset = gpio_ts_offset + 8 * MAX_GPIO_EVT_PER_BUFFER
+        gpio_values_offset = (
+            gpio_ts_offset + 8 * commons.MAX_GPIO_EVT_PER_BUFFER
+        )
         gpio_values = np.frombuffer(
             self.mapped_mem,
             "=u1",
@@ -551,7 +543,7 @@ class ShepherdIO(object):
         """
 
         logger.debug(f"Releasing buffer #{ index } to PRU")
-        self.send_msg(MSG_BUFFER_FROM_HOST, index)
+        self.send_msg(commons.MSG_DEP_BUF_FROM_HOST, index)
 
     def get_buffer(self, timeout: float = 1.0):
         """Reads a data buffer from shared memory.
@@ -572,28 +564,30 @@ class ShepherdIO(object):
         """
         msg_type, value = self.get_msg(timeout)
 
-        if msg_type == MSG_BUFFER_FROM_PRU:
+        if msg_type == commons.MSG_DEP_BUF_FROM_PRU:
             logger.debug(f"Retrieving buffer { value } from shared memory")
             buf = self.shared_mem.read_buffer(value)
             return value, buf
 
-        elif msg_type == MSG_ERR_INCOMPLETE:
+        elif msg_type == commons.MSG_DEP_ERR_INCMPLT:
             raise ShepherdIOException(
-                "Got incomplete buffer", MSG_ERR_INCOMPLETE, value
+                "Got incomplete buffer", commons.MSG_DEP_ERR_INCMPLT, value
             )
 
-        elif msg_type == MSG_ERR_INVALIDCMD:
+        elif msg_type == commons.MSG_DEP_ERR_INVLDCMD:
             raise ShepherdIOException(
-                "PRU received invalid command", MSG_ERR_INVALIDCMD, value
+                "PRU received invalid command",
+                commons.MSG_DEP_ERR_INVLDCMD,
+                value,
             )
-        elif msg_type == MSG_ERR_NOFREEBUF:
+        elif msg_type == commons.MSG_DEP_ERR_NOFREEBUF:
             raise ShepherdIOException(
-                "PRU ran out of buffers", MSG_ERR_NOFREEBUF, value
+                "PRU ran out of buffers", commons.MSG_DEP_ERR_NOFREEBUF, value
             )
         else:
             raise ShepherdIOException(
                 (
-                    f"Expected msg type { MSG_BUFFER_FROM_PRU } "
+                    f"Expected msg type { commons.MSG_DEP_BUF_FROM_PRU } "
                     f"got { msg_type }[{ value }]"
                 )
             )
