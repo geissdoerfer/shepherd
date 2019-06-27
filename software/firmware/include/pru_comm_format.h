@@ -14,18 +14,22 @@
 
 #define MAX_GPIO_EVT_PER_BUFFER 16384
 
-enum ShepherdMode{MODE_HARVESTING, MODE_LOAD, MODE_EMULATION, MODE_DEBUG};
-enum ShepherdState{STATE_UNKNOWN, STATE_IDLE, STATE_ARMED, STATE_RUNNING, STATE_FAULT};
+enum ShepherdMode { MODE_HARVESTING, MODE_LOAD, MODE_EMULATION, MODE_DEBUG };
+enum ShepherdState {
+	STATE_UNKNOWN,
+	STATE_IDLE,
+	STATE_ARMED,
+	STATE_RUNNING,
+	STATE_FAULT
+};
 
-struct gpio_edges_s
-{
+struct gpio_edges_s {
 	uint32_t idx;
-	uint32_t ticks_offset[MAX_GPIO_EVT_PER_BUFFER];
+	uint64_t timestamp_ns[MAX_GPIO_EVT_PER_BUFFER];
 	char bitmask[MAX_GPIO_EVT_PER_BUFFER];
 } __attribute__((packed));
 
-struct SharedMem
-{
+struct SharedMem {
 	uint32_t shepherd_state;
 	uint32_t shepherd_mode;
 	uint32_t harvesting_voltage;
@@ -36,7 +40,7 @@ struct SharedMem
 	uint32_t buffer_period_ns;
 	uint64_t next_timestamp_ns;
 	simple_mutex_t gpio_edges_mutex;
-	struct gpio_edges_s * gpio_edges;
-}__attribute__((packed));
+	struct gpio_edges_s *gpio_edges;
+} __attribute__((packed));
 
 #endif /* __PRU_COMM_FORMAT_H_ */
