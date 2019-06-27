@@ -24,7 +24,7 @@ from pathlib import Path
 from periphery import GPIO
 
 from . import sysfs_interface
-from .datalog import DataBuffer
+
 
 logger = logging.getLogger(__name__)
 
@@ -56,6 +56,53 @@ class ShepherdIOException(Exception):
         super().__init__(message)
         self.id = id
         self.value = value
+
+
+class GPIOEdges(object):
+    """Python representation of GPIO edge buffer
+    
+    On detection of an edge, shepherd stores the state of all sampled GPIO pins
+    together with the corresponding timestamp
+    """
+
+    def __init__(
+        self, timestamps_ns: np.ndarray = None, values: np.ndarray = None
+    ):
+        if timestamps_ns is None:
+            self.timestamps_ns = np.empty(0)
+            self.values = np.empty(0)
+        else:
+            self.timestamps_ns = timestamps_ns
+            self.values = values
+
+    def __len__(self):
+        return self.values.size
+
+
+class DataBuffer(object):
+    """Python representation of a shepherd buffer.
+    
+    Containing IV samples with corresponding timestamp and info about any
+    detected GPIO edges
+    """
+
+    def __init__(
+        self,
+        voltage: np.ndarray,
+        current: np.ndarray,
+        timestamp_ns: int = None,
+        gpio_edges: GPIOEdges = None,
+    ):
+        self.timestamp_ns = timestamp_ns
+        self.voltage = voltage
+        self.current = current
+        if gpio_edges is not None:
+            self.gpio_edges = gpio_edges
+        else:
+            self.gpio_edges = GPIOEdges()
+
+    def __len__(self):
+        return self.voltage.size
 
 
 class SharedMem(object):
@@ -96,8 +143,8 @@ class SharedMem(object):
             + 2 * 4 * self.samples_per_buffer
             # GPIO edge count
             + 4
-            # 4B timestamp per GPIO event
-            + 4 * MAX_GPIO_EVT_PER_BUFFER
+            # 8B timestamp per GPIO event
+            + 8 * MAX_GPIO_EVT_PER_BUFFER
             # 1B GPIO state per GPIO event
             + MAX_GPIO_EVT_PER_BUFFER  # GPIO edge data
         )
@@ -182,25 +229,19 @@ class SharedMem(object):
             logger.info(f"Buffer contains {n_gpio_events} gpio events")
 
         gpio_ts_offset = gpio_struct_offset + 4
-        gpio_time_offsets = np.frombuffer(
-            self.mapped_mem, "=u4", count=n_gpio_events, offset=gpio_ts_offset
+        gpio_timestamps_ns = np.frombuffer(
+            self.mapped_mem, "=u8", count=n_gpio_events, offset=gpio_ts_offset
         )
-        gpio_values_offset = gpio_ts_offset + 4 * MAX_GPIO_EVT_PER_BUFFER
+        gpio_values_offset = gpio_ts_offset + 8 * MAX_GPIO_EVT_PER_BUFFER
         gpio_values = np.frombuffer(
             self.mapped_mem,
             "=u1",
             count=n_gpio_events,
             offset=gpio_values_offset,
         )
+        gpio_edges = GPIOEdges(gpio_timestamps_ns, gpio_values)
 
-        return DataBuffer(
-            buffer_timestamp,
-            self.samples_per_buffer,
-            voltage,
-            current,
-            gpio_time_offsets,
-            gpio_values,
-        )
+        return DataBuffer(voltage, current, buffer_timestamp, gpio_edges)
 
     def write_buffer(self, index, voltage, current):
 
@@ -483,6 +524,34 @@ class ShepherdIO(object):
             state (bool): True for 'on', False for 'off'
         """
         self.gpios["adc_rst_pdn"].write(state)
+
+    def set_harvesting_voltage(self, dac_value: int):
+        """Sets the reference voltage for the boost converter
+
+        In some cases, it is necessary to fix the harvesting voltage, instead
+        of relying on the built-in MPPT algorithm of the BQ25505. This function
+        allows setting the set point by writing the desired value to the
+        corresponding DAC. Note that the setting only takes effect, if MPPT
+        is disabled (see set_mppt())
+
+        Args:
+            dac_value (int): Value to be written to DAC
+        """
+        sysfs_interface.set_harvesting_voltage(dac_value)
+
+    def release_buffer(self, index: int):
+        """Returns a buffer to the PRU
+
+        After reading the content of a buffer and potentially filling it with
+        emulation data, we have to release the buffer to the PRU to avoid it
+        running out of buffers.
+
+        Args:
+            index (int): Index of the buffer. 0 <= index < n_buffers
+        """
+
+        logger.debug(f"Releasing buffer #{ index } to PRU")
+        self.send_msg(MSG_BUFFER_FROM_HOST, index)
 
     def get_buffer(self, timeout: float = 1.0):
         """Reads a data buffer from shared memory.
