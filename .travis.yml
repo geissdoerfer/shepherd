@@ -8,7 +8,7 @@ script:
  - cd software/packaging
  - docker build -t shepherd-builder-img .
  - docker create -it --name shepherd-builder shepherd-builder-img
- - docker $PROJECT_DIR/software shepherd-builder:/code
+ - docker cp $PROJECT_DIR/software shepherd-builder:/code
  - docker start -a shepherd-builder
  - docker cp shepherd-builder:/artifacts $PROJECT_DIR/
  - cd $PROJECT_DIR
