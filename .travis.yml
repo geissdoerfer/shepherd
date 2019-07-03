@@ -1,0 +1,25 @@
+language: c
+
+services:
+  - docker
+
+script:
+ - export PROJECT_DIR=$PWD
+ - cd software/packaging
+ - docker build -t shepherd-builder-img .
+ - docker create -it --name shepherd-builder shepherd-builder-img
+ - docker cp ../software shepherd-builder:/code
+ - docker start -a shepherd-builder
+ - docker cp shepherd-builder:/artifacts $PROJECT_DIR/
+ - cd $PROJECT_DIR
+
+deploy:
+  provider: releases
+  api_key: $GH_TOKEN
+  file:
+    - "shepherd-dkms_1.0-0_all.deb"
+    - "shepherd-firmware_1-0_all.deb"
+    - "python3-shepherd_1.0-1_all.deb"
+    - "shepherd_1.0_all.deb"
+    - "Packages.gz"
+  skip_cleanup: true
