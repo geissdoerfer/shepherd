@@ -12,14 +12,11 @@ script:
  - docker start -a shepherd-builder
  - docker cp shepherd-builder:/artifacts $PROJECT_DIR/
  - cd $PROJECT_DIR
+ - ls $PROJECT_DIR/artifacts
 
 deploy:
   provider: releases
   api_key: $GH_TOKEN
-  file:
-    - "artifacts/shepherd-dkms_1.0-0_all.deb"
-    - "artifacts/shepherd-firmware_1-0_all.deb"
-    - "artifacts/python3-shepherd_1.0-1_all.deb"
-    - "artifacts/shepherd_1.0_all.deb"
-    - "artifacts/Packages.gz"
+  file_glob: true
+  file: "artifacts/*"
   skip_cleanup: true
