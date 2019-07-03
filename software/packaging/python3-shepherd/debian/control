@@ -1,0 +1,14 @@
+Source: shepherd
+Section: python
+Priority: optional
+Build-Depends: dh-python, python3-setuptools, python3-all, debhelper (>= 9)
+Standards-Version: 3.9.6
+Maintainer: Kai Geissdoerfer <kai.geissdoerfer@tu-dresden.de>
+Homepage: <https://github.com/geissdoerfer/shepherd>
+
+
+Package: python3-shepherd
+Architecture: all
+Pre-Depends: python3-pip
+Depends: ${misc:Depends}, ${python3:Depends}, shepherd-dkms, shepherd-firmware, zlib1g-dev, libjpeg-dev, python3-pip, python3-numpy, python3-scipy, python3-zmq, python3-gevent, python3-h5py
+Description: Synchronized Energy Harvesting Emulator and Recorder

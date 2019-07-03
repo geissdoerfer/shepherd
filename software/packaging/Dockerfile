@@ -17,6 +17,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     devscripts \
     dpkg-dev \
     gzip \
+    equivs \
     python-all \
     python3-all \
     python3-setuptools \

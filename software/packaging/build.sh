@@ -1,25 +1,6 @@
 #!/bin/bash
 set -e
 
-build_python_package() {
-    cd /code/packaging/python3-shepherd
-
-    ln -s /code/python-package python-package
-
-    cd python-package
-
-    python3 setup.py --command-packages=stdeb.command sdist_dsc
-
-    cp /code/packaging/python3-shepherd/debian/rules deb_dist/shepherd-1.0/debian
-    cp /code/packaging/python3-shepherd/debian/postinst deb_dist/shepherd-1.0/debian
-
-    cd deb_dist/shepherd-1.0
-
-    dpkg-buildpackage -uc -us
-
-    cp ../python3-shepherd_1.0-1_all.deb /artifacts/debian
-}
-
 build_firmware() {
     cd /code/packaging/shepherd-firmware
 
@@ -38,7 +19,32 @@ build_kernel_module() {
 
     dpkg-buildpackage -uc -us
 
-    cp ../shepherd-kernel-dkms_1.0-0_all.deb /artifacts/debian
+    cp ../shepherd-dkms_1.0-0_all.deb /artifacts/debian
+}
+
+build_python_package() {
+    cd /code/packaging/python3-shepherd
+
+    ln -s /code/python-package python-package
+
+    cd python-package
+
+    python3 setup.py --command-packages=stdeb.command sdist_dsc
+
+    cp /code/packaging/python3-shepherd/debian/* deb_dist/shepherd-1.0/debian
+
+    cd deb_dist/shepherd-1.0
+
+    dpkg-buildpackage -uc -us
+
+    cp ../python3-shepherd_1.0-1_all.deb /artifacts/debian
+}
+
+build_meta_package() {
+    cd /code/packaging/shepherd
+    equivs-build ns-control
+
+    cp shepherd_1.0_all.deb /artifacts/debian
 }
 
 make_repository() {
@@ -48,7 +54,8 @@ make_repository() {
 
 mkdir -p /artifacts/debian
 
-build_python_package
 build_firmware
 build_kernel_module
+build_python_package
+build_meta_package
 make_repository
