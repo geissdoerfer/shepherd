@@ -1,0 +1,11 @@
+Source: shepherd-firmware
+Maintainer: Kai Geissdoerfer <kai.geissdoerfer@tu-dresden.de>
+Build-Depends: debhelper (>=11)
+Standards-Version: 4.3.0.3
+Homepage: <https://github.com/geissdoerfer/shepherd>
+
+Package: shepherd-firmware
+Architecture: all
+Multi-Arch: foreign
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: SHEPHERD device tree overlay

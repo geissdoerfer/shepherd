@@ -118,7 +118,7 @@ install: all
 	@echo 'Installing project: $(PROJ_NAME)'
 	@echo ''
 	@echo 'Installing firmware to /lib/firmware'
-	@cp $(TARGET) /lib/firmware/am335x-pru$(PRU_NUM)-$(FW_NAME)-fw
+	install -D $(TARGET) $(DESTDIR)/lib/firmware/am335x-pru$(PRU_NUM)-$(FW_NAME)-fw
 	@echo ''
 	@echo '************************************************************'
 	@echo ''

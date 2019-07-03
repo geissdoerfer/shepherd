@@ -1,0 +1,3 @@
+#!/bin/sh
+
+pip3 install bokeh zerorpc click_config_file python-periphery
