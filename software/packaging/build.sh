@@ -31,7 +31,7 @@ build_python_package() {
 
     python3 setup.py --command-packages=stdeb.command sdist_dsc
 
-    cp /code/packaging/python3-shepherd/debian/* deb_dist/shepherd-1.0/latest
+    cp /code/packaging/python3-shepherd/debian/* deb_dist/shepherd-1.0/debian/
 
     cd deb_dist/shepherd-1.0
 
