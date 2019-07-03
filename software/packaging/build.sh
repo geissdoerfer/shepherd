@@ -9,7 +9,7 @@ build_firmware() {
 
     dpkg-buildpackage -uc -us
 
-    cp ../shepherd-firmware_1-0_all.deb /artifacts/debian
+    cp ../shepherd-firmware_1-0_all.deb /artifacts/latest
 }
 
 build_kernel_module() {
@@ -19,7 +19,7 @@ build_kernel_module() {
 
     dpkg-buildpackage -uc -us
 
-    cp ../shepherd-dkms_1.0-0_all.deb /artifacts/debian
+    cp ../shepherd-dkms_1.0-0_all.deb /artifacts/latest
 }
 
 build_python_package() {
@@ -31,7 +31,7 @@ build_python_package() {
 
     python3 setup.py --command-packages=stdeb.command sdist_dsc
 
-    cp /code/packaging/python3-shepherd/debian/* deb_dist/shepherd-1.0/debian
+    cp /code/packaging/python3-shepherd/debian/* deb_dist/shepherd-1.0/latest
 
     cd deb_dist/shepherd-1.0
 
@@ -44,15 +44,15 @@ build_meta_package() {
     cd /code/packaging/shepherd
     equivs-build ns-control
 
-    cp shepherd_1.0_all.deb /artifacts/debian
+    cp shepherd_1.0_all.deb /artifacts/latest
 }
 
 make_repository() {
     cd /artifacts
-    dpkg-scanpackages debian /dev/null | gzip -9c > debian/Packages.gz
+    dpkg-scanpackages latest /dev/null | gzip -9c > latest/Packages.gz
 }
 
-mkdir -p /artifacts/debian
+mkdir -p /artifacts/latest
 
 build_firmware
 build_kernel_module
