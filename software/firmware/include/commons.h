@@ -48,8 +48,8 @@ struct GPIOEdges {
 struct SampleBuffer {
 	uint32_t len;
 	uint64_t timestamp_ns;
-	uint32_t values_voltage[SAMPLES_PER_BUFFER / 2];
-	uint32_t values_current[SAMPLES_PER_BUFFER / 2];
+	uint32_t values_voltage[SAMPLES_PER_BUFFER];
+	uint32_t values_current[SAMPLES_PER_BUFFER];
 	struct GPIOEdges gpio_edges;
 } __attribute__((packed));
 
