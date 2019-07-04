@@ -13,9 +13,6 @@ script:
  - docker cp shepherd-builder:/artifacts $PROJECT_DIR/
  - cd $PROJECT_DIR
 
-deploy:
-  provider: releases
-  api_key: $GH_TOKEN
-  file_glob: true
-  file: "artifacts/latest/*"
-  skip_cleanup: true
+after_success:
+  - export SSHPASS=$DEPLOY_PASS
+  - sshpass -e scp artifacts/debian/* $DEPLOY_USER@$DEPLOY_HOST:shepherd/debian/
