@@ -173,7 +173,7 @@ class SharedMem(object):
         # The buffers are organized as an array in shared memory
         # buffer i starts at i * buffersize
         buffer_offset = index * self.buffer_size
-        logger.debug(f"Seeking { index * self.buffer_size }")
+        logger.debug(f"Seeking 0x{index * self.buffer_size:04X}")
         self.mapped_mem.seek(buffer_offset)
 
         # Read the header consisting of 12 (4 + 8 Bytes)
@@ -410,6 +410,12 @@ class ShepherdIO(object):
         sysfs_interface.wait_for_state("running", timeout)
 
     def cleanup(self):
+
+        try:
+            sysfs_interface.stop()
+        except Exception:
+            pass
+
         if self.shared_mem is not None:
             self.shared_mem.__exit__()
 
