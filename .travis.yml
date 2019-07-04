@@ -21,5 +21,4 @@ script:
 after_success:
   - export SSHPASS=$DEPLOY_PASS
   - ls artifacts/debian
-  - cat $DEPLOY_USER@$DEPLOY_HOST
-  - sshpass -e scp artifacts/debian/* $DEPLOY_USER@$DEPLOY_HOST:shepherd/debian/
+  - sshpass -e scp -v artifacts/debian/* $DEPLOY_USER@$DEPLOY_HOST:shepherd/debian/
