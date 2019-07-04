@@ -45,13 +45,24 @@ int pru_comm_exit(void)
 static enum hrtimer_restart
 delayed_start_callback(struct hrtimer *timer_for_restart)
 {
+	struct timespec ts_now;
+	uint64_t now_ns_system;
+
 	pru_comm_trigger(HOST_PRU_EVT_START);
+
+	/* Timestamp system clock */
+	getnstimeofday(&ts_now);
+
+	now_ns_system = (uint64_t)timespec_to_ns(&ts_now);
+
+	printk(KERN_INFO "shprd: Triggered delayed start@%llu", now_ns_system);
 	return HRTIMER_NORESTART;
 }
 
 int pru_comm_schedule_delayed_start(unsigned int start_time_second)
 {
 	ktime_t trigger_timer_time;
+	uint64_t trigger_timer_time_ns;
 
 	trigger_timer_time = ktime_set((const s64)start_time_second, 0);
 
@@ -60,8 +71,13 @@ int pru_comm_schedule_delayed_start(unsigned int start_time_second)
      * start. This allows the PRU enough time to receive the interrupt and
      * prepare itself to start at exactly the right time.
      */
-	trigger_timer_time = ktime_sub_ns(trigger_timer_time,
-					  pru_comm_get_buffer_period_ns() / 2);
+	trigger_timer_time = ktime_sub_ns(
+		trigger_timer_time, 3 * pru_comm_get_buffer_period_ns() / 4);
+
+	trigger_timer_time_ns = ktime_to_ns(trigger_timer_time);
+
+	printk(KERN_INFO "shprd: Delayed start timer set to %llu",
+	       trigger_timer_time_ns);
 
 	hrtimer_start(&delayed_start_timer, trigger_timer_time,
 		      HRTIMER_MODE_ABS);

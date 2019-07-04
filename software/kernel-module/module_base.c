@@ -12,7 +12,7 @@
 #include "sysfs_interface.h"
 
 static struct rproc *rproc_prus[2];
-static phandle pru_phandles[] = { 0xF5, 0xF6 };
+static phandle pru_phandles[] = { 0xF6, 0xF7 };
 
 /*
  * Handler for incoming RPMSG messages from PRU1. We only expect one type of
