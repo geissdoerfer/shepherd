@@ -3,6 +3,11 @@ language: c
 services:
   - docker
 
+addons:
+  apt:
+    packages:
+     - sshpass
+
 script:
  - export PROJECT_DIR=$PWD
  - cd software/packaging
