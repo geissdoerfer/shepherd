@@ -23,7 +23,7 @@ def log_writer(tmp_path, mode):
         mode=mode,
         calibration_data=calib,
         force=True,
-        store_name=tmp_path / "test.h5",
+        store_path=tmp_path / "test.h5",
     ) as lw:
         yield lw
 

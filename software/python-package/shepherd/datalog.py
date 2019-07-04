@@ -35,6 +35,15 @@ ExceptionRecord = namedtuple(
 )
 
 
+def unique_path(base_path: str, suffix: str):
+    counter = 0
+    while True:
+        path = base_path.with_suffix(f".{ counter }{ suffix }")
+        if not path.exists():
+            return path
+        counter += 1
+
+
 class LogWriter(object):
     "Stores data coming from PRU's in HDF5 format"
 
@@ -43,7 +52,7 @@ class LogWriter(object):
 
     def __init__(
         self,
-        store_name: str,
+        store_path: Path,
         calibration_data: CalibrationData,
         mode: str = "harvesting",
         force: bool = False,
@@ -53,20 +62,31 @@ class LogWriter(object):
         """Initialize all relevant parameters before opening the file
 
         Args:
-            store_name (str): Name of the HDF5 file that data will be written to
+            store_path (str): Name of the HDF5 file that data will be written to
             calibration_data (CalibrationData): Data is written as raw ADC
-                values. We need calibration data in order to convert to physical units later.
+                values. We need calibration data in order to convert to physical
+                units later.
             mode (str): Indicatee if this is data from recording or emulation
-            force (bool): Overwrite any existing file with the same name
-            samples_per_buffer (int): Number of samples contained in a single shepherd buffer
-            buffer_period_ns (int): Duration of a single shepherd buffer in nanoseconds
+            force (bool): Overwrite existing file with the same name
+            samples_per_buffer (int): Number of samples contained in a single
+                shepherd buffer
+            buffer_period_ns (int): Duration of a single shepherd buffer in
+                nanoseconds
 
         """
-        if force or not Path(store_name).exists():
-            self.store_name = store_name
+        if force or not store_path.exists():
+            self.store_path = store_path
         else:
-            raise FileExistsError(f"Measurement {store_name} already exists")
-
+            base_dir = store_path.resolve().parents[0]
+            self.store_path = unique_path(
+                base_dir / store_path.stem, store_path.suffix
+            )
+            logger.warning(
+                (
+                    f"File {str(store_path)} already exists.. "
+                    f"storing under {str(self.store_path)} instead"
+                )
+            )
         self.mode = mode
         self.calibration_data = calibration_data
         self.chunk_shape = (samples_per_buffer,)
@@ -84,7 +104,7 @@ class LogWriter(object):
         the state of the GPIO pins.
 
         """
-        self._h5file = h5py.File(self.store_name, "w")
+        self._h5file = h5py.File(self.store_path, "w")
 
         # Store the mode in order to allow user to differentiate harvesting vs load data
         self._h5file.attrs.__setitem__("mode", self.mode)
@@ -228,12 +248,12 @@ class LogReader(object):
     eventually to the Digital-to-Analog converter
     """
 
-    def __init__(self, store_name: str, samples_per_buffer: int):
-        self.store_name = store_name
+    def __init__(self, store_path: Path, samples_per_buffer: int):
+        self.store_path = store_path
         self.samples_per_buffer = samples_per_buffer
 
     def __enter__(self):
-        self._h5file = h5py.File(self.store_name, "r")
+        self._h5file = h5py.File(self.store_path, "r")
         self.ds_voltage = self._h5file["data"]["voltage"]
         self.ds_current = self._h5file["data"]["current"]
         return self

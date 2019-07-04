@@ -1,5 +1,8 @@
 import pytest
 from pathlib import Path
+import numpy as np
+
+from shepherd.shepherd_io import DataBuffer
 
 from shepherd import LogWriter
 from shepherd import LogReader
@@ -8,11 +11,28 @@ from shepherd import CalibrationData
 from shepherd import ShepherdIOException
 
 
+def random_data(len):
+    return np.random.randint(0, high=2 ** 18, size=len, dtype="u4")
+
+
+@pytest.fixture()
+def data_buffer():
+    len_ = 10_000
+    voltage = random_data(len_)
+    current = random_data(len_)
+    data = DataBuffer(voltage, current, 1551848387472)
+    return data
+
+
 @pytest.fixture
-def data_h5():
-    here = Path(__file__).absolute()
-    name = "record_example.h5"
-    return here.parent / name
+def data_h5(tmp_path):
+    name = tmp_path / "record_example.h5"
+    with LogWriter(name, CalibrationData.from_default()) as store:
+        for i in range(100):
+            len_ = 10_000
+            fake_data = DataBuffer(random_data(len_), random_data(len_), i)
+            store.write_data(fake_data)
+    return name
 
 
 @pytest.fixture()
@@ -20,7 +40,7 @@ def log_writer(tmp_path):
     calib = CalibrationData.from_default()
     with LogWriter(
         force=True,
-        store_name=tmp_path / "test.h5",
+        store_path=tmp_path / "test.h5",
         mode="load",
         calibration_data=calib,
     ) as lw:
