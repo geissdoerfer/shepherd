@@ -1,9 +1,15 @@
 import logging
 import time
+import sys
 from logging import NullHandler
+from pathlib import Path
+from contextlib import ExitStack
+import invoke
+import signal
 
 from .datalog import LogReader
 from .datalog import LogWriter
+from .datalog import ExceptionRecord
 from .eeprom import EEPROM
 from .eeprom import CapeData
 from .calibration import CalibrationData
@@ -29,7 +35,7 @@ class Recorder(ShepherdIO):
         self,
         mode: str = "harvesting",
         load: str = "artificial",
-        harvesting_voltage: int = None,
+        harvesting_voltage: float = None,
         init_charge: bool = False,
     ):
         """Inits super class and harvesting voltage.
@@ -224,3 +230,178 @@ class ShepherdDebug(ShepherdIO):
 
     def get_buffer(self, timeout=None):
         raise NotImplementedError("Method not implemented for debugging mode")
+
+
+def record(
+    store_path: Path,
+    mode: str = "harvesting",
+    length: float = None,
+    force: bool = False,
+    defaultcalib: bool = False,
+    harvesting_voltage: float = None,
+    load: str = "artificial",
+    init_charge: bool = False,
+    start_time: float = None,
+):
+
+    if defaultcalib:
+        calib = CalibrationData.from_default()
+    else:
+        with EEPROM() as eeprom:
+            calib = eeprom.read_calibration()
+
+    recorder = Recorder(
+        mode=mode,
+        load=load,
+        harvesting_voltage=harvesting_voltage,
+        init_charge=init_charge,
+    )
+    log_writer = LogWriter(
+        store_path=store_path, calibration_data=calib, mode=mode, force=force
+    )
+    with ExitStack() as stack:
+
+        stack.enter_context(recorder)
+        stack.enter_context(log_writer)
+
+        res = invoke.run("hostname", hide=True, warn=True)
+        log_writer["hostname"] = res.stdout
+
+        recorder.start_sampling(start_time)
+        if start_time is None:
+            recorder.wait_for_start(15)
+        else:
+            logger.info(f"waiting {start_time - time.time():.2f}s until start")
+            recorder.wait_for_start(start_time - time.time() + 15)
+
+        logger.info("shepherd started!")
+
+        def exit_gracefully(signum, frame):
+            stack.close()
+            sys.exit(0)
+
+        signal.signal(signal.SIGTERM, exit_gracefully)
+        signal.signal(signal.SIGINT, exit_gracefully)
+
+        if length is None:
+            ts_end = sys.float_info.max
+        else:
+            ts_end = time.time() + length
+
+        while time.time() < ts_end:
+            try:
+                idx, buf = recorder.get_buffer()
+            except ShepherdIOException as e:
+                logger.error(
+                    f"ShepherdIOException(ID={e.id}, val={e.value}): {str(e)}"
+                )
+                err_rec = ExceptionRecord(
+                    int(time.time() * 1e9), str(e), e.value
+                )
+                log_writer.write_exception(err_rec)
+
+                raise
+
+            log_writer.write_data(buf)
+            recorder.release_buffer(idx)
+
+
+def emulate(
+    harvestingstore_path: Path,
+    loadstore_path: Path = None,
+    length: float = None,
+    force: bool = False,
+    defaultcalib: bool = False,
+    harvesting_voltage: float = None,
+    load: str = "artificial",
+    init_charge: bool = False,
+    start_time: float = None,
+):
+
+    if defaultcalib:
+        calib = CalibrationData.from_default()
+    else:
+        with EEPROM() as eeprom:
+            calib = eeprom.read_calibration()
+
+    if loadstore_path is not None:
+        log_writer = LogWriter(
+            store_path=loadstore_path,
+            force=force,
+            mode="load",
+            calibration_data=calib,
+        )
+
+    log_reader = LogReader(harvestingstore_path, 10000)
+
+    with ExitStack() as stack:
+        if loadstore_path is not None:
+            stack.enter_context(log_writer)
+
+        stack.enter_context(log_reader)
+
+        emu = Emulator(
+            calibration_recording=log_reader.get_calibration_data(),
+            calibration_emulation=calib,
+            init_charge=init_charge,
+            load=load,
+        )
+        stack.enter_context(emu)
+
+        # Preload emulator with some data
+        for idx, buffer in enumerate(log_reader.read_blocks(end=10)):
+            emu.put_buffer(idx, buffer)
+
+        emu.start_sampling(start_time)
+        if start_time is None:
+            emu.wait_for_start(15)
+        else:
+            logger.info(f"waiting {start_time - time.time():.2f}s until start")
+            emu.wait_for_start(start_time - time.time() + 15)
+
+        logger.info("shepherd started!")
+
+        def exit_gracefully(signum, frame):
+            stack.close()
+            sys.exit(0)
+
+        signal.signal(signal.SIGTERM, exit_gracefully)
+        signal.signal(signal.SIGINT, exit_gracefully)
+
+        if length is None:
+            ts_end = sys.float_info.max
+        else:
+            ts_end = time.time() + length
+
+        for hrvst_buf in log_reader.read_blocks(start=10):
+            try:
+                idx, load_buf = emu.get_buffer(timeout=1)
+            except ShepherdIOException as e:
+                logger.error(
+                    f"ShepherdIOException(ID={e.id}, val={e.value}): {str(e)}"
+                )
+                if loadstore_path is not None:
+                    err_rec = ExceptionRecord(
+                        int(time.time() * 1e9), str(e), e.value
+                    )
+                    log_writer.write_exception(err_rec)
+
+                raise
+
+            if loadstore_path is not None:
+                log_writer.write_data(load_buf)
+
+            emu.put_buffer(idx, hrvst_buf)
+
+            if time.time() > ts_end:
+                break
+            led_status = not led_status
+
+        if loadstore_path is not None:
+            # Read all remaining buffers from PRU
+            while True:
+                try:
+                    idx, load_buf = emu.get_buffer(timeout=1)
+                    log_writer.write_data(load_buf)
+                except ShepherdIOException as e:
+                    break

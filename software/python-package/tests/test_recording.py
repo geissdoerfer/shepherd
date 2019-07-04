@@ -1,8 +1,11 @@
 import pytest
 import logging
+import h5py
+import time
 
 from shepherd import LogWriter
 from shepherd import Recorder
+from shepherd import record
 from shepherd import CalibrationData
 
 consoleHandler = logging.StreamHandler()
@@ -47,7 +50,7 @@ def test_instantiation(shepherd_up):
 
 
 @pytest.mark.hardware
-def test_recording(log_writer, recorder):
+def test_recorder(log_writer, recorder):
     recorder.start_sampling()
     recorder.wait_for_start(15)
 
@@ -55,3 +58,26 @@ def test_recording(log_writer, recorder):
         idx, buf = recorder.get_buffer()
         log_writer.write_data(buf)
         recorder.release_buffer(idx)
+
+
+@pytest.mark.hardware
+@pytest.mark.timeout(30)
+def test_record_fn(tmp_path, shepherd_up):
+    d = tmp_path / "rec.h5"
+    start_time = int(time.time() + 10)
+    record(
+        store_path=d,
+        mode="harvesting",
+        length=10,
+        force=True,
+        defaultcalib=True,
+        harvesting_voltage=None,
+        load="artificial",
+        init_charge=False,
+        start_time=start_time,
+    )
+
+    with h5py.File(d, "r+") as hf:
+        n_samples = hf["data"]["time"].shape[0]
+        assert 900_000 < n_samples <= 1_100_000
+        assert hf["data"]["time"][0] == start_time * 1e9
