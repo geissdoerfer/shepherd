@@ -1,3 +1,15 @@
+# -*- coding: utf-8 -*-
+
+"""
+shepherd.commons
+~~~~~
+Defines details of the data exchange protocol between PRU0 and the python code.
+The various parameters need to be the same on both sides. Refer to the
+corresponding implementation in `software/firmware/include/commons.h`
+
+:copyright: (c) 2019 by Kai Geissdoerfer.
+:license: MIT, see LICENSE for more details.
+"""
 MAX_GPIO_EVT_PER_BUFFER = 16384
 
 MSG_DEP_ERROR = 0
