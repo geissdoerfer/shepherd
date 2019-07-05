@@ -1,17 +1,20 @@
 from setuptools import setup
 
 requirements = [
-    "click", "click-config-file", "numpy", "bokeh", "python-periphery",
-    "scipy", "zerorpc", "invoke", "h5py"
+    "click",
+    "click-config-file",
+    "numpy",
+    "python-periphery",
+    "scipy",
+    "zerorpc",
+    "invoke",
+    "h5py",
 ]
 
 setup(
     name="shepherd",
     version="1.0",
-    description=(
-        "Synchronized Energy Harvesting"
-        "Emulator and Recorder"
-    ),
+    description=("Synchronized Energy Harvesting" "Emulator and Recorder"),
     packages=["shepherd"],
     classifiers=[
         # How mature is this project? Common values are

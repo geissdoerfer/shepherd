@@ -10,5 +10,5 @@ Homepage: <https://github.com/geissdoerfer/shepherd>
 Package: python3-shepherd
 Architecture: all
 Pre-Depends: python3-pip
-Depends: ${misc:Depends}, ${python3:Depends}, shepherd-dkms, shepherd-firmware, zlib1g-dev, libjpeg-dev, python3-pip, python3-numpy, python3-scipy, python3-zmq, python3-gevent, python3-h5py
+Depends: ${misc:Depends}, ${python3:Depends}, shepherd-dkms, shepherd-firmware, zlib1g-dev, python3-pip, python3-numpy, python3-scipy, python3-zmq, python3-gevent, python3-h5py
 Description: Synchronized Energy Harvesting Emulator and Recorder
