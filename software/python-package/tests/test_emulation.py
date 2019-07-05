@@ -18,15 +18,6 @@ def random_data(len):
     return np.random.randint(0, high=2 ** 18, size=len, dtype="u4")
 
 
-@pytest.fixture()
-def data_buffer():
-    len_ = 10_000
-    voltage = random_data(len_)
-    current = random_data(len_)
-    data = DataBuffer(voltage, current, 1551848387472)
-    return data
-
-
 @pytest.fixture
 def data_h5(tmp_path):
     store_path = tmp_path / "record_example.h5"
