@@ -28,7 +28,12 @@ setup(
     ],
     install_requires=requirements,
     setup_requires=["pytest-runner"],
-    tests_require=["pytest>=3.9", "pyfakefs", "pytest-timeout"],
+    tests_require=[
+        "pytest>=3.9",
+        "pyfakefs",
+        "pytest-timeout",
+        "pytest-click",
+    ],
     author="Kai Geissdoerfer",
     author_email="kai dot geissdoerfer at tu-dresden dot de",
     entry_points={"console_scripts": ["shepherd-sheep=shepherd.cli:cli"]},
