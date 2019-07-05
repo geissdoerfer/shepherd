@@ -110,7 +110,7 @@ def set_mode(mode: str):
     Args:
         mode (str): Target mode. Must be one of harvesting, load, emulation
     """
-    if mode not in ["harvesting", "load", "emulation"]:
+    if mode not in ["harvesting", "load", "emulation", "debug"]:
         raise SysfsInterfaceException("invalid value for mode")
     if get_state() != "idle":
         raise SysfsInterfaceException(
