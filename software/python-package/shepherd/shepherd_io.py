@@ -328,7 +328,13 @@ class ShepherdIO(object):
 
             # Ask PRU for size of individual buffers
             samples_per_buffer = sysfs_interface.get_samples_per_buffer()
+            logger.debug(f"Samples per buffer: { samples_per_buffer }")
+
             self.n_buffers = sysfs_interface.get_n_buffers()
+            logger.debug(f"Number of buffers: { self.n_buffers }")
+
+            self.buffer_period_ns = sysfs_interface.get_buffer_period_ns()
+            logger.debug(f"Buffer period: { self.buffer_period_ns }ns")
 
             self.shared_mem = SharedMem(
                 mem_address, mem_size, self.n_buffers, samples_per_buffer
@@ -336,7 +342,6 @@ class ShepherdIO(object):
 
             self.shared_mem.__enter__()
 
-            logger.debug(f"Samples per buffer: { samples_per_buffer }")
             logger.debug(f"Setting load to '{ self.load }'")
             self.set_load(self.load)
 
