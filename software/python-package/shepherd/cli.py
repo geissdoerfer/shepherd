@@ -104,6 +104,7 @@ def run(command, parameters, verbose):
 @cli.command(short_help="Record data")
 @click.option(
     "--store-path",
+    "-o",
     type=click.Path(),
     default="/var/shepherd/recordings",
     help="Dir or file path for resulting hdf5 file",
@@ -170,6 +171,7 @@ def record(
 @click.argument("harvestingstore-path", type=click.Path(exists=True))
 @click.option(
     "--loadstore-path",
+    "-o",
     type=click.Path(),
     default="/var/shepherd/recordings",
     help="Dir or file path for resulting hdf5 file",
