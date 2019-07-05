@@ -1,12 +1,15 @@
 import pytest
 from pathlib import Path
 import numpy as np
+import h5py
+import time
 
 from shepherd.shepherd_io import DataBuffer
 
 from shepherd import LogWriter
 from shepherd import LogReader
 from shepherd import Emulator
+from shepherd import emulate
 from shepherd import CalibrationData
 from shepherd import ShepherdIOException
 
@@ -26,13 +29,13 @@ def data_buffer():
 
 @pytest.fixture
 def data_h5(tmp_path):
-    name = tmp_path / "record_example.h5"
-    with LogWriter(name, CalibrationData.from_default()) as store:
+    store_path = tmp_path / "record_example.h5"
+    with LogWriter(store_path, CalibrationData.from_default()) as store:
         for i in range(100):
             len_ = 10_000
             fake_data = DataBuffer(random_data(len_), random_data(len_), i)
             store.write_data(fake_data)
-    return name
+    return store_path
 
 
 @pytest.fixture()
@@ -58,6 +61,7 @@ def emulator(request, shepherd_up, log_reader):
     emu = Emulator(
         calibration_recording=log_reader.get_calibration_data(),
         calibration_emulation=CalibrationData.from_default(),
+        initial_buffers=log_reader.read_blocks(end=64),
     )
     request.addfinalizer(emu.__del__)
     emu.__enter__()
@@ -67,9 +71,6 @@ def emulator(request, shepherd_up, log_reader):
 
 @pytest.mark.hardware
 def test_emulation(log_writer, log_reader, emulator):
-    # Preload emulator with some data
-    for idx, buffer in enumerate(log_reader.read_blocks(end=64)):
-        emulator.put_buffer(idx, buffer)
 
     emulator.start_sampling()
     emulator.wait_for_start(15)
@@ -84,3 +85,26 @@ def test_emulation(log_writer, log_reader, emulator):
 
     with pytest.raises(ShepherdIOException):
         idx, load_buf = emulator.get_buffer(timeout=1)
+
+
+@pytest.mark.hardware
+def test_emulate_fn(tmp_path, data_h5, shepherd_up):
+    d = tmp_path / "rec.h5"
+    start_time = int(time.time() + 15)
+    emulate(
+        harvestingstore_path=data_h5,
+        loadstore_path=d,
+        length=None,
+        force=True,
+        defaultcalib=True,
+        load="artificial",
+        init_charge=False,
+        start_time=start_time,
+    )
+
+    with h5py.File(d, "r+") as hf_load, h5py.File(data_h5) as hf_hrvst:
+        assert (
+            hf_load["data"]["time"].shape[0]
+            == hf_hrvst["data"]["time"].shape[0]
+        )
+        assert hf_load["data"]["time"][0] == start_time * 1e9

@@ -1,3 +1,15 @@
+# -*- coding: utf-8 -*-
+
+"""
+shepherd.__init__
+~~~~~
+Provides main API functionality for recording and emulation with shepherd.
+
+
+:copyright: (c) 2019 by Kai Geissdoerfer.
+:license: MIT, see LICENSE for more details.
+"""
+
 import logging
 import time
 import sys
@@ -72,6 +84,7 @@ class Recorder(ShepherdIO):
 
         # Give the PRU empty buffers to begin with
         for i in range(self.n_buffers):
+            time.sleep(float(self.buffer_period_ns) / 1e9)
             self.release_buffer(i)
             logger.debug(f"sent empty buffer {i}")
 
@@ -88,6 +101,7 @@ class Emulator(ShepherdIO):
 
     def __init__(
         self,
+        initial_buffers: list,
         calibration_recording: CalibrationData,
         calibration_emulation: CalibrationData,
         load: str = "node",
@@ -123,6 +137,8 @@ class Emulator(ShepherdIO):
                 + calibration_emulation["emulation"][channel]["offset"]
             )
 
+        self._initial_buffers = initial_buffers
+
     def __enter__(self):
         super().__enter__()
 
@@ -131,6 +147,11 @@ class Emulator(ShepherdIO):
         # We will dynamically generate the reference voltage for the boost
         # converter. This only takes effect if MPPT is disabled.
         self.set_mppt(False)
+
+        # Preload emulator with some data
+        for idx, buffer in enumerate(self._initial_buffers):
+            time.sleep(float(self.buffer_period_ns) / 1e9)
+            self.put_buffer(idx, buffer)
 
         return self
 
@@ -243,7 +264,26 @@ def record(
     init_charge: bool = False,
     start_time: float = None,
 ):
+    """Starts recording.
 
+    Args:
+        store_path (Path): Path of hdf5 file where IV measurements should be
+            stored
+        mode (str): 'harvesting' for recording harvesting data, 'load' for
+            recording load consumption data.
+        length (float): Maximum time duration of emulation in seconds
+        force (bool): True to overwrite existing file under loadstore_path,
+            False to store under different name
+        defaultcalib (bool): True to use default calibration values, False to
+            read calibration data from EEPROM
+        harvesting_voltage (float): Sets a fixed reference voltage for the
+            input of the boost converter. Alternative to MPPT algorithm.
+        load (str): Type of load. 'artificial' for dummy, 'node' for sensor
+            node
+        init_charge (bool): True to pre-charge capacitor before starting
+            emulation
+        start_time (float): Desired start time of emulation in unix epoch time
+    """
     if defaultcalib:
         calib = CalibrationData.from_default()
     else:
@@ -312,12 +352,28 @@ def emulate(
     length: float = None,
     force: bool = False,
     defaultcalib: bool = False,
-    harvesting_voltage: float = None,
     load: str = "artificial",
     init_charge: bool = False,
     start_time: float = None,
 ):
+    """Starts emulation.
 
+    Args:
+        harvestingstore_path (Path): path of hdf5 file containing recorded
+            harvesting data
+        loadstore_path (Path): Path of hdf5 file where load measurements should
+            be stored
+        length (float): Maximum time duration of emulation in seconds
+        force (bool): True to overwrite existing file under loadstore_path,
+            False to store under different name
+        defaultcalib (bool): True to use default calibration values, False to
+            read calibration data from EEPROM
+        load (str): Type of load. 'artificial' for dummy, 'node' for sensor
+            node
+        init_charge (bool): True to pre-charge capacitor before starting
+            emulation
+        start_time (float): Desired start time of emulation in unix epoch time
+    """
     if defaultcalib:
         calib = CalibrationData.from_default()
     else:
@@ -332,7 +388,7 @@ def emulate(
             calibration_data=calib,
         )
 
-    log_reader = LogReader(harvestingstore_path, 10000)
+    log_reader = LogReader(harvestingstore_path, 10_000)
 
     with ExitStack() as stack:
         if loadstore_path is not None:
@@ -343,14 +399,11 @@ def emulate(
         emu = Emulator(
             calibration_recording=log_reader.get_calibration_data(),
             calibration_emulation=calib,
+            initial_buffers=log_reader.read_blocks(end=64),
             init_charge=init_charge,
             load=load,
         )
         stack.enter_context(emu)
-
-        # Preload emulator with some data
-        for idx, buffer in enumerate(log_reader.read_blocks(end=10)):
-            emu.put_buffer(idx, buffer)
 
         emu.start_sampling(start_time)
         if start_time is None:
@@ -373,7 +426,7 @@ def emulate(
         else:
             ts_end = time.time() + length
 
-        for hrvst_buf in log_reader.read_blocks(start=10):
+        for hrvst_buf in log_reader.read_blocks(start=64):
             try:
                 idx, load_buf = emu.get_buffer(timeout=1)
             except ShepherdIOException as e:
@@ -395,13 +448,12 @@ def emulate(
 
             if time.time() > ts_end:
                 break
-            led_status = not led_status
 
-        if loadstore_path is not None:
-            # Read all remaining buffers from PRU
-            while True:
-                try:
-                    idx, load_buf = emu.get_buffer(timeout=1)
+        # Read all remaining buffers from PRU
+        while True:
+            try:
+                idx, load_buf = emu.get_buffer(timeout=1)
+                if loadstore_path is not None:
                     log_writer.write_data(load_buf)
-                except ShepherdIOException as e:
-                    break
+            except ShepherdIOException as e:
+                break
