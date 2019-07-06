@@ -25,6 +25,7 @@ from periphery import GPIO
 
 from . import sysfs_interface
 from . import commons
+from . import calibration_default
 
 logger = logging.getLogger(__name__)
 
@@ -531,7 +532,7 @@ class ShepherdIO(object):
         """
         self.gpios["adc_rst_pdn"].write(state)
 
-    def set_harvesting_voltage(self, dac_value: int):
+    def set_harvesting_voltage(self, voltage: float):
         """Sets the reference voltage for the boost converter
 
         In some cases, it is necessary to fix the harvesting voltage, instead
@@ -541,8 +542,13 @@ class ShepherdIO(object):
         is disabled (see set_mppt())
 
         Args:
-            dac_value (int): Value to be written to DAC
+            voltage (float): Desired harvesting voltage in volt
+        Raises:
+            ValueError: If requested voltage is out of range
         """
+        if not 0.0 <= voltage <= 4.8:
+            raise ValueError("Voltage out of range 0..4.8V")
+        dac_value = calibration_default.voltage_to_dac(voltage)
         sysfs_interface.set_harvesting_voltage(dac_value)
 
     def release_buffer(self, index: int):

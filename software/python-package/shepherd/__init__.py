@@ -57,8 +57,8 @@ class Recorder(ShepherdIO):
                 or 'load' to record target consumption data.
             load (str): Selects, which load should be used for recording.
                 Should be one of 'artificial' or 'node'.
-            harvesting_voltage (int): Allows to provide fixed reference voltage
-                to boost converter. Binary DAC value.
+            harvesting_voltage (float): Fixed reference voltage for boost
+                converter input.
             init_charge (bool): True to pre-charge the capacitor before starting
                 recording.
         """
