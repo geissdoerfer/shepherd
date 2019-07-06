@@ -25,7 +25,7 @@ def data_h5(tmp_path):
         for i in range(100):
             len_ = 10_000
             fake_data = DataBuffer(random_data(len_), random_data(len_), i)
-            store.write_data(fake_data)
+            store.write_buffer(fake_data)
     return store_path
 
 
@@ -52,7 +52,7 @@ def emulator(request, shepherd_up, log_reader):
     emu = Emulator(
         calibration_recording=log_reader.get_calibration_data(),
         calibration_emulation=CalibrationData.from_default(),
-        initial_buffers=log_reader.read_blocks(end=64),
+        initial_buffers=log_reader.read_buffers(end=64),
     )
     request.addfinalizer(emu.__del__)
     emu.__enter__()
@@ -63,16 +63,16 @@ def emulator(request, shepherd_up, log_reader):
 @pytest.mark.hardware
 def test_emulation(log_writer, log_reader, emulator):
 
-    emulator.start_sampling()
+    emulator.start(wait_blocking=False)
     emulator.wait_for_start(15)
-    for hrvst_buf in log_reader.read_blocks(start=64):
+    for hrvst_buf in log_reader.read_buffers(start=64):
         idx, load_buf = emulator.get_buffer(timeout=1)
-        log_writer.write_data(load_buf)
+        log_writer.write_buffer(load_buf)
         emulator.put_buffer(idx, hrvst_buf)
 
     for _ in range(63):
         idx, load_buf = emulator.get_buffer(timeout=1)
-        log_writer.write_data(load_buf)
+        log_writer.write_buffer(load_buf)
 
     with pytest.raises(ShepherdIOException):
         idx, load_buf = emulator.get_buffer(timeout=1)

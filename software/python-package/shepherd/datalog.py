@@ -45,7 +45,21 @@ def unique_path(base_path: str, suffix: str):
 
 
 class LogWriter(object):
-    "Stores data coming from PRU's in HDF5 format"
+    """Stores data coming from PRU's in HDF5 format
+
+    Args:
+        store_path (str): Name of the HDF5 file that data will be written to
+        calibration_data (CalibrationData): Data is written as raw ADC
+            values. We need calibration data in order to convert to physical
+            units later.
+        mode (str): Indicates if this is data from recording or emulation
+        force (bool): Overwrite existing file with the same name
+        samples_per_buffer (int): Number of samples contained in a single
+            shepherd buffer
+        buffer_period_ns (int): Duration of a single shepherd buffer in
+            nanoseconds
+
+    """
 
     complevel = 1
     compalg = "lzf"
@@ -59,21 +73,6 @@ class LogWriter(object):
         samples_per_buffer: int = 10_000,
         buffer_period_ns: int = 100_000_000,
     ):
-        """Initialize all relevant parameters before opening the file
-
-        Args:
-            store_path (str): Name of the HDF5 file that data will be written to
-            calibration_data (CalibrationData): Data is written as raw ADC
-                values. We need calibration data in order to convert to physical
-                units later.
-            mode (str): Indicatee if this is data from recording or emulation
-            force (bool): Overwrite existing file with the same name
-            samples_per_buffer (int): Number of samples contained in a single
-                shepherd buffer
-            buffer_period_ns (int): Duration of a single shepherd buffer in
-                nanoseconds
-
-        """
         if force or not store_path.exists():
             self.store_path = store_path
         else:
@@ -197,8 +196,12 @@ class LogWriter(object):
         self._h5file.flush()
         self._h5file.close()
 
-    def write_data(self, buffer: DataBuffer):
-        "Writes data from buffer to file"
+    def write_buffer(self, buffer: DataBuffer):
+        """Writes data from buffer to file.
+        
+        Args:
+            buffer (DataBuffer): Buffer containing IV data
+        """
 
         # First, we have to resize the corresponding datasets
         current_length = self.data_grp["time"].shape[0]
@@ -230,6 +233,11 @@ class LogWriter(object):
             ] = buffer.gpio_edges.values
 
     def write_exception(self, exception: ExceptionRecord):
+        """Writes an exception to the hdf5 file.
+
+        Args:
+            exception (ExceptionRecord): The exception to be logged
+        """
         current_length = self.log_grp["time"].shape[0]
         self.log_grp["time"].resize((current_length + 1,))
         self.log_grp["time"][current_length] = exception.timestamp
@@ -244,11 +252,14 @@ class LogWriter(object):
 
 
 class LogReader(object):
-    """ Sequentially Reads data from HDF5 file for streaming to PRUs and
-    eventually to the Digital-to-Analog converter
+    """ Sequentially Reads data from HDF5 file.
+
+    Args:
+        store_path (Path): Path of hdf5 file containing IV data
+        samples_per_buffer (int): Number of IV samples per buffer
     """
 
-    def __init__(self, store_path: Path, samples_per_buffer: int):
+    def __init__(self, store_path: Path, samples_per_buffer: int = 10_000):
         self.store_path = store_path
         self.samples_per_buffer = samples_per_buffer
 
@@ -261,7 +272,16 @@ class LogReader(object):
     def __exit__(self, *exc):
         self._h5file.close()
 
-    def read_blocks(self, start: int = 0, end: int = None):
+    def read_buffers(self, start: int = 0, end: int = None):
+        """Reads the specified range of buffers from the hdf5 file.
+
+        Args:
+            start (int): Index of first buffer to be read
+            end (int): Index of last buffer to be read
+        
+        Yields:
+            Buffers between start and end
+        """
         if end is None:
             end = int(
                 self._h5file["data"]["time"].shape[0] / self.samples_per_buffer
@@ -285,7 +305,10 @@ class LogReader(object):
             yield db
 
     def get_calibration_data(self):
-        """Retrieves calibration data from all of the groups
+        """Reads calibration data from hdf5 file.
+
+        Returns:
+            Calibration data as CalibrationData object
         """
         nested_dict = lambda: defaultdict(nested_dict)
         calib = nested_dict()

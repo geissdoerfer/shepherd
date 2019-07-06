@@ -398,13 +398,16 @@ class ShepherdIO(object):
             except BlockingIOError:
                 break
 
-    def start_sampling(self, start_time: int = None):
+    def start(self, start_time: int = None, wait_blocking: bool = True):
         """Starts sampling either now or at later point in time.
 
         Args:
             start_time (int): Desired start time in unix time
+            wait_blocking (bool): If true, block until start has completed
         """
         sysfs_interface.start(start_time)
+        if wait_blocking:
+            self.wait_for_start(1000000)
 
     def wait_for_start(self, timeout: float):
         """Waits until shepherd has started sampling.

@@ -35,7 +35,7 @@ def data_h5(tmp_path):
         for i in range(100):
             len_ = 10_000
             fake_data = DataBuffer(random_data(len_), random_data(len_), i)
-            store.write_data(fake_data)
+            store.write_buffer(fake_data)
     return name
 
 
@@ -82,7 +82,7 @@ def test_logwriter_data(mode, tmp_path, data_buffer, calibration_data):
     with LogWriter(
         store_path=d, calibration_data=calibration_data, mode=mode
     ) as log:
-        log.write_data(data_buffer)
+        log.write_buffer(data_buffer)
 
     with h5py.File(d, "r") as written:
 
@@ -117,7 +117,7 @@ def test_exception_logging(tmp_path, data_buffer, calibration_data):
     d = tmp_path / "harvest.h5"
 
     with LogWriter(store_path=d, calibration_data=calibration_data) as writer:
-        writer.write_data(data_buffer)
+        writer.write_buffer(data_buffer)
 
         ts = int(time.time() * 1000)
         writer.write_exception(
@@ -151,14 +151,14 @@ def test_key_value_store(tmp_path, calibration_data):
 def test_logwriter_performance(tmp_path, data_buffer, calibration_data):
     d = tmp_path / "harvest.h5"
     with LogWriter(store_path=d, calibration_data=calibration_data) as log:
-        log.write_data(data_buffer)
+        log.write_buffer(data_buffer)
 
 
 def test_logreader_performance(data_h5):
     read_durations = []
     with LogReader(store_path=data_h5, samples_per_buffer=10_000) as reader:
         past = time.time()
-        for data in reader.read_blocks():
+        for data in reader.read_buffers():
             now = time.time()
             elapsed = now - past
             read_durations.append(elapsed)

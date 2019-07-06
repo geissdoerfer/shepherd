@@ -102,8 +102,8 @@ class Emulator(ShepherdIO):
     def __init__(
         self,
         initial_buffers: list,
-        calibration_recording: CalibrationData,
-        calibration_emulation: CalibrationData,
+        calibration_recording: CalibrationData = None,
+        calibration_emulation: CalibrationData = None,
         load: str = "node",
         init_charge: bool = False,
     ):
@@ -121,6 +121,16 @@ class Emulator(ShepherdIO):
         """
         super().__init__("emulation", init_charge, load)
 
+        if calibration_emulation is None:
+            calibration_emulation = CalibrationData.from_default()
+            logger.warning(
+                "No emulation calibration data provided - using defaults"
+            )
+        if calibration_recording is None:
+            calibration_recording = CalibrationData.from_default()
+            logger.warning(
+                "No recording calibration data provided - using defaults"
+            )
         # Values from recording are binary ADC values. We have to send binary
         # DAC values to the DAC for emulation. To directly convert ADC to DAC
         # values, we precalculate the 'transformation coefficients' based on
@@ -307,7 +317,7 @@ def record(
         res = invoke.run("hostname", hide=True, warn=True)
         log_writer["hostname"] = res.stdout
 
-        recorder.start_sampling(start_time)
+        recorder.start(start_time, wait_blocking=False)
         if start_time is None:
             recorder.wait_for_start(15)
         else:
@@ -342,7 +352,7 @@ def record(
 
                 raise
 
-            log_writer.write_data(buf)
+            log_writer.write_buffer(buf)
             recorder.release_buffer(idx)
 
 
@@ -399,13 +409,13 @@ def emulate(
         emu = Emulator(
             calibration_recording=log_reader.get_calibration_data(),
             calibration_emulation=calib,
-            initial_buffers=log_reader.read_blocks(end=64),
+            initial_buffers=log_reader.read_buffers(end=64),
             init_charge=init_charge,
             load=load,
         )
         stack.enter_context(emu)
 
-        emu.start_sampling(start_time)
+        emu.start(start_time, wait_blocking=False)
         if start_time is None:
             emu.wait_for_start(15)
         else:
@@ -426,7 +436,7 @@ def emulate(
         else:
             ts_end = time.time() + length
 
-        for hrvst_buf in log_reader.read_blocks(start=64):
+        for hrvst_buf in log_reader.read_buffers(start=64):
             try:
                 idx, load_buf = emu.get_buffer(timeout=1)
             except ShepherdIOException as e:
@@ -442,7 +452,7 @@ def emulate(
                 raise
 
             if loadstore_path is not None:
-                log_writer.write_data(load_buf)
+                log_writer.write_buffer(load_buf)
 
             emu.put_buffer(idx, hrvst_buf)
 
@@ -454,6 +464,6 @@ def emulate(
             try:
                 idx, load_buf = emu.get_buffer(timeout=1)
                 if loadstore_path is not None:
-                    log_writer.write_data(load_buf)
+                    log_writer.write_buffer(load_buf)
             except ShepherdIOException as e:
                 break

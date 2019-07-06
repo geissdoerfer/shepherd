@@ -51,12 +51,12 @@ def test_instantiation(shepherd_up):
 
 @pytest.mark.hardware
 def test_recorder(log_writer, recorder):
-    recorder.start_sampling()
+    recorder.start(wait_blocking=False)
     recorder.wait_for_start(15)
 
     for _ in range(100):
         idx, buf = recorder.get_buffer()
-        log_writer.write_data(buf)
+        log_writer.write_buffer(buf)
         recorder.release_buffer(idx)
 
 
