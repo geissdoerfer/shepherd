@@ -12424,39 +12424,32 @@ and reference mode, where it tracks the voltage applied to V_EMU_V</text>
 <label x="185.42" y="139.7" size="1.27" layer="95" rot="R180" xref="yes"/>
 </segment>
 </net>
-<net name="GPIO3_BB" class="0">
-<segment>
-<wire x1="53.34" y1="147.32" x2="43.18" y2="147.32" width="0.1524" layer="91"/>
-<label x="43.18" y="147.32" size="1.27" layer="95" rot="R180" xref="yes"/>
-<pinref part="IC14" gate="A" pin="1A"/>
-</segment>
-</net>
 <net name="GPIO0_TARGET" class="0">
 <segment>
-<wire x1="88.9" y1="139.7" x2="99.06" y2="139.7" width="0.1524" layer="91"/>
-<label x="99.06" y="139.7" size="1.27" layer="95" xref="yes"/>
-<pinref part="IC14" gate="A" pin="4Y"/>
+<wire x1="53.34" y1="139.7" x2="43.18" y2="139.7" width="0.1524" layer="91"/>
+<label x="43.18" y="139.7" size="1.27" layer="95" rot="R180" xref="yes"/>
+<pinref part="IC14" gate="A" pin="4A"/>
 </segment>
 </net>
 <net name="GPIO1_TARGET" class="0">
 <segment>
-<wire x1="88.9" y1="144.78" x2="99.06" y2="144.78" width="0.1524" layer="91"/>
-<label x="99.06" y="144.78" size="1.27" layer="95" xref="yes"/>
-<pinref part="IC14" gate="A" pin="2Y"/>
+<wire x1="53.34" y1="144.78" x2="43.18" y2="144.78" width="0.1524" layer="91"/>
+<label x="43.18" y="144.78" size="1.27" layer="95" rot="R180" xref="yes"/>
+<pinref part="IC14" gate="A" pin="2A"/>
 </segment>
 </net>
 <net name="GPIO2_TARGET" class="0">
 <segment>
-<wire x1="88.9" y1="142.24" x2="99.06" y2="142.24" width="0.1524" layer="91"/>
-<label x="99.06" y="142.24" size="1.27" layer="95" xref="yes"/>
-<pinref part="IC14" gate="A" pin="3Y"/>
+<wire x1="53.34" y1="142.24" x2="43.18" y2="142.24" width="0.1524" layer="91"/>
+<label x="43.18" y="142.24" size="1.27" layer="95" rot="R180" xref="yes"/>
+<pinref part="IC14" gate="A" pin="3A"/>
 </segment>
 </net>
 <net name="GPIO3_TARGET" class="0">
 <segment>
-<wire x1="88.9" y1="147.32" x2="99.06" y2="147.32" width="0.1524" layer="91"/>
-<label x="99.06" y="147.32" size="1.27" layer="95" xref="yes"/>
-<pinref part="IC14" gate="A" pin="1Y"/>
+<wire x1="53.34" y1="147.32" x2="43.18" y2="147.32" width="0.1524" layer="91"/>
+<label x="43.18" y="147.32" size="1.27" layer="95" rot="R180" xref="yes"/>
+<pinref part="IC14" gate="A" pin="1A"/>
 </segment>
 </net>
 <net name="V_SUP_TARGET" class="0">
@@ -12468,13 +12461,6 @@ and reference mode, where it tracks the voltage applied to V_EMU_V</text>
 <pinref part="IC15" gate="G$1" pin="IN+"/>
 <wire x1="86.36" y1="50.8" x2="104.14" y2="50.8" width="0.1524" layer="91"/>
 <junction x="104.14" y="50.8"/>
-</segment>
-</net>
-<net name="GPIO2_BB" class="0">
-<segment>
-<wire x1="53.34" y1="142.24" x2="43.18" y2="142.24" width="0.1524" layer="91"/>
-<label x="43.18" y="142.24" size="1.27" layer="95" rot="R180" xref="yes"/>
-<pinref part="IC14" gate="A" pin="3A"/>
 </segment>
 </net>
 <net name="UART_RX_TARGET" class="0">
@@ -12539,18 +12525,32 @@ and reference mode, where it tracks the voltage applied to V_EMU_V</text>
 <junction x="45.72" y="152.4"/>
 </segment>
 </net>
-<net name="GPIO0_BB" class="0">
+<net name="GPIO3_BB" class="0">
 <segment>
-<wire x1="53.34" y1="139.7" x2="43.18" y2="139.7" width="0.1524" layer="91"/>
-<label x="43.18" y="139.7" size="1.27" layer="95" rot="R180" xref="yes"/>
-<pinref part="IC14" gate="A" pin="4A"/>
+<wire x1="88.9" y1="147.32" x2="99.06" y2="147.32" width="0.1524" layer="91"/>
+<label x="99.06" y="147.32" size="1.27" layer="95" xref="yes"/>
+<pinref part="IC14" gate="A" pin="1Y"/>
 </segment>
 </net>
 <net name="GPIO1_BB" class="0">
 <segment>
-<wire x1="53.34" y1="144.78" x2="43.18" y2="144.78" width="0.1524" layer="91"/>
-<label x="43.18" y="144.78" size="1.27" layer="95" rot="R180" xref="yes"/>
-<pinref part="IC14" gate="A" pin="2A"/>
+<wire x1="88.9" y1="144.78" x2="99.06" y2="144.78" width="0.1524" layer="91"/>
+<label x="99.06" y="144.78" size="1.27" layer="95" xref="yes"/>
+<pinref part="IC14" gate="A" pin="2Y"/>
+</segment>
+</net>
+<net name="GPIO2_BB" class="0">
+<segment>
+<wire x1="88.9" y1="142.24" x2="99.06" y2="142.24" width="0.1524" layer="91"/>
+<label x="99.06" y="142.24" size="1.27" layer="95" xref="yes"/>
+<pinref part="IC14" gate="A" pin="3Y"/>
+</segment>
+</net>
+<net name="GPIO0_BB" class="0">
+<segment>
+<wire x1="88.9" y1="139.7" x2="99.06" y2="139.7" width="0.1524" layer="91"/>
+<label x="99.06" y="139.7" size="1.27" layer="95" xref="yes"/>
+<pinref part="IC14" gate="A" pin="4Y"/>
 </segment>
 </net>
 </nets>
