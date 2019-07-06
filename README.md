@@ -4,7 +4,7 @@
 
 *shepherd* is a testbed for the battery-less Internet of Things.
 It allows to record harvesting conditions at multiple points in space over time.
-The recorded data can then be replayed to attached wireless sensor nodes, examining their behaviour under the constraints of spatio-temporal energy availability.
+The recorded data can be replayed to attached wireless sensor nodes, examining their behaviour under the constraints of spatio-temporal energy availability.
 
 For a detailed description see our paper [TODO]
 
@@ -22,14 +22,14 @@ You can install it to SD-card or the on-board EMMC flash, following the instruct
 The following instructions describe how to install the *shepherd* software on a group of *shepherd* nodes connected to an Ethernet network.
 We assume that you know the IP address of each node and that your local machine is connected to the same network.
 
-If you haven't done it already, clone this repository to your machine:
+If you haven't done it already, clone this repository to your local machine:
 
 ```
 git clone https://github.com/geissdoerfer/shepherd.git
 ```
 
 Next, install the tools used for installing and controlling the *shepherd* nodes.
-The tools are hosted on `PyPI` and require Python verions `>=3.6`.
+The tools are hosted on `PyPI` and require Python version `>=3.6`.
 Use your Python dependency manager to install the following two tools.
 For example, using `pip`:
 
@@ -105,6 +105,6 @@ Read the docs here.
 
 The following people have contributed to *shepherd*:
 
-[Kai Geissdoerfer](https://www.researchgate.net/profile/Kai_Geissdoerfer)
-Mikolaj Chwalisz
-[Marco Zimmerling](https://wwwpub.zih.tu-dresden.de/~mzimmerl/)
+ - [Kai Geissdoerfer](https://www.researchgate.net/profile/Kai_Geissdoerfer)
+ - [Mikolaj Chwalisz](https://www.tkn.tu-berlin.de/team/chwalisz/)
+ - [Marco Zimmerling](https://wwwpub.zih.tu-dresden.de/~mzimmerl/)
