@@ -24,14 +24,14 @@ There are two reference harvesting capelets, one for solar harvesting (hardware/
 
 .. table:: Header P1 pinout
 
-    +----------+-----------------------------------------+
-    |Pin number|Description                              |
-    +==========+=========================================+
-    |1         |Ground                                   |
-    |2         |Ground                                   |
-    |3         |Input of DC/DC converter                 |
-    |4         |Input for setting MPP via voltage divider|
-    +----------+-----------------------------------------+
+    ========== =========================================
+    Pin number Description
+    ========== =========================================
+    1          Ground
+    2          Ground
+    3          Input of DC/DC converter
+    4          Input for setting MPP via voltage divider
+    ========== =========================================
 
 Target capelet
 --------------
@@ -81,11 +81,13 @@ Therefore, shepherd allow to easily swap the capacitor to experiment with differ
 
 The storage capelet directly connects the two ends of a mounted capacitor to the corresponding traces on the shepherd cape via two custom, 4-pin headers.
 
-========== ===========================================================
-Pin number Description
-========== ===========================================================
-1          +3.3V from BeagleBone LDO, use for any additional circuitry
-2          High side of capacitor
-3          Ground
-4          Ground
-========== ===========================================================
+.. table:: Header P3 pinout
+
+    ========== ===========================================================
+    Pin number Description
+    ========== ===========================================================
+    1          +3.3V from BeagleBone LDO, use for any additional circuitry
+    2          High side of capacitor
+    3          Ground
+    4          Ground
+    ========== ===========================================================
