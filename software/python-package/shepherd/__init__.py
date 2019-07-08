@@ -41,6 +41,17 @@ class Recorder(ShepherdIO):
     Provides an easy to use, high-level interface for recording data with
     shepherd. Configures all hardware and initializes the communication
     with kernel module and PRUs.
+
+    Args:
+        mode (str): Should be either 'harvesting' to record harvesting data
+            or 'load' to record target consumption data.
+        load (str): Selects, which load should be used for recording.
+            Should be one of 'artificial' or 'node'.
+        harvesting_voltage (float): Fixed reference voltage for boost
+            converter input.
+        init_charge (bool): True to pre-charge the capacitor before starting
+            recording.
+
     """
 
     def __init__(
@@ -50,18 +61,6 @@ class Recorder(ShepherdIO):
         harvesting_voltage: float = None,
         init_charge: bool = False,
     ):
-        """Inits super class and harvesting voltage.
-
-        Args:
-            mode (str): Should be either 'harvesting' to record harvesting data
-                or 'load' to record target consumption data.
-            load (str): Selects, which load should be used for recording.
-                Should be one of 'artificial' or 'node'.
-            harvesting_voltage (float): Fixed reference voltage for boost
-                converter input.
-            init_charge (bool): True to pre-charge the capacitor before starting
-                recording.
-        """
         super().__init__(mode, init_charge, load)
 
         self.harvesting_voltage = harvesting_voltage
@@ -97,6 +96,16 @@ class Emulator(ShepherdIO):
     Provides an easy to use, high-level interface for emulating data with
     shepherd. Configures all hardware and initializes the communication
     with kernel module and PRUs.
+
+    Args:
+        calibration_recording (CalibrationData): Shepherd calibration data
+            belonging to the IV data that is being emulated
+        calibration_emulation (CalibrationData): Shepherd calibration data
+            belonging to the cape used for emulation
+        load (str): Selects, which load should be used for recording.
+            Should be one of 'artificial' or 'node'.
+        init_charge (bool): True to pre-charge the capacitor before starting
+            recording.
     """
 
     def __init__(
@@ -107,18 +116,6 @@ class Emulator(ShepherdIO):
         load: str = "node",
         init_charge: bool = False,
     ):
-        """Inits super class and calculates transformation coefficients.
-
-        Args:
-            calibration_recording (CalibrationData): Shepherd calibration data
-                belonging to the IV data that is being emulated
-            calibration_emulation (CalibrationData): Shepherd calibration data
-                belonging to the cape used for emulation
-            load (str): Selects, which load should be used for recording.
-                Should be one of 'artificial' or 'node'.
-            init_charge (bool): True to pre-charge the capacitor before starting
-                recording.
-        """
         super().__init__("emulation", init_charge, load)
 
         if calibration_emulation is None:
