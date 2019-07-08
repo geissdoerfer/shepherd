@@ -59,9 +59,12 @@ class CalibrationData(object):
             for channel in ["voltage", "current"]:
                 calib_dict[component][channel] = dict()
                 for parameter in ["gain", "offset"]:
-                    calib_dict[component][channel][parameter] = float(
-                        vals[counter]
-                    )
+                    val = float(vals[counter])
+                    if np.isnan(val):
+                        raise ValueError(
+                            f"{ component } { channel } { parameter } not a valid number"
+                        )
+                    calib_dict[component][channel][parameter] = val
                     counter += 1
         return cls(calib_dict)
 

@@ -295,7 +295,13 @@ def record(
         calib = CalibrationData.from_default()
     else:
         with EEPROM() as eeprom:
-            calib = eeprom.read_calibration()
+            try:
+                calib = eeprom.read_calibration()
+            except ValueError:
+                logger.warning(
+                    "Couldn't read calibration from EEPROM. Falling back to default values."
+                )
+                calib = CalibrationData.from_default()
 
     recorder = Recorder(
         mode=mode,
@@ -381,11 +387,18 @@ def emulate(
             emulation
         start_time (float): Desired start time of emulation in unix epoch time
     """
+
     if defaultcalib:
         calib = CalibrationData.from_default()
     else:
         with EEPROM() as eeprom:
-            calib = eeprom.read_calibration()
+            try:
+                calib = eeprom.read_calibration()
+            except ValueError:
+                logger.warning(
+                    "Couldn't read calibration from EEPROM. Falling back to default values."
+                )
+                calib = CalibrationData.from_default()
 
     if loadstore_path is not None:
         log_writer = LogWriter(
