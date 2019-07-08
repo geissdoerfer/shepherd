@@ -49,7 +49,7 @@ def yamlprovider(file_path, cmd_name):
 
 
 @click.group(context_settings=dict(help_option_names=["-h", "--help"], obj={}))
-@click.option("-v", "--verbose", count=True, default=2)
+@click.option("-v", "--verbose", count=True, default=1)
 @click.pass_context
 def cli(ctx, verbose):
     "Shepherd: Synchronized Energy Harvesting Emulator and Recorder"
@@ -103,7 +103,7 @@ def run(command, parameters, verbose):
 
 @cli.command(short_help="Record data")
 @click.option(
-    "--store-path",
+    "--output-path",
     "-o",
     type=click.Path(),
     default="/var/shepherd/recordings",
@@ -137,10 +137,13 @@ def run(command, parameters, verbose):
     help="Pre-charge capacitor before starting recording",
 )
 @click.option(
-    "--start-time", type=float, help="Desired start time in unix epoch time"
+    "--start-time",
+    "-s",
+    type=float,
+    help="Desired start time in unix epoch time",
 )
 def record(
-    store_path,
+    output_path,
     mode,
     length,
     force,
@@ -150,7 +153,7 @@ def record(
     init_charge,
     start_time,
 ):
-    pl_store = Path(store_path)
+    pl_store = Path(output_path)
     if pl_store.is_dir():
         pl_store = pl_store / "rec.h5"
 
@@ -168,12 +171,11 @@ def record(
 
 
 @cli.command(short_help="Emulate data")
-@click.argument("harvestingstore-path", type=click.Path(exists=True))
+@click.argument("input-path", type=click.Path(exists=True))
 @click.option(
-    "--loadstore-path",
+    "--output-path",
     "-o",
     type=click.Path(),
-    default="/var/shepherd/recordings",
     help="Dir or file path for resulting hdf5 file",
 )
 @click.option(
@@ -198,8 +200,8 @@ def record(
     "--start-time", type=float, help="Desired start time in unix epoch time"
 )
 def emulate(
-    harvestingstore_path,
-    loadstore_path,
+    input_path,
+    output_path,
     length,
     force,
     defaultcalib,
@@ -207,12 +209,17 @@ def emulate(
     init_charge,
     start_time,
 ):
-    pl_store = Path(loadstore_path)
-    if pl_store.is_dir():
-        pl_store = pl_store / "rec.h5"
+    if output_path is None:
+        pl_store = None
+    else:
+        pl_store = Path(output_path)
+        if pl_store.is_dir():
+            pl_store = pl_store / "rec.h5"
+        else:
+            pl_store = Path("/var/shepherd/recordings") / output_path
 
     run_emulate(
-        harvestingstore_path,
+        input_path,
         pl_store,
         length,
         force,
