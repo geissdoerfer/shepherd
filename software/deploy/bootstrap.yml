@@ -1,0 +1,101 @@
+---
+- name: Base setup
+  hosts: all
+  become: true
+  gather_facts: no
+  vars:
+    default_user: ubuntu
+    default_password: temppwd
+
+  tasks:
+
+  - set_fact:
+      new_user: "{{ ansible_user }}"
+
+  - set_fact:
+      ansible_user: "{{ default_user }}"
+
+  - set_fact:
+      ansible_password: "{{ default_password }}"
+
+  - set_fact:
+      ansible_become_password: "{{ default_password }}"
+
+  - name: Set hostname
+    hostname:
+      name: "{{ inventory_hostname }}"
+
+  - name: Adjust /etc/hosts
+    lineinfile:
+      dest: /etc/hosts
+      regexp: '^127\.0\.1\.1\s+.+\.localdomain\s+.+'
+      line: '127.0.1.1  {{ inventory_hostname }}.localdomain  {{ inventory_hostname }}'
+      state: present
+
+  - name: Add the user joe
+    user:
+      name: "{{ new_user }}"
+      shell: /bin/bash
+      groups: sudo
+      append: yes
+
+  - name: Set authorized key from local file
+    authorized_key:
+      user: "{{ item }}"
+      state: present
+      key: "{{ lookup('file', '~/.ssh/id_rsa.pub') }}"
+    with_items:
+      - "{{ new_user }}"
+
+  - name: Allow sudoers sudo without password
+    lineinfile:
+      path: /etc/sudoers
+      state: present
+      regexp: '^%sudo'
+      line: '%sudo ALL=(ALL) NOPASSWD: ALL'
+      validate: 'visudo -cf %s'
+
+  - name: Update all packages to the latest version
+    apt:
+      upgrade: dist
+      update_cache: yes
+    when: no_update is not defined
+
+  - name: Check if we have hostkeys locally
+    local_action: 'stat path={{ playbook_dir }}/keys/{{ inventory_hostname }}'
+    register: stat_keys
+    become: no
+
+  - name: Copy public keys from local
+    copy:
+      src: '{{ playbook_dir }}/keys/{{ inventory_hostname }}/{{ item }}'
+      dest: '/etc/ssh/'
+      mode: 0644
+    with_items:
+        - ssh_host_ecdsa_key.pub
+        - ssh_host_ed25519_key.pub
+        - ssh_host_rsa_key.pub
+    when: stat_keys.stat.exists == True
+
+  - name: Copy private keys from local
+    copy:
+      src: '{{ playbook_dir }}/keys/{{ inventory_hostname }}/{{ item }}'
+      dest: '/etc/ssh/'
+      mode: 0600
+    with_items:
+        - ssh_host_ecdsa_key
+        - ssh_host_ed25519_key
+        - ssh_host_rsa_key
+    when: stat_keys.stat.exists == True
+
+  - name: restart device
+    shell: sleep 2 && shutdown -r now "Ansible restart"
+    async: 1
+    poll: 0
+    ignore_errors: true
+
+  - name: waiting to come back
+    wait_for_connection:
+      delay: 15
+      timeout: 300
+    become: no
