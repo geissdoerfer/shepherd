@@ -7,6 +7,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     bison \
     flex \
+    pkg-config \
+    gcc-arm-linux-gnueabihf \
+    libc6-dev-armhf-cross \
+    libtool \
+    automake \
+    autotools-dev \
     libyaml-dev \
     pkg-config \
     git \

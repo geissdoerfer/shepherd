@@ -1,0 +1,12 @@
+#!/usr/bin/make -f
+%:
+	dh $@  --with autotools_dev
+
+
+override_dh_auto_configure:
+	dh_auto_configure -- --enable-am335x_gpio --host=arm-linux-gnueabihf
+
+override_dh_strip:
+override_dh_shlibdeps:
+override_dh_installsystemd:
+	dh_installsystemd --no-enable --no-start shepherd-openocd.service

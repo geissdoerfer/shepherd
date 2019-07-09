@@ -1,0 +1,10 @@
+Source: shepherd-openocd
+Maintainer: Kai Geissdoerfer <kai.geissdoerfer@tu-dresden.de>
+Build-Depends: debhelper (>=11), gcc-arm-linux-gnueabihf, pkg-config, libtool, automake, autotools-dev
+Homepage: <https://github.com/geissdoerfer/shepherd>
+
+Package: shepherd-openocd
+Architecture: all
+Multi-Arch: foreign
+Depends: ${misc:Depends}, ${shlibs:Depends}
+Description: Patched openocd for SWD programming via GPIO

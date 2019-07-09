@@ -3,5 +3,5 @@ Homepage: <https://github.com/geissdoerfer/shepherd>
 
 Package: shepherd
 Version: 1.0   
-Depends: python3-shepherd, shepherd-firmware, shepherd-dkms
+Depends: python3-shepherd, shepherd-firmware, shepherd-dkms, shepherd-openocd
 Description: SHEPHERD meta-package

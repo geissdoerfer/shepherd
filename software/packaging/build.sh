@@ -40,6 +40,18 @@ build_python_package() {
     cp ../python3-shepherd_1.0-1_all.deb /artifacts/debian/
 }
 
+build_openocd() {
+    cd /code/packaging/shepherd-openocd
+    git clone --depth 1 http://openocd.zylin.com/openocd
+    cd openocd
+    git submodule update --init
+    git fetch http://openocd.zylin.com/openocd refs/changes/71/4671/2 && git checkout FETCH_HEAD
+    cp -r ../debian ../shepherd.cfg ./
+
+    dpkg-buildpackage -uc -us
+    cp ../shepherd-openocd_1-0_all.deb /artifacts/debian/
+}
+
 build_meta_package() {
     cd /code/packaging/shepherd
     equivs-build ns-control
@@ -54,6 +66,7 @@ make_repository() {
 
 mkdir -p /artifacts/debian
 
+build_openocd
 build_firmware
 build_kernel_module
 build_python_package
