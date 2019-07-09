@@ -89,6 +89,18 @@ class Recorder(ShepherdIO):
 
         return self
 
+    def release_buffer(self, index: int):
+        """Returns a buffer to the PRU
+
+        After reading the content of a buffer and potentially filling it with
+        emulation data, we have to release the buffer to the PRU to avoid it
+        running out of buffers.
+
+        Args:
+            index (int): Index of the buffer. 0 <= index < n_buffers
+        """
+        self._release_buffer(index)
+
 
 class Emulator(ShepherdIO):
     """API for emulating data with shepherd.
@@ -180,7 +192,7 @@ class Emulator(ShepherdIO):
         self.shared_mem.write_buffer(
             index, voltage_transformed, current_transformed
         )
-        self.release_buffer(index)
+        self._release_buffer(index)
 
         logger.debug(
             (
@@ -223,9 +235,9 @@ class ShepherdDebug(ShepherdIO):
         else:
             raise ValueError(f"ADC channel { channel } unknown")
 
-        self.send_msg(commons.MSG_DEP_DBG_ADC, channel_no)
+        self._send_msg(commons.MSG_DEP_DBG_ADC, channel_no)
 
-        msg_type, value = self.get_msg()
+        msg_type, value = self._get_msg()
         if msg_type != commons.MSG_DEP_DBG_ADC:
             raise ShepherdIOException(
                 (
@@ -254,7 +266,7 @@ class ShepherdDebug(ShepherdIO):
         else:
             raise ValueError(f"DAC channel { channel } unknown")
 
-        self.send_msg(commons.MSG_DEP_DBG_DAC, dac_command)
+        self._send_msg(commons.MSG_DEP_DBG_DAC, dac_command)
 
     def get_buffer(self, timeout=None):
         raise NotImplementedError("Method not implemented for debugging mode")

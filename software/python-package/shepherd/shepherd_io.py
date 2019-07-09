@@ -297,13 +297,13 @@ class ShepherdIO(object):
             for name, pin in gpio_pin_nums.items():
                 self.gpios[name] = GPIO(pin, "out")
 
-            self.set_power(True)
+            self._set_power(True)
             self.set_v_fixed(False)
             self.set_mppt(False)
             self.set_harvester(False)
             self.set_lvl_conv(False)
 
-            self.adc_set_power(True)
+            self._adc_set_power(True)
 
             logger.debug("Analog shepherd_io is powered")
 
@@ -316,7 +316,7 @@ class ShepherdIO(object):
             rpmsg_dev = Path("/dev/rpmsg_pru0")
             self.rpmsg_fd = os.open(str(rpmsg_dev), os.O_RDWR | os.O_SYNC)
             os.set_blocking(self.rpmsg_fd, False)
-            self.flush_msgs()
+            self._flush_msgs()
 
             # Ask PRU for base address of shared mem (reserved with remoteproc)
             mem_address = sysfs_interface.get_mem_address()
@@ -353,15 +353,15 @@ class ShepherdIO(object):
                 self.set_v_fixed(False)
 
         except Exception:
-            self.cleanup()
+            self._cleanup()
             raise
         return self
 
     def __exit__(self, *args):
         logger.info("exiting analog shepherd_io")
-        self.cleanup()
+        self._cleanup()
 
-    def send_msg(self, msg_type: int, value: int):
+    def _send_msg(self, msg_type: int, value: int):
         """Sends a formatted message to PRU0 via rpmsg channel.
         
         Args:
@@ -372,7 +372,7 @@ class ShepherdIO(object):
         msg = struct.pack("=II", msg_type, value)
         os.write(self.rpmsg_fd, msg)
 
-    def get_msg(self, timeout: float = 0.5):
+    def _get_msg(self, timeout: float = 0.5):
         """Tries to retrieve formatted message from PRU0 via rpmsg channel.
 
         Args:
@@ -391,7 +391,7 @@ class ShepherdIO(object):
             "Timeout waiting for message", ID_ERR_TIMEOUT
         )
 
-    def flush_msgs(self):
+    def _flush_msgs(self):
         """Flushes rpmsg channel by reading all available bytes."""
         while True:
             try:
@@ -418,7 +418,7 @@ class ShepherdIO(object):
         """
         sysfs_interface.wait_for_state("running", timeout)
 
-    def cleanup(self):
+    def _cleanup(self):
 
         try:
             sysfs_interface.stop()
@@ -435,11 +435,11 @@ class ShepherdIO(object):
         self.set_mppt(False)
         self.set_harvester(False)
         self.set_lvl_conv(False)
-        self.adc_set_power(False)
-        self.set_power(False)
+        self._adc_set_power(False)
+        self._set_power(False)
         logger.debug("Analog shepherd_io is powered down")
 
-    def set_power(self, state: bool):
+    def _set_power(self, state: bool):
         """Controls state of main analog power supply on shepherd cape.
 
         Args:
@@ -520,7 +520,7 @@ class ShepherdIO(object):
         else:
             raise NotImplementedError('Load "{}" not supported'.format(load))
 
-    def adc_set_power(self, state: bool):
+    def _adc_set_power(self, state: bool):
         """Controls power/reset of shepherd's ADC.
 
         The TI ADS8694 has a power/reset pin, that can be used to power down
@@ -551,7 +551,7 @@ class ShepherdIO(object):
         dac_value = calibration_default.voltage_to_dac(voltage)
         sysfs_interface.set_harvesting_voltage(dac_value)
 
-    def release_buffer(self, index: int):
+    def _release_buffer(self, index: int):
         """Returns a buffer to the PRU
 
         After reading the content of a buffer and potentially filling it with
@@ -563,7 +563,7 @@ class ShepherdIO(object):
         """
 
         logger.debug(f"Releasing buffer #{ index } to PRU")
-        self.send_msg(commons.MSG_DEP_BUF_FROM_HOST, index)
+        self._send_msg(commons.MSG_DEP_BUF_FROM_HOST, index)
 
     def get_buffer(self, timeout: float = 1.0):
         """Reads a data buffer from shared memory.
@@ -582,7 +582,7 @@ class ShepherdIO(object):
                 specified timeout
 
         """
-        msg_type, value = self.get_msg(timeout)
+        msg_type, value = self._get_msg(timeout)
 
         if msg_type == commons.MSG_DEP_BUF_FROM_PRU:
             logger.debug(f"Retrieving buffer { value } from shared memory")
