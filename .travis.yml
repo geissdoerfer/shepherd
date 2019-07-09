@@ -22,8 +22,10 @@ before_deploy:
  - cd $PROJECT_DIR/software/shepherd-herd
 
 deploy:
+
  - provider: script
    script: SSHPASS=$DEPLOY_PASS sshpass -e scp -v -o StrictHostKeyChecking=no $PROJECT_DIR/artifacts/debian/* $DEPLOY_USER@$DEPLOY_HOST:shepherd/debian/
+   skip_cleanup: true
 
  - provider: pypi
    user: $PYPI_USER
