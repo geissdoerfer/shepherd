@@ -1,0 +1,10 @@
+Source: shepherd-ptp
+Maintainer: Kai Geissdoerfer <kai.geissdoerfer@tu-dresden.de>
+Build-Depends: debhelper (>=11)
+Homepage: <https://github.com/geissdoerfer/shepherd>
+
+Package: shepherd-ptp
+Architecture: all
+Multi-Arch: foreign
+Depends: ${misc:Depends}, ${shlibs:Depends}, linuxptp
+Description: PTP configuration for use with shepherd
