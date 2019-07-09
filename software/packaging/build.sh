@@ -9,7 +9,7 @@ build_firmware() {
 
     dpkg-buildpackage -uc -us
 
-    cp ../shepherd-firmware_1-0_all.deb /artifacts/debian/
+    cp ../shepherd-firmware_*_all.deb /artifacts/debian/
 }
 
 build_kernel_module() {
@@ -19,7 +19,7 @@ build_kernel_module() {
 
     dpkg-buildpackage -uc -us
 
-    cp ../shepherd-dkms_1.0-0_all.deb /artifacts/debian/
+    cp ../shepherd-dkms_*_all.deb /artifacts/debian/
 }
 
 build_python_package() {
@@ -31,13 +31,13 @@ build_python_package() {
 
     python3 setup.py --command-packages=stdeb.command sdist_dsc
 
-    cp /code/packaging/python3-shepherd/debian/* deb_dist/shepherd-1.0/debian/
+    cp /code/packaging/python3-shepherd/debian/* deb_dist/shepherd-*/debian/
 
-    cd deb_dist/shepherd-1.0
+    cd deb_dist/shepherd-*
 
     dpkg-buildpackage -uc -us
 
-    cp ../python3-shepherd_1.0-1_all.deb /artifacts/debian/
+    cp ../python3-shepherd_*_all.deb /artifacts/debian/
 }
 
 build_openocd() {
@@ -49,14 +49,21 @@ build_openocd() {
     cp -r ../debian ../shepherd.cfg ./
 
     dpkg-buildpackage -uc -us
-    cp ../shepherd-openocd_1-0_all.deb /artifacts/debian/
+    cp ../shepherd-openocd_*_all.deb /artifacts/debian/
+}
+
+build_ptp() {
+    cd /code/packaging/shepherd-ptp
+
+    dpkg-buildpackage -uc -us
+    cp ../shepherd-ptp_*_all.deb /artifacts/debian/
 }
 
 build_meta_package() {
     cd /code/packaging/shepherd
     equivs-build ns-control
 
-    cp shepherd_1.0_all.deb /artifacts/debian/
+    cp shepherd_*_all.deb /artifacts/debian/
 }
 
 make_repository() {
@@ -66,6 +73,7 @@ make_repository() {
 
 mkdir -p /artifacts/debian
 
+build_ptp
 build_openocd
 build_firmware
 build_kernel_module
