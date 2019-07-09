@@ -18,7 +18,13 @@ script:
  - docker cp shepherd-builder:/artifacts $PROJECT_DIR/
  - cd $PROJECT_DIR
 
-after_success:
-  - export SSHPASS=$DEPLOY_PASS
-  - ls artifacts/debian
-  - sshpass -e scp -v -o StrictHostKeyChecking=no artifacts/debian/* $DEPLOY_USER@$DEPLOY_HOST:shepherd/debian/
+before_deploy:
+ - cd $PROJECT_DIR/software/shepherd-herd
+
+deploy:
+ - provider: script
+   script: SSHPASS=$DEPLOY_PASS sshpass -e scp -v -o StrictHostKeyChecking=no $PROJECT_DIR/artifacts/debian/* $DEPLOY_USER@$DEPLOY_HOST:shepherd/debian/
+
+ - provider: pypi
+   user: $PYPI_USER
+   password: $PYPI_PASS
