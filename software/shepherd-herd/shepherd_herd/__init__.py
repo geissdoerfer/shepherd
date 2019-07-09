@@ -285,7 +285,7 @@ def emulate(
 @click.pass_context
 def stop(ctx):
     for cnx in ctx.obj["fab group"]:
-        res = cnx.sudo("systemctl stop shepherd", hide=True, warn=True)
+        cnx.sudo("systemctl stop shepherd", hide=True, warn=True)
 
 
 @cli.command()
