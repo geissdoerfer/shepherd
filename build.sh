@@ -48,9 +48,9 @@ build_ptp() {
 
 build_meta_package() {
     cd /code/meta-package
-    equivs-build ns-control
 
-    cp shepherd_*_all.deb /artifacts/debian/
+    dpkg-buildpackage -uc -us
+    cp ../shepherd_*_all.deb /artifacts/debian/
 }
 
 make_repository() {

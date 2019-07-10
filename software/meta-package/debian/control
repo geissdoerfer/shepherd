@@ -1,0 +1,10 @@
+Source: shepherd
+Maintainer: Kai Geissdoerfer <kai.geissdoerfer@tu-dresden.de>
+Build-Depends: debhelper (>=11)
+Homepage: <https://github.com/geissdoerfer/shepherd>
+
+Package: shepherd
+Architecture: all
+Multi-Arch: foreign
+Depends: ${misc:Depends}, ${shlibs:Depends}, python3-shepherd, shepherd-firmware, shepherd-dkms, shepherd-openocd
+Description: shepherd meta-package and systemd service unit

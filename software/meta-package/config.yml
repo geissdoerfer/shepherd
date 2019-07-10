@@ -1,0 +1,9 @@
+command: record
+parameters:
+  defaultcalib: false
+  force: false
+  init_charge: false
+  load: artificial
+  mode: harvesting
+  output: /var/shepherd/recordings
+verbose: 2
