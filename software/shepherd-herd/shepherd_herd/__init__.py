@@ -14,18 +14,70 @@ logger = logging.getLogger("shepherd-herd")
 logger.addHandler(consoleHandler)
 
 
-@click.group()
-@click.argument("hosts", type=str)
-@click.option("--user", "-u", type=str)
-@click.option("--key-filename", "-k", type=click.Path(exists=True))
+@click.group(context_settings=dict(help_option_names=["-h", "--help"], obj={}))
+@click.option(
+    "--inventory",
+    "-i",
+    type=str,
+    default="hosts",
+    help="List of target hosts as comma-separated string or path to ansible-style yaml file",
+)
+@click.option(
+    "--limit",
+    "-l",
+    type=str,
+    help="Comma-separated list of hosts to limit execution to",
+)
+@click.option("--user", "-u", type=str, help="User name for login to nodes")
+@click.option(
+    "--key-filename",
+    "-k",
+    type=click.Path(exists=True),
+    help="Path to private ssh key file",
+)
 @click.option("-v", "--verbose", count=True, default=2)
 @click.pass_context
-def cli(ctx, hosts, verbose, user, key_filename):
-    if Path(hosts).exists():
-        with open(hosts, "r") as f:
-            hostlist = [l.rstrip() for l in f.readlines()]
+def cli(ctx, inventory, limit, user, key_filename, verbose):
+
+    if inventory.rstrip().endswith(","):
+        hostlist = inventory.split(",")
+        if limit is not None:
+            hostlist = list(set(hostlist) & set(limit))
+
     else:
-        hostlist = hosts.split(",")
+        host_path = Path(inventory)
+        if not host_path.exists():
+            raise click.FileError(host_path)
+
+        with open(host_path, "r") as stream:
+            try:
+                inventory_data = yaml.safe_load(stream)
+            except yaml.YAMLError:
+                raise click.UsageError(
+                    f"Couldn't read inventory file {host_path}"
+                )
+
+        hostlist = list()
+        for hostname, hostvars in inventory_data["sheep"]["hosts"].items():
+            if limit is not None:
+                if not hostname in limit:
+                    continue
+
+            if "ansible_host" in hostvars.keys():
+                hostlist.append(hostvars["ansible_host"])
+            else:
+                hostlist.append(hostname)
+
+        if user is None:
+            try:
+                user = inventory_data["sheep"]["vars"]["ansible_user"]
+            except KeyError:
+                pass
+
+    if user is None:
+        raise click.UsageError(
+            "Provide user by command line or in inventory file"
+        )
 
     if verbose == 0:
         logger.setLevel(logging.ERROR)
