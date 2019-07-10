@@ -13,22 +13,33 @@ Each *shepherd* node consists of a BeagleBone, the *shepherd* cape and a particu
 
 This repository contains the hardware design files for the shepherd cape and the various capelets, the software running on each *shepherd* node as well as the tool to orchestrate a group of *shepherd* nodes connected to a network.
 
+## Features
+
+ - High-speed, high resolution current and voltage sensing
+ - Technology-agnostic: Currently solar and kinetic energy harvesting are supported
+ - Remote programming/debugging of ARM Cortex-M MCUs using Serial-Wire-Debug
+ - High resolution, synchronized GPIO tracing
+ - Configurable, constant voltage power supply for attached sensor nodes
+ - Level-translated serial connection to the attached sensor nodes
+
 
 ## Installation
 
-The first step is to manually install Ubuntu Linux on each BeagleBone.
+Start by assembling your *shepherd* nodes, consisting of a BeagleBone Green/Black, a *shepherd* cape, a harvesting capelet and a target capelet.
+The next step is to manually install the latest Ubuntu Linux on each BeagleBone.
 You can install it to SD-card or the on-board EMMC flash, following the instructions [the official instructions](https://elinux.org/BeagleBoardUbuntu).
 
 The following instructions describe how to install the *shepherd* software on a group of *shepherd* nodes connected to an Ethernet network.
 We assume that you know the IP address of each node and that your local machine is connected to the same network.
 
-If you haven't done it already, clone this repository to your local machine:
+If you haven't done it yet, clone this repository to your local machine:
 
 ```
 git clone https://github.com/geissdoerfer/shepherd.git
 ```
 
 Next, install the tools used for installing and controlling the *shepherd* nodes.
+We'll use [Ansible](https://www.ansible.com/) to remotely roll out the basic configuration to each *shepherd* node and *shepherd-herd* to orchestrate recording/emulation across all nodes.
 The tools are hosted on `PyPI` and require Python version `>=3.6`.
 Use your Python dependency manager to install the following two tools.
 For example, using `pip`:
@@ -38,31 +49,31 @@ pip install ansible shepherd-herd
 ```
 
 Edit the `hosts` file in the root directory of the repository using your favorite text editor, assigning host names and known IP addresses of your BeagleBones.
-You can arbitrarily choose and assign the hostnames here and 
+You can arbitrarily choose and assign the hostnames (sheep0, sheep1, in this example) and the ansible_user.
 
 ```
 sheep:
   hosts:
-    beaglebone0:
+    sheep0:
         ansible_host: 192.168.1.100
-    beaglebone1:
+    sheep1:
         ansible_host: 192.168.1.101
-    beaglebone2:
+    sheep2:
         ansible_host: 192.168.1.102
   vars:
-    ansible_user: joe
+    ansible_user: jane
 ```
 
-The `bootstrap.yml` playbook sets the hostname, creates a user and enables passwordless ssh and sudo. Run it with:
+The `bootstrap.yml` *Ansible* playbook sets the hostname, creates a user and enables passwordless ssh and sudo. Run it with:
 
 ```
-ansible-playbook -i hosts software/install/bootstrap.yml
+ansible-playbook -i hosts deploy/bootstrap.yml
 ```
 
-Finally, we use ansible to setup the *shepherd* software, optionally configuring PTP for time-synchronization:
+Finally, we use *Ansbile* to setup the *shepherd* software, optionally configuring PTP for time-synchronization:
 
 ```
-ansible-playbook -i hosts software/install/deploy.yml
+ansible-playbook -i hosts deploy/install.yml
 ```
 
 
@@ -71,29 +82,20 @@ ansible-playbook -i hosts software/install/deploy.yml
 Record two minutes of data:
 
 ```
-shepherd-herd -u joe hosts record -l 120 --f recording.h5
+shepherd-herd -i hosts record -l 120 recording.h5
 ```
 
 Retrieve the data to analyze it on your local machine:
 
 ```
-shepherd-herd -u joe hosts retrieve recording.h5
+shepherd-herd -i hosts retrieve recording.h5
 ```
 
 Finally, replay the previously recorded data to the attached sensor nodes, recording their power consumption:
 
 ```
-shepherd-herd -u joe hosts emulate -o consumption.h5 recording.h5
+shepherd-herd -i hosts emulate -o consumption.h5 recording.h5
 ```
-
-## Features
-
-*shepherd* has some additional features, making it a convenient, versatile tool:
-
- - Remote programming/debugging of ARM Cortex-M MCUs using Serial-Wire-Debug
- - High resolution, synchronized GPIO tracing
- - Configurable, constant voltage power supply for attached sensor nodes
- - Level-translated serial connection to the attached sensor nodes
 
 ## Documentation
 
