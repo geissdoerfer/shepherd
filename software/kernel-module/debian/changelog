@@ -1,4 +1,4 @@
-shepherd-dkms (0.0.2) unstable; urgency=medium
+shepherd-dkms (0.0.3) unstable; urgency=medium
 
   * Initial package.
 

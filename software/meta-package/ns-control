@@ -2,6 +2,6 @@ Maintainer: Kai Geissdoerfer <kai.geissdoerfer@tu-dresden.de>
 Homepage: <https://github.com/geissdoerfer/shepherd>
 
 Package: shepherd
-Version: 0.0.2
+Version: 0.0.3
 Depends: python3-shepherd, shepherd-firmware, shepherd-dkms, shepherd-openocd
 Description: SHEPHERD meta-package
