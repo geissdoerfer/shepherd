@@ -13,6 +13,7 @@ bump2version = "*"
 shepherd-herd = {editable = true,path = "./software/shepherd-herd"}
 sphinx = "*"
 ansible = "*"
+sphinx-click = "*"
 
 [pipenv]
 allow_prereleases = true
