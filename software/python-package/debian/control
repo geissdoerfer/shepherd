@@ -1,8 +1,7 @@
-Source: shepherd
+Source: python3-shepherd
 Section: python
 Priority: optional
-Build-Depends: dh-python, python3-setuptools, python3-all, debhelper (>= 9)
-Standards-Version: 3.9.6
+Build-Depends: dh-python, python3-setuptools, python3-all, debhelper (>= 11)
 Maintainer: Kai Geissdoerfer <kai.geissdoerfer@tu-dresden.de>
 Homepage: <https://github.com/geissdoerfer/shepherd>
 

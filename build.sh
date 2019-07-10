@@ -1,47 +1,34 @@
 #!/bin/bash
+# This script builds all the shepherd debian packages and archives them for
+# hosting as third-party repository. It is meant to be used inside a docker
+# build container
 set -e
 
 build_firmware() {
-    cd /code/packaging/shepherd-firmware
-
-    ln -s /code/firmware firmware
-    ln -s /code/device-tree device-tree
-
+    cd /code/firmware
     dpkg-buildpackage -uc -us
 
     cp ../shepherd-firmware_*_all.deb /artifacts/debian/
 }
 
 build_kernel_module() {
-    cd /code/packaging/shepherd-kernel-dkms
-
-    ln -s /code/kernel-module src
-
+    cd /code/kernel-module
     dpkg-buildpackage -uc -us
 
     cp ../shepherd-dkms_*_all.deb /artifacts/debian/
 }
 
 build_python_package() {
-    cd /code/packaging/python3-shepherd
+    cd /code/python-package
 
-    ln -s /code/python-package python-package
-
-    cd python-package
-
-    python3 setup.py --command-packages=stdeb.command sdist_dsc
-
-    cp /code/packaging/python3-shepherd/debian/* deb_dist/shepherd-*/debian/
-
-    cd deb_dist/shepherd-*
-
+    python3 setup.py sdist
     dpkg-buildpackage -uc -us
 
     cp ../python3-shepherd_*_all.deb /artifacts/debian/
 }
 
 build_openocd() {
-    cd /code/packaging/shepherd-openocd
+    cd /code/openocd
     git clone --depth 1 http://openocd.zylin.com/openocd
     cd openocd
     git submodule update --init
@@ -53,14 +40,14 @@ build_openocd() {
 }
 
 build_ptp() {
-    cd /code/packaging/shepherd-ptp
+    cd /code/ptp
 
     dpkg-buildpackage -uc -us
     cp ../shepherd-ptp_*_all.deb /artifacts/debian/
 }
 
 build_meta_package() {
-    cd /code/packaging/shepherd
+    cd /code/meta-package
     equivs-build ns-control
 
     cp shepherd_*_all.deb /artifacts/debian/

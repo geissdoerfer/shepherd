@@ -99,7 +99,7 @@ def cli(ctx, inventory, limit, user, key_filename, verbose):
     )
 
 
-@cli.command()
+@cli.command(short_help="Power off shepherd nodes")
 @click.pass_context
 def poweroff(ctx):
     for cnx in ctx.obj["fab group"]:
@@ -107,10 +107,10 @@ def poweroff(ctx):
         cnx.sudo("poweroff", hide=True, warn=True)
 
 
-@cli.command()
+@cli.command(short_help="Run a shell command")
 @click.pass_context
 @click.argument("cmd", type=str)
-@click.option("--sudo", "-s", is_flag=True)
+@click.option("--sudo", "-s", is_flag=True, help="Run command with sudo")
 def run(ctx, cmd, sudo):
     for cnx in ctx.obj["fab group"]:
         if sudo:
