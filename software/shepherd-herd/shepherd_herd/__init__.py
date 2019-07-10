@@ -210,42 +210,57 @@ def reset(ctx):
             logger.info(f"target reset on {cnx.host}")
 
 
-@cli.command()
+@cli.command(short_help="Record data")
 @click.option(
-    "--filepath", type=click.Path(), default="/var/shepherd/recordings"
+    "--output",
+    "-o",
+    type=click.Path(),
+    default="/var/shepherd/recordings",
+    help="Dir or file path for resulting hdf5 file",
 )
-@click.option("--length", "-l", type=int)
-@click.option("--force", "-f", is_flag=True)
 @click.option(
     "--mode",
-    "-m",
-    type=click.Choice(["harvesting", "load", "both"]),
+    type=click.Choice(["harvesting", "load"]),
     default="harvesting",
+    help="Record 'harvesting' or 'load' data",
 )
-@click.option("--defaultcalib", "-d", is_flag=True)
-@click.option("--voltage", type=float)
-@click.option("--init-charge", is_flag=True)
 @click.option(
-    "--load", type=click.Choice(["artificial", "node"]), default="artificial"
+    "--length", "-l", type=float, help="Duration of recording in seconds"
 )
-@click.option("--start-delay", type=int)
+@click.option("--force", "-f", is_flag=True, help="Overwrite existing file")
+@click.option(
+    "--defaultcalib", "-d", is_flag=True, help="Use default calibration values"
+)
+@click.option(
+    "--voltage", type=float, help="Set fixed reference voltage for harvesting"
+)
+@click.option(
+    "--load",
+    type=click.Choice(["artificial", "node"]),
+    default="artificial",
+    help="Choose artificial or sensor node load",
+)
+@click.option(
+    "--init-charge",
+    is_flag=True,
+    help="Pre-charge capacitor before starting recording",
+)
+@click.option(
+    "--start-delay", "-s", type=float, help="Delay before starting recording"
+)
 @click.pass_context
 def record(
     ctx,
-    filepath,
+    output,
+    mode,
     length,
     force,
-    mode,
     defaultcalib,
     voltage,
-    init_charge,
     load,
+    init_charge,
     start_delay,
 ):
-
-    fp = Path(filepath)
-    if not fp.is_absolute():
-        fp = Path("/var/shepherd/recordings") / filepath
 
     if start_delay is not None:
         start_time = int(time.time()) + start_delay
@@ -253,14 +268,14 @@ def record(
         start_time = None
 
     parameter_dict = {
-        "filepath": str(fp),
-        "force": force,
-        "length": length,
+        "output": output,
         "mode": mode,
+        "length": length,
+        "force": force,
         "defaultcalib": defaultcalib,
         "voltage": voltage,
-        "init_charge": init_charge,
         "load": load,
+        "init_charge": init_charge,
         "start_time": start_time,
     }
     start_shepherd(

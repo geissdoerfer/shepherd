@@ -66,7 +66,7 @@ def test_record_fn(tmp_path, shepherd_up):
     d = tmp_path / "rec.h5"
     start_time = int(time.time() + 10)
     record(
-        store_path=d,
+        output=d,
         mode="harvesting",
         length=10,
         force=True,

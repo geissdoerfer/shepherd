@@ -273,7 +273,7 @@ class ShepherdDebug(ShepherdIO):
 
 
 def record(
-    store_path: Path,
+    output: Path,
     mode: str = "harvesting",
     length: float = None,
     force: bool = False,
@@ -286,12 +286,12 @@ def record(
     """Starts recording.
 
     Args:
-        store_path (Path): Path of hdf5 file where IV measurements should be
+        output (Path): Path of hdf5 file where IV measurements should be
             stored
         mode (str): 'harvesting' for recording harvesting data, 'load' for
             recording load consumption data.
         length (float): Maximum time duration of emulation in seconds
-        force (bool): True to overwrite existing file under loadstore_path,
+        force (bool): True to overwrite existing file under output path,
             False to store under different name
         defaultcalib (bool): True to use default calibration values, False to
             read calibration data from EEPROM
@@ -322,7 +322,7 @@ def record(
         init_charge=init_charge,
     )
     log_writer = LogWriter(
-        store_path=store_path, calibration_data=calib, mode=mode, force=force
+        store_path=output, calibration_data=calib, mode=mode, force=force
     )
     with ExitStack() as stack:
 
@@ -372,8 +372,8 @@ def record(
 
 
 def emulate(
-    harvestingstore_path: Path,
-    loadstore_path: Path = None,
+    input: Path,
+    output: Path = None,
     length: float = None,
     force: bool = False,
     defaultcalib: bool = False,
@@ -384,12 +384,12 @@ def emulate(
     """Starts emulation.
 
     Args:
-        harvestingstore_path (Path): path of hdf5 file containing recorded
+        input (Path): path of hdf5 file containing recorded
             harvesting data
-        loadstore_path (Path): Path of hdf5 file where load measurements should
+        output (Path): Path of hdf5 file where load measurements should
             be stored
         length (float): Maximum time duration of emulation in seconds
-        force (bool): True to overwrite existing file under loadstore_path,
+        force (bool): True to overwrite existing file under output,
             False to store under different name
         defaultcalib (bool): True to use default calibration values, False to
             read calibration data from EEPROM
@@ -412,18 +412,15 @@ def emulate(
                 )
                 calib = CalibrationData.from_default()
 
-    if loadstore_path is not None:
+    if output is not None:
         log_writer = LogWriter(
-            store_path=loadstore_path,
-            force=force,
-            mode="load",
-            calibration_data=calib,
+            store_path=output, force=force, mode="load", calibration_data=calib
         )
 
-    log_reader = LogReader(harvestingstore_path, 10_000)
+    log_reader = LogReader(input, 10_000)
 
     with ExitStack() as stack:
-        if loadstore_path is not None:
+        if output is not None:
             stack.enter_context(log_writer)
 
         stack.enter_context(log_reader)
@@ -465,7 +462,7 @@ def emulate(
                 logger.error(
                     f"ShepherdIOException(ID={e.id}, val={e.value}): {str(e)}"
                 )
-                if loadstore_path is not None:
+                if output is not None:
                     err_rec = ExceptionRecord(
                         int(time.time() * 1e9), str(e), e.value
                     )
@@ -473,7 +470,7 @@ def emulate(
 
                 raise
 
-            if loadstore_path is not None:
+            if output is not None:
                 log_writer.write_buffer(load_buf)
 
             emu.put_buffer(idx, hrvst_buf)
@@ -485,7 +482,7 @@ def emulate(
         while True:
             try:
                 idx, load_buf = emu.get_buffer(timeout=1)
-                if loadstore_path is not None:
+                if output is not None:
                     log_writer.write_buffer(load_buf)
             except ShepherdIOException as e:
                 break

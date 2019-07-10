@@ -83,8 +83,8 @@ def test_emulate_fn(tmp_path, data_h5, shepherd_up):
     d = tmp_path / "rec.h5"
     start_time = int(time.time() + 15)
     emulate(
-        harvestingstore_path=data_h5,
-        loadstore_path=d,
+        input=data_h5,
+        output=d,
         length=None,
         force=True,
         defaultcalib=True,

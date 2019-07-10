@@ -103,7 +103,7 @@ def run(command, parameters, verbose):
 
 @cli.command(short_help="Record data")
 @click.option(
-    "--output-path",
+    "--output",
     "-o",
     type=click.Path(),
     default="/var/shepherd/recordings",
@@ -143,7 +143,7 @@ def run(command, parameters, verbose):
     help="Desired start time in unix epoch time",
 )
 def record(
-    output_path,
+    output,
     mode,
     length,
     force,
@@ -153,7 +153,7 @@ def record(
     init_charge,
     start_time,
 ):
-    pl_store = Path(output_path)
+    pl_store = Path(output)
     if pl_store.is_dir():
         pl_store = pl_store / "rec.h5"
 
@@ -171,9 +171,9 @@ def record(
 
 
 @cli.command(short_help="Emulate data")
-@click.argument("input-path", type=click.Path(exists=True))
+@click.argument("input", type=click.Path(exists=True))
 @click.option(
-    "--output-path",
+    "--output",
     "-o",
     type=click.Path(),
     help="Dir or file path for resulting hdf5 file",
@@ -200,26 +200,19 @@ def record(
     "--start-time", type=float, help="Desired start time in unix epoch time"
 )
 def emulate(
-    input_path,
-    output_path,
-    length,
-    force,
-    defaultcalib,
-    load,
-    init_charge,
-    start_time,
+    input, output, length, force, defaultcalib, load, init_charge, start_time
 ):
-    if output_path is None:
+    if output is None:
         pl_store = None
     else:
-        pl_store = Path(output_path)
+        pl_store = Path(output)
         if pl_store.is_dir():
             pl_store = pl_store / "rec.h5"
         else:
-            pl_store = Path("/var/shepherd/recordings") / output_path
+            pl_store = Path("/var/shepherd/recordings") / output
 
     run_emulate(
-        input_path,
+        input,
         pl_store,
         length,
         force,
