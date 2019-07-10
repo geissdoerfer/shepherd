@@ -10,6 +10,7 @@ twine = "*"
 bump2version = "*"
 
 [packages]
+shepherd = {editable = true,path = "./software/python-package"}
 shepherd-herd = {editable = true,path = "./software/shepherd-herd"}
 sphinx = "*"
 ansible = "*"
