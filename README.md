@@ -1,6 +1,6 @@
 # SHEpHERD: SyncHronized Energy Harvesting Emulator RecorDer
 
-[![Build Status](https://travis-ci.com/geissdoerfer/shepherd.svg?token=FcGuqzEQVKohWmUUbLAD&branch=master)](https://travis-ci.com/geissdoerfer/shepherd)
+[![Build Status](https://travis-ci.org/geissdoerfer/shepherd.svg?branch=master)](https://travis-ci.org/geissdoerfer/shepherd)
 
 *shepherd* is a testbed for the battery-less Internet of Things.
 It allows to record harvesting conditions at multiple points in space over time.
@@ -13,9 +13,7 @@ Each *shepherd* node consists of a BeagleBone, the *shepherd* cape and a particu
 
 This repository contains the hardware design files for the shepherd cape and the various capelets, the software running on each *shepherd* node as well as the tool to orchestrate a group of *shepherd* nodes connected to a network.
 
-The documentation is hosted on [readthedocs.io](https://shepherd-testbed.readthedocs.io/en/latest/)
-
-## Features
+**Features**
 
  - High-speed, high resolution current and voltage sensing
  - Technology-agnostic: Currently, solar and kinetic energy harvesting are supported
@@ -99,6 +97,9 @@ Finally, replay the previously recorded data to the attached sensor nodes, recor
 shepherd-herd -i hosts emulate -o consumption.h5 recording.h5
 ```
 
+## Documentation
+
+The documentation is hosted on [readthedocs](https://shepherd-testbed.readthedocs.io/en/latest/).
 
 ## People
 
