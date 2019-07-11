@@ -170,6 +170,7 @@ void event_loop(volatile struct SharedMem *shared_mem,
 						sample_idx);
 
 				sample_idx = 0;
+				_GPIO_OFF(P8_12);
 			}
 			/* We only handle rpmsg comms if we're not at the last sample */
 			else {
