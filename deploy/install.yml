@@ -26,14 +26,6 @@
       state: latest
       update_cache: yes
 
-  - name: Disable systemd-timesyncd
-    systemd:
-      name: systemd-timesyncd
-      state: stopped
-      masked: yes
-      daemon_reload: yes
-    when: ptp|default(false)|bool == true
-
   - name: Install shepherd ptp package
     apt:
       name: shepherd-ptp
