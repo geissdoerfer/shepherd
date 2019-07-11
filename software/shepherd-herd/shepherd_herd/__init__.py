@@ -232,7 +232,9 @@ def reset(ctx):
     "--no-calib", "-d", is_flag=True, help="Use default calibration values"
 )
 @click.option(
-    "--voltage", type=float, help="Set fixed reference voltage for harvesting"
+    "--harvesting-voltage",
+    type=float,
+    help="Set fixed reference voltage for harvesting",
 )
 @click.option(
     "--load",
@@ -245,9 +247,6 @@ def reset(ctx):
     is_flag=True,
     help="Pre-charge capacitor before starting recording",
 )
-@click.option(
-    "--start-delay", "-s", type=float, help="Delay before starting recording"
-)
 @click.pass_context
 def record(
     ctx,
@@ -256,27 +255,23 @@ def record(
     length,
     force,
     no_calib,
-    voltage,
+    harvesting_voltage,
     load,
     init_charge,
-    start_delay,
 ):
-
-    if start_delay is not None:
-        start_time = int(time.time()) + start_delay
-    else:
-        start_time = None
+    fp_output = Path(output)
+    if not fp_output.is_absolute():
+        fp_output = Path("/var/shepherd/recordings") / output
 
     parameter_dict = {
-        "output": output,
+        "output": str(fp_output),
         "mode": mode,
         "length": length,
         "force": force,
         "no_calib": no_calib,
-        "voltage": voltage,
+        "harvesting_voltage": harvesting_voltage,
         "load": load,
         "init_charge": init_charge,
-        "start_time": start_time,
     }
     start_shepherd(
         ctx.obj["fab group"], "record", parameter_dict, ctx.obj["verbose"]
@@ -284,6 +279,24 @@ def record(
 
 
 def start_shepherd(group, command, parameters, verbose=0):
+    ts_nows = np.empty(len(group))
+    for i, cnx in enumerate(group):
+        res = cnx.run("date +%s", hide=True, warn=True)
+        ts_nows[i] = float(res.stdout)
+
+    if len(ts_nows) == 1:
+        ts_start = ts_nows[0] + 20
+    else:
+        ts_max = max(ts_nows)
+        ts_diffs = ts_nows - ts_max
+        if any(abs(ts_diffs) > 10):
+            raise Exception("Time difference between hosts greater 10s")
+
+        ts_start = ts_max + 20 + 2 * len(group)
+
+    logger.debug(f"Scheduling start of shepherd at {ts_start}")
+
+    parameters["start_time"] = float(ts_start)
     config_dict = {
         "command": command,
         "verbose": verbose,
@@ -303,8 +316,10 @@ def start_shepherd(group, command, parameters, verbose=0):
 
 
 @cli.command(short_help="Emulate data")
-@click.argument("harvestingfile", type=click.Path())
-@click.option("--loadfilepath", "-o", type=click.Path())
+@click.argument("input", type=click.Path())
+@click.option(
+    "--output", "-o", type=click.Path(), default="/var/shepherd/recordings"
+)
 @click.option("--length", "-l", type=float)
 @click.option("--force", "-f", is_flag=True)
 @click.option("--no-calib", "-d", is_flag=True)
@@ -312,35 +327,23 @@ def start_shepherd(group, command, parameters, verbose=0):
     "--load", type=click.Choice(["artificial", "node"]), default="node"
 )
 @click.option("--init-charge", is_flag=True)
-@click.option("--start-delay", type=int)
 @click.pass_context
-def emulate(
-    ctx,
-    harvestingfile,
-    loadfilepath,
-    length,
-    force,
-    no_calib,
-    load,
-    init_charge,
-    start_delay,
-):
-    fp = Path(harvestingfile)
-    if not fp.is_absolute():
-        fp = Path("/var/shepherd/recordings") / harvestingfile
+def emulate(ctx, input, output, length, force, no_calib, load, init_charge):
+    fp_input = Path(input)
+    if not fp_input.is_absolute():
+        fp_input = Path("/var/shepherd/recordings") / input
 
-    if start_delay is not None:
-        start_time = int(time.time()) + start_delay
-    else:
-        start_time = None
+    fp_output = Path(output)
+    if not fp_output.is_absolute():
+        fp_output = Path("/var/shepherd/recordings") / output
+
     parameter_dict = {
-        "harvestingfile": str(fp),
-        "loadfilepath": loadfilepath,
+        "input": str(fp_input),
+        "output": str(fp_output),
         "force": force,
         "length": length,
         "no_calib": no_calib,
         "init_charge": init_charge,
-        "start_time": start_time,
         "load": load,
     }
     start_shepherd(
