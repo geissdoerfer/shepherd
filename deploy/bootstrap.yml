@@ -32,7 +32,7 @@
       line: '127.0.1.1  {{ inventory_hostname }}.localdomain  {{ inventory_hostname }}'
       state: present
 
-  - name: Add the user joe
+  - name: Add the new user
     user:
       name: "{{ new_user }}"
       shell: /bin/bash
@@ -59,7 +59,7 @@
     apt:
       upgrade: dist
       update_cache: yes
-    when: no_update is not defined
+    when: upgrade|default(false)|bool == true
 
   - name: Check if we have hostkeys locally
     local_action: 'stat path={{ playbook_dir }}/keys/{{ inventory_hostname }}'
