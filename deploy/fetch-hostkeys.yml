@@ -1,0 +1,25 @@
+---
+- name: Base setup
+  hosts: all
+
+  tasks:
+  - name: Prepare directory per host
+    local_action:
+      module: file
+      path: "{{ playbook_dir}}/keys/{{ inventory_hostname }}"
+      state: directory
+      mode: 0755
+
+  - name: Fetch keys
+    fetch:
+      src: '/etc/ssh/{{ item }}'
+      dest: '{{ playbook_dir}}/keys/{{ inventory_hostname }}/'
+      flat: yes
+    become: yes
+    with_items:
+      - ssh_host_ecdsa_key
+      - ssh_host_ecdsa_key.pub
+      - ssh_host_ed25519_key
+      - ssh_host_ed25519_key.pub
+      - ssh_host_rsa_key
+      - ssh_host_rsa_key.pub
