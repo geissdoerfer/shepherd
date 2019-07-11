@@ -1,7 +1,7 @@
 ---
 - name: Build and install kernel module
   make:
-    chdir: "{{ shepherd_install_path }}/kernel-module"
+    chdir: "{{ shepherd_install_path }}/kernel-module/src"
     target: install
   tags:
     - install
@@ -26,7 +26,7 @@
 
 - name: Build and install device tree overlay
   make:
-    chdir: "{{ shepherd_install_path }}/device-tree"
+    chdir: "{{ shepherd_install_path }}/firmware/device-tree"
     target: install
   notify:
     - restart device
