@@ -1,0 +1,53 @@
+---
+- name: Install/Upgrade shepherd
+  hosts: all
+  become: true
+ 
+  tasks:
+
+  - name: Get kernel version
+    command: uname --kernel-release
+    register: kernelrelease
+    changed_when: False
+
+  - name: Install kernel headers to enable DKMS build for running kernel
+    apt:
+      name: 'linux-headers-{{ kernelrelease.stdout.strip() }}'
+      update_cache: yes
+
+  - name: Add shepherd repository to aptitude
+    apt_repository:
+      repo: deb [trusted=yes] https://shepherd.nes-lab.org debian/
+      state: present
+
+  - name: Install shepherd meta-package
+    apt:
+      name: shepherd
+      state: latest
+      update_cache: yes
+
+  - name: Disable systemd-timesyncd
+    systemd:
+      name: systemd-timesyncd
+      state: stopped
+      masked: yes
+      daemon_reload: yes
+    when: ptp|default(false)|bool == true
+
+  - name: Install shepherd ptp package
+    apt:
+      name: shepherd-ptp
+      state: latest
+    when: ptp|default(false)|bool == true
+
+  - name: restart device
+    shell: sleep 2 && shutdown -r now "Ansible restart"
+    async: 1
+    poll: 0
+    ignore_errors: true
+
+  - name: waiting to come back
+    wait_for_connection:
+      delay: 15
+      timeout: 300
+    become: no
