@@ -13,10 +13,12 @@ Each *shepherd* node consists of a BeagleBone, the *shepherd* cape and a particu
 
 This repository contains the hardware design files for the shepherd cape and the various capelets, the software running on each *shepherd* node as well as the tool to orchestrate a group of *shepherd* nodes connected to a network.
 
+The documentation is hosted on [readthedocs.io](https://shepherd-testbed.readthedocs.io/en/latest/)
+
 ## Features
 
  - High-speed, high resolution current and voltage sensing
- - Technology-agnostic: Currently solar and kinetic energy harvesting are supported
+ - Technology-agnostic: Currently, solar and kinetic energy harvesting are supported
  - Remote programming/debugging of ARM Cortex-M MCUs using Serial-Wire-Debug
  - High resolution, synchronized GPIO tracing
  - Configurable, constant voltage power supply for attached sensor nodes
@@ -27,7 +29,7 @@ This repository contains the hardware design files for the shepherd cape and the
 
 Start by assembling your *shepherd* nodes, consisting of a BeagleBone Green/Black, a *shepherd* cape, a harvesting capelet and a target capelet.
 The next step is to manually install the latest Ubuntu Linux on each BeagleBone.
-You can install it to SD-card or the on-board EMMC flash, following the instructions [the official instructions](https://elinux.org/BeagleBoardUbuntu).
+You can install it to SD-card or the on-board EMMC flash, following [the official instructions](https://elinux.org/BeagleBoardUbuntu).
 
 The following instructions describe how to install the *shepherd* software on a group of *shepherd* nodes connected to an Ethernet network.
 We assume that you know the IP address of each node and that your local machine is connected to the same network.
@@ -64,16 +66,16 @@ sheep:
     ansible_user: jane
 ```
 
-The `bootstrap.yml` *Ansible* playbook sets the hostname, creates a user and enables passwordless ssh and sudo. Run it with:
+Now run the `bootstrap.yml` *Ansible* playbook, which sets the hostname, creates a user and enables passwordless ssh and sudo:
 
 ```
 ansible-playbook -i hosts deploy/bootstrap.yml
 ```
 
-Finally, we use *Ansbile* to setup the *shepherd* software, optionally configuring PTP for time-synchronization:
+Finally, use the `install.yml` playbook to setup the *shepherd* software, optionally configuring PTP for time-synchronization:
 
 ```
-ansible-playbook -i hosts deploy/install.yml
+ansible-playbook -i hosts deploy/install.yml -e ptp=true
 ```
 
 
@@ -97,9 +99,6 @@ Finally, replay the previously recorded data to the attached sensor nodes, recor
 shepherd-herd -i hosts emulate -o consumption.h5 recording.h5
 ```
 
-## Documentation
-
-Read the docs here.
 
 ## People
 
