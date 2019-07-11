@@ -94,11 +94,14 @@ def run(command, parameters, verbose):
             logger.setLevel(logging.DEBUG)
 
     if command == "record":
-        parameters["output"] = Path(parameters["output"])
+        if "output" in parameters.keys():
+            parameters["output"] = Path(parameters["output"])
         run_record(**parameters)
     elif command == "emulate":
-        parameters["output"] = Path(parameters["output"])
-        parameters["input"] = Path(parameters["input"])
+        if "output" in parameters.keys():
+            parameters["output"] = Path(parameters["output"])
+        if "input" in parameters.keys():
+            parameters["input"] = Path(parameters["input"])
         run_emulate(**parameters)
     else:
         raise click.BadParameter(f"command {command} not supported")
