@@ -35,6 +35,18 @@ def test_record(shepherd_up, cli_runner, tmp_path):
 
 @pytest.mark.hardware
 @pytest.mark.timeout(60)
+def test_record_no_calib(shepherd_up, cli_runner, tmp_path):
+    store = tmp_path / "out.h5"
+    res = cli_runner.invoke(
+        cli, ["record", "-l", "10", "--no-calib", "-o", f"{str(store)}"]
+    )
+
+    assert res.exit_code == 0
+    assert store.exists()
+
+
+@pytest.mark.hardware
+@pytest.mark.timeout(60)
 def test_emulate(shepherd_up, cli_runner, tmp_path, data_h5):
     store = tmp_path / "out.h5"
     res = cli_runner.invoke(

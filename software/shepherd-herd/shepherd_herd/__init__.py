@@ -229,7 +229,7 @@ def reset(ctx):
 )
 @click.option("--force", "-f", is_flag=True, help="Overwrite existing file")
 @click.option(
-    "--defaultcalib", "-d", is_flag=True, help="Use default calibration values"
+    "--no-calib", "-d", is_flag=True, help="Use default calibration values"
 )
 @click.option(
     "--voltage", type=float, help="Set fixed reference voltage for harvesting"
@@ -255,7 +255,7 @@ def record(
     mode,
     length,
     force,
-    defaultcalib,
+    no_calib,
     voltage,
     load,
     init_charge,
@@ -272,7 +272,7 @@ def record(
         "mode": mode,
         "length": length,
         "force": force,
-        "defaultcalib": defaultcalib,
+        "no_calib": no_calib,
         "voltage": voltage,
         "load": load,
         "init_charge": init_charge,
@@ -307,7 +307,7 @@ def start_shepherd(group, command, parameters, verbose=0):
 @click.option("--loadfilepath", "-o", type=click.Path())
 @click.option("--length", "-l", type=float)
 @click.option("--force", "-f", is_flag=True)
-@click.option("--defaultcalib", "-d", is_flag=True)
+@click.option("--no-calib", "-d", is_flag=True)
 @click.option(
     "--load", type=click.Choice(["artificial", "node"]), default="node"
 )
@@ -320,7 +320,7 @@ def emulate(
     loadfilepath,
     length,
     force,
-    defaultcalib,
+    no_calib,
     load,
     init_charge,
     start_delay,
@@ -338,7 +338,7 @@ def emulate(
         "loadfilepath": loadfilepath,
         "force": force,
         "length": length,
-        "defaultcalib": defaultcalib,
+        "no_calib": no_calib,
         "init_charge": init_charge,
         "start_time": start_time,
         "load": load,

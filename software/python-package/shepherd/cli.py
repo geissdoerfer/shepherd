@@ -94,9 +94,9 @@ def run(command, parameters, verbose):
             logger.setLevel(logging.DEBUG)
 
     if command == "record":
-        record(**parameters)
+        run_record(**parameters)
     elif command == "emulate":
-        emulate(**parameters)
+        run_emulate(**parameters)
     else:
         raise click.BadParameter(f"command {command} not supported")
 
@@ -120,7 +120,7 @@ def run(command, parameters, verbose):
 )
 @click.option("--force", "-f", is_flag=True, help="Overwrite existing file")
 @click.option(
-    "--defaultcalib", "-d", is_flag=True, help="Use default calibration values"
+    "--no-calib", "-d", is_flag=True, help="Use default calibration values"
 )
 @click.option(
     "--voltage", type=float, help="Set fixed reference voltage for harvesting"
@@ -147,7 +147,7 @@ def record(
     mode,
     length,
     force,
-    defaultcalib,
+    no_calib,
     voltage,
     load,
     init_charge,
@@ -162,7 +162,7 @@ def record(
         mode,
         length,
         force,
-        defaultcalib,
+        no_calib,
         voltage,
         load,
         init_charge,
@@ -183,7 +183,7 @@ def record(
 )
 @click.option("--force", "-f", is_flag=True, help="Overwrite existing file")
 @click.option(
-    "--defaultcalib", "-d", is_flag=True, help="Use default calibration values"
+    "--no-calib", "-d", is_flag=True, help="Use default calibration values"
 )
 @click.option(
     "--load",
@@ -200,7 +200,7 @@ def record(
     "--start-time", type=float, help="Desired start time in unix epoch time"
 )
 def emulate(
-    input, output, length, force, defaultcalib, load, init_charge, start_time
+    input, output, length, force, no_calib, load, init_charge, start_time
 ):
     if output is None:
         pl_store = None
@@ -212,14 +212,7 @@ def emulate(
             pl_store = Path("/var/shepherd/recordings") / output
 
     run_emulate(
-        input,
-        pl_store,
-        length,
-        force,
-        defaultcalib,
-        load,
-        init_charge,
-        start_time,
+        input, pl_store, length, force, no_calib, load, init_charge, start_time
     )
 
 
@@ -253,9 +246,9 @@ def eeprom():
     help="Path to yaml-formatted calibration data",
 )
 @click.option(
-    "--defaultcalib", "-d", is_flag=True, help="Use default calibration data"
+    "--no-calib", "-d", is_flag=True, help="Use default calibration data"
 )
-def write(infofile, version, serial_number, calibfile, defaultcalib):
+def write(infofile, version, serial_number, calibfile, no_calib):
     if infofile is not None:
         if serial_number is not None or version is not None:
             raise click.UsageError(
@@ -277,14 +270,14 @@ def write(infofile, version, serial_number, calibfile, defaultcalib):
             eeprom.write_cape_data(cape_data)
 
     if calibfile is not None:
-        if defaultcalib:
+        if no_calib:
             raise click.UsageError(
-                "--defaultcalib and --calibfile are mutually exclusive"
+                "--no-calib and --calibfile are mutually exclusive"
             )
         calib = CalibrationData.from_yaml(calibfile)
         with EEPROM() as eeprom:
             cape_data = eeprom.write_calibration(calib)
-    if defaultcalib:
+    if no_calib:
         calib = CalibrationData.from_default()
 
         with EEPROM() as eeprom:

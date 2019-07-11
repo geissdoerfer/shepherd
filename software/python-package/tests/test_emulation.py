@@ -87,7 +87,7 @@ def test_emulate_fn(tmp_path, data_h5, shepherd_up):
         output=d,
         length=None,
         force=True,
-        defaultcalib=True,
+        no_calib=True,
         load="artificial",
         init_charge=False,
         start_time=start_time,

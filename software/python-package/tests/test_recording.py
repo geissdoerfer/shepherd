@@ -70,7 +70,7 @@ def test_record_fn(tmp_path, shepherd_up):
         mode="harvesting",
         length=10,
         force=True,
-        defaultcalib=True,
+        no_calib=True,
         harvesting_voltage=None,
         load="artificial",
         init_charge=False,

@@ -277,7 +277,7 @@ def record(
     mode: str = "harvesting",
     length: float = None,
     force: bool = False,
-    defaultcalib: bool = False,
+    no_calib: bool = False,
     harvesting_voltage: float = None,
     load: str = "artificial",
     init_charge: bool = False,
@@ -293,7 +293,7 @@ def record(
         length (float): Maximum time duration of emulation in seconds
         force (bool): True to overwrite existing file under output path,
             False to store under different name
-        defaultcalib (bool): True to use default calibration values, False to
+        no_calib (bool): True to use default calibration values, False to
             read calibration data from EEPROM
         harvesting_voltage (float): Sets a fixed reference voltage for the
             input of the boost converter. Alternative to MPPT algorithm.
@@ -303,7 +303,7 @@ def record(
             emulation
         start_time (float): Desired start time of emulation in unix epoch time
     """
-    if defaultcalib:
+    if no_calib:
         calib = CalibrationData.from_default()
     else:
         with EEPROM() as eeprom:
@@ -376,7 +376,7 @@ def emulate(
     output: Path = None,
     length: float = None,
     force: bool = False,
-    defaultcalib: bool = False,
+    no_calib: bool = False,
     load: str = "artificial",
     init_charge: bool = False,
     start_time: float = None,
@@ -391,7 +391,7 @@ def emulate(
         length (float): Maximum time duration of emulation in seconds
         force (bool): True to overwrite existing file under output,
             False to store under different name
-        defaultcalib (bool): True to use default calibration values, False to
+        no_calib (bool): True to use default calibration values, False to
             read calibration data from EEPROM
         load (str): Type of load. 'artificial' for dummy, 'node' for sensor
             node
@@ -400,7 +400,7 @@ def emulate(
         start_time (float): Desired start time of emulation in unix epoch time
     """
 
-    if defaultcalib:
+    if no_calib:
         calib = CalibrationData.from_default()
     else:
         with EEPROM() as eeprom:
