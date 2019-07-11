@@ -1,1 +1,2 @@
-override.conf etc/systemd/system/phc2sys.service.d
+phc2sys_mands.conf etc/systemd/system/phc2sys.service.d
+ptp_restart.conf etc/systemd/system/ptp4l.service.d
