@@ -11,8 +11,10 @@
 #include "pru_comm.h"
 #include "sysfs_interface.h"
 
+#define PRU_PHANDLE_RANGE_L 0xF0
+#define PRU_PHANDLE_RANGE_H 0xFF
+
 static struct rproc *rproc_prus[2];
-static phandle pru_phandles[] = { 0xF6, 0xF7 };
 
 /*
  * Handler for incoming RPMSG messages from PRU1. We only expect one type of
@@ -39,29 +41,72 @@ int pru_recvd(void *data, unsigned int len)
 	}
 	return 0;
 }
+/**
+ * Tries to find PRUs by iterating potential phandles
+ *
+ * This is a bit of hack. The problem is that in order to start/stop the PRUs,
+ * we have to get a reference to the corresponding devices in the remoteproc
+ * driver. It seems that the only way to achieve this is by phandle. We
+ * observed that the phandles are changing between images/hardware, such that
+ * we have to actively search for the PRUs in the range that we have commonly
+ * observed them to pop up. Additionally, we couldn't guarantee, that the PRUs
+ * are available before this module is loaded, therefore we 'poll' for them for
+ * 10 seconds.
+ *
+ * @param rproc_prus Array of pointers to the PRUs' structure
+ * @return 0 on success, -1 on failure to find PRUs
+ */
+static int find_prus(struct rproc **rproc_prus)
+{
+	struct rproc *tmp_rproc;
+	unsigned int i;
+	unsigned int it_phandle;
+
+	rproc_prus[0] = NULL;
+	rproc_prus[1] = NULL;
+
+	for (i = 0; i < 100; i++) {
+		for (it_phandle = PRU_PHANDLE_RANGE_L;
+		     it_phandle < PRU_PHANDLE_RANGE_H; it_phandle++) {
+			tmp_rproc = rproc_get_by_phandle((phandle)it_phandle);
+			if (tmp_rproc == NULL) {
+				continue;
+			}
+
+			if (strncmp(tmp_rproc->name, "4a334000.pru", 12) == 0) {
+				printk(KERN_INFO "Found PRU0 at phandle 0x%02X",
+				       it_phandle);
+				rproc_prus[0] = tmp_rproc;
+			}
+
+			else if (strncmp(tmp_rproc->name, "4a338000.pru", 12) ==
+				 0) {
+				printk(KERN_INFO "Found PRU1 at phandle 0x%02X",
+				       it_phandle);
+				rproc_prus[1] = tmp_rproc;
+			}
+		}
+		if ((rproc_prus[0] != NULL) && (rproc_prus[1] != NULL))
+			return 0;
+
+		msleep(100);
+	}
+	return -1;
+}
 
 static int __init mod_init(void)
 {
 	int i;
-	int counter;
 	int ret = 0;
 	printk(KERN_INFO "shprd: module inserted into kernel!!!\n");
 
+	if ((ret = find_prus(rproc_prus))) {
+		printk(KERN_ERR "shprd: Couldn't find PRUs");
+		return -1;
+	}
+
 	/* Boot the two PRU cores with the corresponding the shepherd firmware */
 	for (i = 0; i < 2; i++) {
-		/* We'll wait a bit in case remoteproc is not yet up and running */
-		counter = 0;
-		while ((rproc_prus[i] = rproc_get_by_phandle(
-				pru_phandles[i])) == NULL) {
-			if (counter++ == 100) {
-				printk(KERN_ERR
-				       "shprd: Could not get PRU%d by phandle 0x%02X",
-				       i, pru_phandles[i]);
-				return -ENXIO;
-			}
-			msleep(100);
-		}
-
 		if (rproc_prus[i]->state == RPROC_RUNNING)
 			rproc_shutdown(rproc_prus[i]);
 
