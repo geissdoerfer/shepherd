@@ -1,8 +1,6 @@
 [Unit]
 Description=Recording/Emulation with SHEPHERD
-StartLimitInterval=200
-StartLimitBurst=5
 
 [Service]
 ExecStart=/usr/bin/shepherd-sheep -vv run --config /etc/shepherd/config.yml
-Restart=on-failure
+Restart=no
