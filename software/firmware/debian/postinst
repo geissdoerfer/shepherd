@@ -7,3 +7,4 @@ sed -r -i 's/#?uboot_overlay_pru=\/lib\/firmware\/AM335X-PRU-UIO-00A0.dtbo/#uboo
 sed -r -i 's/#?uboot_overlay_addr3=\/lib\/firmware\S*/uboot_overlay_addr3=\/lib\/firmware\/BB-UART1-00A0.dtbo/g' /boot/uEnv.txt
 sed -r -i 's/#?uboot_overlay_addr4=\/lib\/firmware\S*/uboot_overlay_addr4=\/lib\/firmware\/BB-I2C1-00A0.dtbo/g' /boot/uEnv.txt
 sed -r -i 's/#?dtb_overlay=\/lib\/firmware\S*/dtb_overlay=\/lib\/firmware\/BB-SHPRD-00A0.dtbo/g' /boot/uEnv.txt
+grep -qF "shepherd" "/etc/modules"  || echo "shepherd" | tee --append "/etc/modules"

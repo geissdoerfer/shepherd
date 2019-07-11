@@ -1,1 +1,0 @@
-grep -qF "shepherd" "/etc/modules"  || echo "shepherd" | tee --append "/etc/modules"
