@@ -30,3 +30,5 @@ deploy:
  - provider: pypi
    user: $PYPI_USER
    password: $PYPI_PASS
+   on:
+     tags: true
