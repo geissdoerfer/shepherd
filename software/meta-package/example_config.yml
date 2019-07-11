@@ -1,6 +1,8 @@
+# This is an example configuration for shepherd. Do not modify. Instead make a
+# copy and name it config.yml.
 command: record
 parameters:
-  defaultcalib: false
+  no_calib: false
   force: false
   init_charge: false
   load: artificial
