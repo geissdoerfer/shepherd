@@ -41,7 +41,7 @@ six==1.12.0
 snowballstemmer==1.9.0
 Sphinx==2.1.2
 sphinx-click==2.2.0
-sphinx-hand-theme==1.0.0
+sphinx-rtd-theme==0.4.3
 sphinxcontrib-applehelp==1.0.1
 sphinxcontrib-devhelp==1.0.1
 sphinxcontrib-htmlhelp==1.0.2

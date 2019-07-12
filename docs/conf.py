@@ -12,7 +12,6 @@
 #
 import os
 import sys
-import sphinx_hand_theme
 
 sys.path.insert(0, os.path.abspath("../"))
 sys.path.insert(0, os.path.abspath("../software/python-package"))
@@ -49,6 +48,4 @@ exclude_patterns = ["_build", "Thumbs.db", ".DS_Store"]
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
 
-# ---sphinx-themes-----
-html_theme = "sphinx_hand_theme"
-html_theme_path = [sphinx_hand_theme.get_html_theme_path()]
+html_theme = "sphinx_rtd_theme"
