@@ -126,7 +126,7 @@ def run(command, parameters, verbose):
 )
 @click.option("--force", "-f", is_flag=True, help="Overwrite existing file")
 @click.option(
-    "--no-calib", "-d", is_flag=True, help="Use default calibration values"
+    "--no-calib", is_flag=True, help="Use default calibration values"
 )
 @click.option(
     "--voltage", type=float, help="Set fixed reference voltage for harvesting"
@@ -139,6 +139,7 @@ def run(command, parameters, verbose):
 )
 @click.option(
     "--init-charge",
+    "-i",
     is_flag=True,
     help="Pre-charge capacitor before starting recording",
 )
@@ -176,20 +177,22 @@ def record(
     )
 
 
-@cli.command(short_help="Emulate data")
+@cli.command(
+    short_help="Emulate data, where INPUT is an hdf5 file containing harvesting data"
+)
 @click.argument("input", type=click.Path(exists=True))
 @click.option(
     "--output",
     "-o",
     type=click.Path(),
-    help="Dir or file path for resulting hdf5 file",
+    help="Dir or file path for storing the load consumption data",
 )
 @click.option(
     "--length", "-l", type=float, help="Duration of recording in seconds"
 )
 @click.option("--force", "-f", is_flag=True, help="Overwrite existing file")
 @click.option(
-    "--no-calib", "-d", is_flag=True, help="Use default calibration values"
+    "--no-calib", is_flag=True, help="Use default calibration values"
 )
 @click.option(
     "--load",
@@ -199,6 +202,7 @@ def record(
 )
 @click.option(
     "--init-charge",
+    "-i",
     is_flag=True,
     help="Pre-charge capacitor before starting recording",
 )
@@ -231,7 +235,12 @@ def eeprom():
 
 
 @eeprom.command(short_help="Write data to EEPROM")
-@click.option("--infofile", "-i", type=click.Path(exists=True))
+@click.option(
+    "--infofile",
+    "-i",
+    type=click.Path(exists=True),
+    help="YAML-formatted file with cape info",
+)
 @click.option(
     "--version",
     "-v",
@@ -249,11 +258,9 @@ def eeprom():
     "--calibfile",
     "-c",
     type=click.Path(exists=True),
-    help="Path to yaml-formatted calibration data",
+    help="YAML-formatted file with calibration data",
 )
-@click.option(
-    "--no-calib", "-d", is_flag=True, help="Use default calibration data"
-)
+@click.option("--no-calib", is_flag=True, help="Use default calibration data")
 def write(infofile, version, serial_number, calibfile, no_calib):
     if infofile is not None:
         if serial_number is not None or version is not None:
@@ -290,9 +297,19 @@ def write(infofile, version, serial_number, calibfile, no_calib):
             eeprom.write_calibration(calib)
 
 
-@eeprom.command(short_help="Read data from EEPROM")
-@click.option("--infofile", "-i", type=click.Path())
-@click.option("--calibfile", "-c", type=click.Path())
+@eeprom.command(short_help="Read cape info and calibration data from EEPROM")
+@click.option(
+    "--infofile",
+    "-i",
+    type=click.Path(),
+    help="If provided, cape info data is dumped to this file",
+)
+@click.option(
+    "--calibfile",
+    "-c",
+    type=click.Path(),
+    help="If provided, calibration data is dumped to this file",
+)
 def read(infofile, calibfile):
     with EEPROM() as eeprom:
         cape_data = eeprom.read_cape_data()
@@ -312,14 +329,14 @@ def read(infofile, calibfile):
 
 
 @eeprom.command(
-    short_help="Convert calibration measurements to calibration data"
+    short_help="Convert calibration measurements to calibration data, where FILENAME is YAML-formatted file containing calibration measurements"
 )
 @click.argument("filename", type=click.Path(exists=True))
 @click.option(
     "--output",
     "-o",
     type=click.Path(),
-    help="Path to resulting yaml-formatted calibration data file",
+    help="Path to resulting YAML-formatted calibration data file",
 )
 def make(filename, output):
     cd = CalibrationData.from_measurements(filename)
