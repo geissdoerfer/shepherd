@@ -23,7 +23,7 @@ This repository contains the hardware design files for the shepherd cape and the
  - Level-translated serial connection to the attached sensor nodes
 
 
-## Installation
+## Quickstart
 
 Start by assembling your *shepherd* nodes, consisting of a BeagleBone Green/Black, a *shepherd* cape, a harvesting capelet and a target capelet.
 The next step is to manually install the latest Ubuntu Linux on each BeagleBone.
@@ -41,14 +41,13 @@ git clone https://github.com/geissdoerfer/shepherd.git
 Next, install the tools used for installing and controlling the *shepherd* nodes.
 We'll use [Ansible](https://www.ansible.com/) to remotely roll out the basic configuration to each *shepherd* node and *shepherd-herd* to orchestrate recording/emulation across all nodes.
 The tools are hosted on `PyPI` and require Python version `>=3.6`.
-Use your Python dependency manager to install the following two tools.
-For example, using `pip`:
+Install the tools using `pip`:
 
 ```
 pip install ansible shepherd-herd
 ```
 
-Edit the `hosts` file in the root directory of the repository using your favorite text editor, assigning host names and known IP addresses of your BeagleBones.
+Edit the `hosts` file in the root directory of the repository, assigning host names and known IP addresses of your BeagleBones.
 You can arbitrarily choose and assign the hostnames (sheep0, sheep1, in this example) and the ansible_user.
 
 ```
@@ -96,6 +95,12 @@ Finally, replay the previously recorded data to the attached sensor nodes, recor
 ```
 shepherd-herd -i hosts emulate -o consumption.h5 recording.h5
 ```
+
+## Problems and Questions
+
+*shepherd* is an early stage project and chances are that something is not working as expected.
+Also, some features are not yet fully supported or documented.
+At this stage, fixing issues and adding functionality might only require a few lines of code, so please, get in touch with us via e-mail or by creating an issue on github.
 
 ## Documentation
 
