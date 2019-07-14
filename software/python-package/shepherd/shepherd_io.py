@@ -305,9 +305,12 @@ class ShepherdIO(object):
 
             self._adc_set_power(True)
 
-            logger.debug("Analog shepherd_io is powered")
+            logger.debug("Shepherd hardware is powered")
 
-            # Allow PRUs some time to setup RPMSG and sync
+            # If shepherd hasn't been terminated properly
+            if sysfs_interface.get_mode() != "idle":
+                sysfs_interface.stop()
+
             sysfs_interface.wait_for_state("idle", 5)
             logger.debug(f"Switching to '{ self.mode }' mode")
             sysfs_interface.set_mode(self.mode)
