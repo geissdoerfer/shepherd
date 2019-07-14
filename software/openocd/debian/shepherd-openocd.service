@@ -3,7 +3,6 @@ Description=Openocd via SHEPHERD
 
 [Service]
 Type=simple
-ExecStartPre=/usr/local/bin/shepherd-sheep targetpower --on
 ExecStart=/usr/bin/openocd -c "bindto 0.0.0.0" -f interface/beaglebone.cfg -f interface/shepherd.cfg -c "transport select swd" -f target/nrf52.cfg
 
 [Install]
