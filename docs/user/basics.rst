@@ -43,10 +43,10 @@ A group of shepherd nodes can be deployed to the environment of interest to meas
 The time-synchronization between the shepherd nodes allows to gather the readings from multiple nodes with respect to a common time-line.
 The data thus represents the spatio-temporal energy availability.
 
-An important point to note is the operating point of the DC/DC converter.
+An important aspect of recording is the operating point of the DC/DC converter.
 A harvesting transducer is characterized by its IV-curve, determining the magnitude of current at a specific load voltage.
 The DC/DC boost converter can (within limits) regulate the input to a desired voltage, by adapting the current drawn from the transducer.
-Thus, we have to tell the converter at which voltage we want to operate the transducer.
+Thus, we have to inform the converter at which voltage we want to operate the transducer.
 There are two options:
 
 `Maximum Power Point Tracking (MPPT) <https://en.wikipedia.org/wiki/Maximum_Power_Point_Tracking>`_
@@ -66,11 +66,11 @@ Currently, the software only supports setting a constant voltage at the beginnin
 Emulation
 ---------
 
-In emulation mode, we can feed spatio-temporal current and voltage data to a group of sensor nodes.
-Each shepherd node hosts a DAC controlled current source which can precisely set the current into the DC/DC converter.
+In emulation mode, spatio-temporal current and voltage data is replayed to a group of sensor nodes.
+Each shepherd node hosts a DAC controlled current source that can precisely set the current into the DC/DC converter.
 The DC/DC converter has a reference voltage input that we use to set the voltage on its input.
 With these two mechanisms, we are able to force the DC/DC converter into an arbitrary operating point.
-Relying on time-synchronization shepherd can thus faithfully reproduce previously recorded (or model-based) spatio-temporal energy conditions.
+Relying on time-synchronization, shepherd can thus faithfully reproduce previously recorded (or model-based) spatio-temporal energy conditions.
 
 Instead of the dummy load, the capacitor-bufferd output of the DC/DC converter is connected to the target sensor node.
 Thus, the sensor node is operated under the constraints of emulated energy availability.

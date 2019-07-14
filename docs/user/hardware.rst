@@ -4,11 +4,12 @@ Hardware
 Shepherd is a HW/SW solution and this section describes the key interfaces of the shepherd HW that are relevant to users.
 
 Each shepherd node consists of 5 key components:
- - The BeagleBone is a Single Board Computer, handling synchronization, data storage and hardware control
- - The shepherd cape hosts the DC/DC converter, amplifiers and ADC, DAC and corresponding emulation circuitry and all other fixed hardware parts
- - The harvesting capelet connects a harvesting transducer (e.g. solar panel) to the input of the DC/DC converter on the shepherd cape
- - The target capelet connects a sensor node (e.g. a microcontroller with radio) to the capacity buffered output of the DC/DC converter on the shepherd cape
- - The storage capelet hosts the capacitor used to temporarily store harvested energy during recording and emulation
+
+* The BeagleBone is a Single Board Computer, handling synchronization, data storage and hardware control
+* The shepherd cape hosts the DC/DC converter, amplifiers and ADC, DAC and corresponding emulation circuitry and all other fixed hardware parts
+* The harvesting capelet connects a harvesting transducer (e.g. solar panel) to the input of the DC/DC converter on the shepherd cape
+* The target capelet connects a sensor node (e.g. a microcontroller with radio) to the capacity buffered output of the DC/DC converter on the shepherd cape
+* The storage capelet hosts the capacitor used to temporarily store harvested energy during recording and emulation
 
 Harvesting capelet
 ------------------
@@ -77,7 +78,7 @@ Storage capelet
 ---------------
 
 Although less relevant for recording, the choice of capacitor crucially defines system behaviour during emulation.
-Therefore, shepherd allow to easily swap the capacitor to experiment with different technologies/capacities.
+Therefore, shepherd allows to easily swap the capacitor to experiment with different technologies/capacities by changing storage capelets.
 
 The storage capelet directly connects the two ends of a mounted capacitor to the corresponding traces on the shepherd cape via two custom, 4-pin headers.
 
