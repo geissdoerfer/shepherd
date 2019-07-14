@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE eagle SYSTEM "eagle.dtd">
-<eagle version="9.3.2">
+<eagle version="9.4.2">
 <drawing>
 <settings>
 <setting alwaysvectorfont="no"/>
@@ -178,6 +178,26 @@
 <wire x1="17.145" y1="12.7" x2="17.145" y2="0" width="0.127" layer="20"/>
 <wire x1="17.145" y1="0" x2="0.635" y2="0" width="0.127" layer="20"/>
 <wire x1="0.635" y1="0" x2="0.635" y2="12.7" width="0.127" layer="20"/>
+<wire x1="1.27" y1="10.795" x2="1.905" y2="11.43" width="0.2032" layer="21"/>
+<wire x1="1.905" y1="11.43" x2="3.175" y2="11.43" width="0.2032" layer="21"/>
+<wire x1="3.175" y1="11.43" x2="3.81" y2="10.795" width="0.2032" layer="21"/>
+<wire x1="3.81" y1="10.795" x2="3.81" y2="1.905" width="0.2032" layer="21"/>
+<wire x1="3.81" y1="1.905" x2="3.175" y2="1.27" width="0.2032" layer="21"/>
+<wire x1="3.175" y1="1.27" x2="1.905" y2="1.27" width="0.2032" layer="21"/>
+<wire x1="1.905" y1="1.27" x2="1.27" y2="1.905" width="0.2032" layer="21"/>
+<wire x1="1.27" y1="1.905" x2="1.27" y2="10.795" width="0.2032" layer="21"/>
+<wire x1="13.97" y1="10.795" x2="14.605" y2="11.43" width="0.2032" layer="21"/>
+<wire x1="14.605" y1="11.43" x2="15.875" y2="11.43" width="0.2032" layer="21"/>
+<wire x1="15.875" y1="11.43" x2="16.51" y2="10.795" width="0.2032" layer="21"/>
+<wire x1="16.51" y1="10.795" x2="16.51" y2="1.905" width="0.2032" layer="21"/>
+<wire x1="16.51" y1="1.905" x2="15.875" y2="1.27" width="0.2032" layer="21"/>
+<wire x1="15.875" y1="1.27" x2="14.605" y2="1.27" width="0.2032" layer="21"/>
+<wire x1="14.605" y1="1.27" x2="13.97" y2="1.905" width="0.2032" layer="21"/>
+<wire x1="13.97" y1="1.905" x2="13.97" y2="10.795" width="0.2032" layer="21"/>
+<text x="5.334" y="1.778" size="1.27" layer="25" font="vector" ratio="15" rot="R90">P3</text>
+<text x="13.716" y="1.905" size="1.27" layer="25" font="vector" ratio="15" rot="R90">P4</text>
+<circle x="16.637" y="1.143" radius="0.283978125" width="0" layer="25"/>
+<circle x="1.143" y="1.143" radius="0.283978125" width="0" layer="25"/>
 </package>
 <package name="CAPC1608X95" urn="urn:adsk.eagle:footprint:4925891/1">
 <description>Chip, 1.60 X 0.80 X 0.95 mm body
