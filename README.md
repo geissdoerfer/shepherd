@@ -2,16 +2,11 @@
 
 [![Build Status](https://travis-ci.org/geissdoerfer/shepherd.svg?branch=master)](https://travis-ci.org/geissdoerfer/shepherd)
 
-*shepherd* is a testbed for the battery-less Internet of Things.
-It allows to record harvesting conditions at multiple points in space over time.
+
+Battery-less sensor nodes depend on harvesting energy from their environment.
+Developing solutions involving groups of battery-less nodes requires a tool to analyse, understand and replicate spatio-temporal harvesting conditions.
+*shepherd* is a testbed for the battery-less Internet of Things, allowing to record harvesting conditions at multiple points in space over time.
 The recorded data can be replayed to attached wireless sensor nodes, examining their behaviour under the constraints of spatio-temporal energy availability.
-
-For a detailed description see our paper [TODO]
-
-A *shepherd* instance consists of a group of spatially distributed *shepherd* nodes that are time-synchronized with each other.
-Each *shepherd* node consists of a BeagleBone, the *shepherd* cape and a particular choice of capelets according to the user requirements.
-
-This repository contains the hardware design files for the shepherd cape and the various capelets, the software running on each *shepherd* node as well as the tool to orchestrate a group of *shepherd* nodes connected to a network.
 
 **Features**
 
@@ -22,6 +17,12 @@ This repository contains the hardware design files for the shepherd cape and the
  - Configurable, constant voltage power supply for attached sensor nodes
  - Level-translated serial connection to the attached sensor nodes
 
+For a detailed description see our paper [TODO]
+
+A *shepherd* instance consists of a group of spatially distributed *shepherd* nodes that are time-synchronized with each other.
+Each *shepherd* node consists of a [BeagleBone](https://beagleboard.org/bone), the *shepherd* cape and a particular choice of capelets according to the user requirements.
+
+This repository contains the hardware design files for the shepherd cape and the various capelets, the software running on each *shepherd* node as well as the tool to orchestrate a group of *shepherd* nodes connected to a network.
 
 ## Quickstart
 
@@ -40,7 +41,7 @@ git clone https://github.com/geissdoerfer/shepherd.git
 
 Next, install the tools used for installing and controlling the *shepherd* nodes.
 We'll use [Ansible](https://www.ansible.com/) to remotely roll out the basic configuration to each *shepherd* node and *shepherd-herd* to orchestrate recording/emulation across all nodes.
-The tools are hosted on `PyPI` and require Python version `>=3.6`.
+The tools are hosted on `PyPI` and require Python version >= 3.6.
 Install the tools using `pip`:
 
 ```
@@ -89,6 +90,8 @@ Retrieve the data to analyze it on your local machine:
 ```
 shepherd-herd -i hosts retrieve recording.h5 local_dir/
 ```
+
+For a detailed description of the [HDF5](https://en.wikipedia.org/wiki/Hierarchical_Data_Format) based data format, refer to the [corresponding documentation](https://shepherd-testbed.readthedocs.io/en/latest/user/data_format.html).
 
 Finally, replay the previously recorded data to the attached sensor nodes, recording their power consumption:
 
