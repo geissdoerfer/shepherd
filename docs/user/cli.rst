@@ -10,7 +10,9 @@ The pure-python package is installed on the user's local machine and sends comma
 `Shepherd-sheep`_ is the command line utility for locally controlling a single shepherd node.
 Depending on your use-case you may not even need to directly interact with it!
 
-Shepherd-herd
+.. _shepherd-herd-cli:
+
+shepherd-herd
 -------------
 
 .. click:: shepherd_herd:cli
@@ -67,7 +69,7 @@ Finally, to replay previously recorded data from the file `rec.h5` in the shephe
 
     shepherd-herd -i hosts emulate -o load.h5 rec.h5
 
-Shepherd-sheep
+shepherd-sheep
 --------------
 
 .. click:: shepherd.cli:cli

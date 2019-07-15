@@ -9,8 +9,7 @@ Welcome to SHEPHERD's documentation!
 To learn how *shepherd* enables research into the most challenging problems of coordinating battery-less sensor nodes, take a look at our paper [TODO].
 To get a basic understanding of what shepherd does, read the :doc:`user/basics`.
 If you have the hardware on your desk and want to get started, read :doc:`user/getting_started`.
-To record/emulate data on a group of shepherd nodes, use the *shepherd-herd* command line utilty according to its documentation.
-
+To record/emulate data on a group of shepherd nodes, use the :ref:`shepherd-herd-cli` command line utility.
 
 
 User Guide
