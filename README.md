@@ -87,7 +87,7 @@ shepherd-herd -i hosts record -l 120 recording.h5
 Retrieve the data to analyze it on your local machine:
 
 ```
-shepherd-herd -i hosts retrieve recording.h5
+shepherd-herd -i hosts retrieve recording.h5 local_dir/
 ```
 
 Finally, replay the previously recorded data to the attached sensor nodes, recording their power consumption:
@@ -100,7 +100,7 @@ shepherd-herd -i hosts emulate -o consumption.h5 recording.h5
 
 *shepherd* is an early stage project and chances are that something is not working as expected.
 Also, some features are not yet fully supported or documented.
-At this stage, fixing issues and adding functionality might only require a few lines of code, so please, get in touch with us via e-mail or by creating an issue on github.
+If you experience issues or require additional features, please get in touch via e-mail or by creating an issue on github.
 
 ## Documentation
 
