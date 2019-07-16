@@ -365,6 +365,7 @@ def rpc(port):
     gevent.signal(signal.SIGTERM, stop_server)
     gevent.signal(signal.SIGINT, stop_server)
 
+    shepherd_io.start()
     server.run()
 
 
