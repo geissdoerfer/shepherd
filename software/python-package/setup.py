@@ -13,7 +13,7 @@ requirements = [
 
 setup(
     name="shepherd",
-    version="0.0.5",
+    version="0.0.6",
     description=("Synchronized Energy Harvesting" "Emulator and Recorder"),
     packages=["shepherd"],
     classifiers=[
