@@ -381,7 +381,6 @@ def record(
     "--output",
     "-o",
     type=click.Path(),
-    default="/var/shepherd/recordings",
     help="Dir or file path for resulting hdf5 file with load recordings",
 )
 @click.option(
@@ -404,23 +403,27 @@ def record(
 )
 @click.pass_context
 def emulate(ctx, input, output, length, force, no_calib, load, init_charge):
+
     fp_input = Path(input)
     if not fp_input.is_absolute():
         fp_input = Path("/var/shepherd/recordings") / input
 
-    fp_output = Path(output)
-    if not fp_output.is_absolute():
-        fp_output = Path("/var/shepherd/recordings") / output
-
     parameter_dict = {
         "input": str(fp_input),
-        "output": str(fp_output),
         "force": force,
         "length": length,
         "no_calib": no_calib,
         "init_charge": init_charge,
         "load": load,
     }
+
+    if output is not None:
+        fp_output = Path(output)
+        if not fp_output.is_absolute():
+            fp_output = Path("/var/shepherd/recordings") / output
+
+        parameter_dict["output"] = str(fp_output)
+
     start_shepherd(
         ctx.obj["fab group"], "emulate", parameter_dict, ctx.obj["verbose"]
     )
