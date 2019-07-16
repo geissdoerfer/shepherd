@@ -193,12 +193,12 @@ def poweroff(ctx, restart):
 @click.pass_context
 @click.argument("command", type=str)
 @click.option("--sudo", "-s", is_flag=True, help="Run command with sudo")
-def run(ctx, cmd, sudo):
+def run(ctx, command, sudo):
     for cnx in ctx.obj["fab group"]:
         if sudo:
-            cnx.sudo(cmd, warn=True)
+            cnx.sudo(command, warn=True)
         else:
-            cnx.run(cmd, warn=True)
+            cnx.run(command, warn=True)
 
 
 @cli.group(
