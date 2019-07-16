@@ -95,8 +95,8 @@ int handle_rpmsg(struct RingBuffer *free_buffers, enum ShepherdMode mode,
 	_GPIO_TOGGLE(P8_12);
 
 	if ((mode == MODE_DEBUG) && (state == STATE_RUNNING)) {
+		unsigned int res;
 		switch (msg_in.msg_type) {
-			unsigned int res;
 		case MSG_DEP_DBG_ADC:
 			res = sample_dbg_adc(msg_in.value);
 			send_message(MSG_DEP_DBG_ADC, res);
