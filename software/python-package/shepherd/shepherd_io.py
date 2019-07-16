@@ -308,7 +308,7 @@ class ShepherdIO(object):
             logger.debug("Shepherd hardware is powered")
 
             # If shepherd hasn't been terminated properly
-            if sysfs_interface.get_mode() != "idle":
+            if sysfs_interface.get_state() != "idle":
                 sysfs_interface.stop()
 
             sysfs_interface.wait_for_state("idle", 5)
