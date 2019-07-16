@@ -223,12 +223,12 @@ def target(ctx, port, on):
 
     if on or ctx.invoked_subcommand:
         for cnx in ctx.obj["fab group"]:
-            cnx.sudo("shepherd targetpower --on", hide=True, warn=True)
+            cnx.sudo("shepherd-sheep targetpower --on", hide=True)
             start_openocd(cnx, ctx.obj["hostnames"][cnx.host])
     else:
         for cnx in ctx.obj["fab group"]:
             cnx.sudo("systemctl stop shepherd-openocd")
-            cnx.sudo("shepherd targetpower --off", hide=True, warn=True)
+            cnx.sudo("shepherd-sheep targetpower --off", hide=True)
 
 
 @target.resultcallback()
@@ -237,7 +237,7 @@ def process_result(ctx, result, **kwargs):
     if not kwargs["on"]:
         for cnx in ctx.obj["fab group"]:
             cnx.sudo("systemctl stop shepherd-openocd")
-            cnx.sudo("shepherd targetpower --off", hide=True, warn=True)
+            cnx.sudo("shepherd-sheep targetpower --off", hide=True)
 
 
 def start_openocd(cnx, hostname, timeout=30):
