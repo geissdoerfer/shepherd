@@ -112,7 +112,7 @@ def start_shepherd(
 def cli(ctx, inventory, limit, user, key_filename, verbose):
 
     if inventory.rstrip().endswith(","):
-        hostlist = inventory.split(",")
+        hostlist = inventory.split(",")[:-1]
         if limit is not None:
             hostlist = list(set(hostlist) & set(limit))
         hostnames = {hostname: hostname for hostname in hostlist}
