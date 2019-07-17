@@ -393,7 +393,7 @@ def record(
 @click.option(
     "--load",
     type=click.Choice(["artificial", "node"]),
-    default="artificial",
+    default="node",
     help="Choose artificial or sensor node load",
 )
 @click.option(
