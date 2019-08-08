@@ -75,7 +75,7 @@
 - name: Install shepherd python package
   command: python3 setup.py install --force
   args:
-    chdir: '{{ shepherd_install_path }}/python-package'
+    chdir: '{{ shepherd_install_path }}/software/python-package'
   tags:
     - install
     - python
