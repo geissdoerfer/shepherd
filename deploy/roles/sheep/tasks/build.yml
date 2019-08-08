@@ -1,7 +1,7 @@
 ---
 - name: Build and install kernel module
   make:
-    chdir: "{{ shepherd_install_path }}/kernel-module/src"
+    chdir: "{{ shepherd_install_path }}/software/kernel-module/src"
     target: install
   tags:
     - install
@@ -13,7 +13,7 @@
 
 - name: Build and install PRU firmware
   make:
-    chdir: "{{ shepherd_install_path }}/firmware/{{ item }}-shepherd-fw"
+    chdir: "{{ shepherd_install_path }}/software/firmware/{{ item }}-shepherd-fw"
     target: install
   environment:
     PRU_CGT: '{{ pru_cgt_path }}'
@@ -26,7 +26,7 @@
 
 - name: Build and install device tree overlay
   make:
-    chdir: "{{ shepherd_install_path }}/firmware/device-tree"
+    chdir: "{{ shepherd_install_path }}/software/firmware/device-tree"
     target: install
   notify:
     - restart device
