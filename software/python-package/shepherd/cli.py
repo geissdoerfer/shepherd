@@ -33,7 +33,7 @@ from shepherd import CalibrationData
 from shepherd import EEPROM
 from shepherd import CapeData
 from shepherd import ShepherdDebug
-from .shepherd_io import gpio_pin_nums
+from shepherd_io import gpio_pin_nums
 
 
 consoleHandler = logging.StreamHandler()
