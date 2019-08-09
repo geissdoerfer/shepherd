@@ -11,5 +11,6 @@
 #define SPI_MISO P9_27
 
 #define LED P8_12
+#define PRU0_DEBUG P8_11
 
 #endif /* __HW_CONFIG_H_ */

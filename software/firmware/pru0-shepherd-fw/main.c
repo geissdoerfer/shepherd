@@ -92,7 +92,7 @@ int handle_rpmsg(struct RingBuffer *free_buffers, enum ShepherdMode mode,
 	if (rpmsg_get((void *)&msg_in) != sizeof(struct DEPMsg))
 		return 0;
 
-	_GPIO_TOGGLE(P8_12);
+	_GPIO_TOGGLE(LED);
 
 	if ((mode == MODE_DEBUG) && (state == STATE_RUNNING)) {
 		unsigned int res;
@@ -127,6 +127,8 @@ void event_loop(volatile struct SharedMem *shared_mem,
 	unsigned int sample_idx = 0;
 	unsigned int buffer_idx = NO_BUFFER;
 
+	unsigned int toggle_cntr = 0; //TODO remove
+
 	while (1) {
 		/* Check if a sample was triggered by PRU1 */
 		if (__R31 & (1U << 31)) {
@@ -137,6 +139,15 @@ void event_loop(volatile struct SharedMem *shared_mem,
 			} else {
 				int_source = SIG_SAMPLE;
 				CLEAR_EVENT(PRU_PRU_EVT_SAMPLE);
+			}
+
+			// TODO remove
+			if (shared_mem->shepherd_state == STATE_RUNNING) {
+				toggle_cntr++;
+				if(toggle_cntr == 1000) {
+					_GPIO_TOGGLE(PRU0_DEBUG);
+					toggle_cntr = 0;
+				}
 			}
 
 			/* The actual sampling takes place here */
@@ -170,7 +181,7 @@ void event_loop(volatile struct SharedMem *shared_mem,
 						sample_idx);
 
 				sample_idx = 0;
-				_GPIO_OFF(P8_12);
+				_GPIO_OFF(LED);
 			}
 			/* We only handle rpmsg comms if we're not at the last sample */
 			else {
