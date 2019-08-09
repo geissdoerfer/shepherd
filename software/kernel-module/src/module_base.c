@@ -65,7 +65,7 @@ static int find_prus(struct rproc **rproc_prus)
 	rproc_prus[0] = NULL;
 	rproc_prus[1] = NULL;
 
-	for (i = 0; i < 100; i++) {
+	for (i = 0; i < 200; i++) {
 		for (it_phandle = PRU_PHANDLE_RANGE_L;
 		     it_phandle < PRU_PHANDLE_RANGE_H; it_phandle++) {
 			tmp_rproc = rproc_get_by_phandle((phandle)it_phandle);
