@@ -153,7 +153,7 @@ int sync_loop(struct CtrlRepMsg *ctrl_rep, struct CtrlReqMsg *ctrl_req)
 	ctrl_rep->next_timestamp_ns = next_timestamp_ns;
 	ctrl_rep->identifier = MSG_SYNC_CTRL_REP;
 
-	printk(KERN_INFO "shprd: ERR: %lld CORR: %d", err,
+	printk(KERN_INFO "shpd: ERR: %lld CORR: %d", err,
 	       ctrl_rep->clock_corr);
 
 	return 0;

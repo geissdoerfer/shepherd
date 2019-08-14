@@ -11,6 +11,7 @@
 #define SPI_MISO P9_27
 
 #define LED P8_12
-#define PRU0_DEBUG P8_11
+#define VIRTCAP_SLCT_LOAD P8_11
+#define PRU0_TRACE P9_29
 
 #endif /* __HW_CONFIG_H_ */
