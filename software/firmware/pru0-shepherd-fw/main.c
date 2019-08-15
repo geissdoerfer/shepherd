@@ -16,6 +16,7 @@
 #include "hw_config.h"
 #include "commons.h"
 #include "shepherd_config.h"
+#include "virtcap.h"
 
 #define CHECK_EVENT(x) CT_INTC.SECR0 &(1U << x)
 #define CLEAR_EVENT(x) CT_INTC.SICR_bit.STS_CLR_IDX = x;
@@ -92,7 +93,7 @@ int handle_rpmsg(struct RingBuffer *free_buffers, enum ShepherdMode mode,
 	if (rpmsg_get((void *)&msg_in) != sizeof(struct DEPMsg))
 		return 0;
 
-	_GPIO_TOGGLE(LED);
+	
 
 	if ((mode == MODE_DEBUG) && (state == STATE_RUNNING)) {
 		unsigned int res;
@@ -143,11 +144,20 @@ void event_loop(volatile struct SharedMem *shared_mem,
 
 			// TODO remove
 			if (shared_mem->shepherd_state == STATE_RUNNING) {
+				#if 0
 				toggle_cntr++;
 				if(toggle_cntr == 1000) {
-					_GPIO_TOGGLE(PRU0_DEBUG);
+					_GPIO_TOGGLE(VIRTCAP_SLCT_LOAD);
 					toggle_cntr = 0;
 				}
+				#else
+				_GPIO_ON(LED);
+				virtcap_update(0,0);
+				_GPIO_OFF(LED);
+				#endif
+
+
+
 			}
 
 			/* The actual sampling takes place here */
@@ -242,6 +252,8 @@ reset:
 	init_ring(&free_buffers);
 	sampling_init((enum ShepherdMode)shared_mem->shepherd_mode,
 		      shared_mem->harvesting_voltage);
+
+	virtcap_init(1.25, 1.02, 1000);
 
 	shared_mem->gpio_edges = NULL;
 

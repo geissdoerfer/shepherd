@@ -3,3 +3,7 @@ hosts
 *.pyc
 
 *.dtbo
+
+\.vscode/
+
+\.buildconfig
