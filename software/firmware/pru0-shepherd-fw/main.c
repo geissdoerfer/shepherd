@@ -130,6 +130,9 @@ void event_loop(volatile struct SharedMem *shared_mem,
 
 	unsigned int toggle_cntr = 0; //TODO remove
 
+	unsigned int current = 6600 * 4095 / 33000;
+	unsigned int voltage = 2500 * 4095 / 3300;
+
 	while (1) {
 		/* Check if a sample was triggered by PRU1 */
 		if (__R31 & (1U << 31)) {
@@ -152,7 +155,8 @@ void event_loop(volatile struct SharedMem *shared_mem,
 				}
 				#else
 				_GPIO_ON(LED);
-				virtcap_update(0,0);
+
+				virtcap_update(current, voltage);
 				_GPIO_OFF(LED);
 				#endif
 
@@ -253,7 +257,7 @@ reset:
 	sampling_init((enum ShepherdMode)shared_mem->shepherd_mode,
 		      shared_mem->harvesting_voltage);
 
-	virtcap_init(1.25, 1.02, 1000);
+	virtcap_init(1250, 1020, 1000);
 
 	shared_mem->gpio_edges = NULL;
 

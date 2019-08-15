@@ -5,43 +5,44 @@
 
 #include "virtcap.h"
 
-static uint32_t voltage_to_logic (uint32_t voltage);
-static uint32_t current_mA_to_logic (uint32_t current_mA);
+void set_output(uint8_t value);
+uint32_t voltage_mv_to_logic (uint32_t voltage);
+uint32_t current_ua_to_logic (uint32_t current_mA);
 
 // Constant variables
-static uint32_t kMaxCapVoltage;
-static uint32_t kMinCapVoltage;
-static uint32_t kInitCapVoltage;
-static uint32_t kDcoutputVoltage;
-static uint32_t kMaxVoltageOut;
-static uint32_t kMaxCurrentIn;
-static uint32_t kLeakageCurrent;
-static uint32_t kEfficiency;
-static uint32_t kOnTimeLeakageCurrent;
+uint32_t kMaxCapVoltage;
+uint32_t kMinCapVoltage;
+uint32_t kInitCapVoltage;
+uint32_t kDcoutputVoltage;
+uint32_t kMaxVoltageOut;
+uint32_t kMaxCurrentIn;
+uint32_t kLeakageCurrent;
+uint32_t kEfficiency;
+uint32_t kOnTimeLeakageCurrent;
 
 /* Simulating inputs, should later be replaced by measurments from the system*/ 
-static uint32_t current_measured_sim;
-static uint32_t voltage_measured_sim;
-static uint32_t input_power_sim;
+uint32_t current_measured_sim;
+uint32_t voltage_measured_sim;
+uint32_t input_power_sim;
 
 /* These are two variables used to keep calculations in 32bit range, note that  harv_div_scale * harv_mul_scale == 1000 */
-static const int32_t harv_div_scale = 10;
-static const int32_t harv_mul_scale = 100;
+const int32_t harv_div_scale = 10;
+const int32_t harv_mul_scale = 100;
 
-static const uint32_t sample_period_us = 10;
+const uint32_t sample_period_us = 10;
 
-static uint32_t upper_threshold_voltage;
-static uint32_t lower_threshold_voltage;
+uint32_t upper_threshold_voltage;
+uint32_t lower_threshold_voltage;
 
-static int32_t harvest_multiplier;
+int32_t harvest_multiplier;
 
 // Initialize vars
-static uint32_t cap_voltage;
-static uint8_t is_outputting;
-static uint8_t is_enabled;
+uint32_t cap_voltage;
+uint8_t is_outputting;
+uint8_t is_enabled;
 
-static uint32_t kCorrectionFactor;
-static uint32_t kScaleInput;
+uint32_t kCorrectionFactor;
+uint32_t kScaleInput;
 
 void virtcap_init(uint32_t upper_threshold_voltage_param, uint32_t lower_threshold_voltage_param, uint32_t capacitance_uF)
 {
@@ -80,32 +81,32 @@ void virtcap_init(uint32_t upper_threshold_voltage_param, uint32_t lower_thresho
    * Later in the final input current calculation the result will be multiplied with 1000 again.
    * This enables to stay within 32bits during calculation.
    */
-
-  kCorrectionFactor = (1.0 / 1.15);
-  kScaleInput = ((4095 * 1000 * 1000) / 33) * ((4095 * 1000 * 1000) / 3300) / 1000000 * kCorrectionFactor / 1000 ;
+  
+  kCorrectionFactor = 115;
+  kScaleInput = ((4095 * 1000) / 33) * ((4095 * 1000) / 3300) / kCorrectionFactor * 100 / 1000;
 
   // initializing constants
-  kMaxCapVoltage = voltage_to_logic(3.3);
+  kMaxCapVoltage = voltage_mv_to_logic(3300);
   kMinCapVoltage = 0;
-  kInitCapVoltage = voltage_to_logic(1.0);
-  kDcoutputVoltage = voltage_to_logic(3.3);
+  kInitCapVoltage = voltage_mv_to_logic(1000);
+  kDcoutputVoltage = voltage_mv_to_logic(3300);
   kMaxVoltageOut = 3300; // mV
   kMaxCurrentIn = 33; // mA
-  kLeakageCurrent = current_mA_to_logic(0.022);
+  kLeakageCurrent = current_ua_to_logic(22);
   kEfficiency = 47; // defined in %
-  kOnTimeLeakageCurrent = current_mA_to_logic(0.012);
+  kOnTimeLeakageCurrent = current_ua_to_logic(12);
 
   // initializing simulated constants
-  current_measured_sim = current_mA_to_logic(6.6) / 1000;
-  voltage_measured_sim = voltage_to_logic(2.5) / 1000000;
+  current_measured_sim = current_ua_to_logic(6600) / 1000;
+  voltage_measured_sim = voltage_mv_to_logic(2500) / 1000000;
   input_power_sim = 4000; // defined in uW
   
   // Calculate harvest multiplier
   harvest_multiplier = capacitance_uF * kMaxVoltageOut / kMaxCurrentIn / sample_period_us / harv_div_scale;
 
   // set threshold voltages
-  upper_threshold_voltage = voltage_to_logic(upper_threshold_voltage_param);
-  lower_threshold_voltage = voltage_to_logic(lower_threshold_voltage_param);
+  upper_threshold_voltage = voltage_mv_to_logic(upper_threshold_voltage_param);
+  lower_threshold_voltage = voltage_mv_to_logic(lower_threshold_voltage_param);
 
   // Initialize vars
   cap_voltage = kInitCapVoltage;
@@ -113,14 +114,11 @@ void virtcap_init(uint32_t upper_threshold_voltage_param, uint32_t lower_thresho
   is_enabled = FALSE;
 
   // Initialize 'DC-DC' output to false
-  _GPIO_OFF(VIRTCAP_SLCT_LOAD);
-
+  set_output(FALSE);
 }
 
 void virtcap_update(uint32_t current_measured, uint32_t voltage_measured)
 {
-  current_measured = current_measured_sim;
-  voltage_measured = voltage_measured_sim;
 
   current_measured *= 1000; // convert from mA to uA
   voltage_measured *= 1000; // convert from V to mV
@@ -133,21 +131,18 @@ void virtcap_update(uint32_t current_measured, uint32_t voltage_measured)
 
   input_current -= kLeakageCurrent; // compensate for leakage current
   
-  int32_t output_current;
-
-  // compensate output current for higher voltage than input + boost converter efficiency
-  if (is_outputting)
+    // compensate output current for higher voltage than input + boost converter efficiency
+  if (!is_outputting)
   {
-    output_current = (voltage_measured) * 100 / (cap_voltage / 1000) * current_measured / kEfficiency; // + kOnTimeLeakageCurrent;
-  } 
-  else
-  {
-    output_current = 0; // force current read to zero while not outputting (to ignore noisy current reading)
+    current_measured = 0; // force current read to zero while not outputting (to ignore noisy current reading)
   }
+
+  int32_t output_current = (voltage_measured) * 100 / (cap_voltage / 1000) * current_measured / kEfficiency; // + kOnTimeLeakageCurrent;
 
   uint32_t new_cap_voltage = cap_voltage + ((input_current - output_current) * harv_mul_scale / harvest_multiplier);
 
-  #if 1
+
+
   // Make sure the voltage does not go beyond it's boundaries
   if (new_cap_voltage >= kMaxCapVoltage)
   {
@@ -157,32 +152,47 @@ void virtcap_update(uint32_t current_measured, uint32_t voltage_measured)
   {
     new_cap_voltage = kMinCapVoltage;
   }
-  #endif
-
 
   // determine whether we should be in a new state
   if (is_outputting && (new_cap_voltage < lower_threshold_voltage))
   {
     is_outputting = FALSE; // we fall under our threshold
-    _GPIO_OFF(VIRTCAP_SLCT_LOAD);
+    set_output(FALSE);
   }
   else if (!is_outputting && (new_cap_voltage > upper_threshold_voltage))
   {
     is_outputting = TRUE; // we have enough voltage to switch on again
-    _GPIO_ON(VIRTCAP_SLCT_LOAD);
+    set_output(TRUE);
   }
 
+#if 0
+
   cap_voltage = new_cap_voltage;
+
+
+  #endif
 }
 
-static uint32_t voltage_to_logic (uint32_t voltage)
+uint32_t voltage_mv_to_logic (uint32_t voltage)
 {
-  uint32_t value = voltage * 4095 * 1000 * 1000 / 3.3;
+  uint32_t value = voltage * 4095 / 3300 * 1000 * 1000;
   return (uint32_t) (value);
 }
 
-static uint32_t current_mA_to_logic (uint32_t current_mA)
+uint32_t current_ua_to_logic (uint32_t current)
 {
-  uint32_t value =  current_mA * 4095 * 1000 / 33;
+  uint32_t value =  current * 4095 / 33000 * 1000;
   return (uint32_t) (value);
+}
+
+void set_output(uint8_t value)
+{
+  if (value)
+  {
+    _GPIO_ON(VIRTCAP_SLCT_LOAD);
+  }
+  else
+  {
+    _GPIO_OFF(VIRTCAP_SLCT_LOAD);
+  }
 }
