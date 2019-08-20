@@ -26,8 +26,8 @@ uint32_t voltage_measured_sim;
 uint32_t input_power_sim;
 
 /* These are two variables used to keep calculations in 32bit range, note that  harv_div_scale * harv_mul_scale == 1000 */
-const int32_t harv_div_scale = 10;
-const int32_t harv_mul_scale = 100;
+const int32_t harv_div_scale = 8;
+const int32_t harv_mul_scale = 128;
 
 const uint32_t sample_period_us = 10;
 
@@ -83,7 +83,7 @@ void virtcap_init(uint32_t upper_threshold_voltage_param, uint32_t lower_thresho
    */
   
   kCorrectionFactor = 115;
-  kScaleInput = ((4095 * 1000) / 33) * ((4095 * 1000) / 3300) / kCorrectionFactor * 100 / 1000;
+  kScaleInput = (uint32_t) 4095 * 1000 * 1000 / 3300 / 33 * 4095 / kCorrectionFactor * 100 / 1000;
 
   // initializing constants
   kMaxCapVoltage = voltage_mv_to_logic(3300);
@@ -99,7 +99,6 @@ void virtcap_init(uint32_t upper_threshold_voltage_param, uint32_t lower_thresho
   // initializing simulated constants
   current_measured_sim = current_ua_to_logic(6600) / 1000;
   voltage_measured_sim = voltage_mv_to_logic(2500) / 1000000;
-  input_power_sim = 4000; // defined in uW
   
   // Calculate harvest multiplier
   harvest_multiplier = capacitance_uF * kMaxVoltageOut / kMaxCurrentIn / sample_period_us / harv_div_scale;
@@ -117,31 +116,31 @@ void virtcap_init(uint32_t upper_threshold_voltage_param, uint32_t lower_thresho
   set_output(FALSE);
 }
 
-void virtcap_update(uint32_t current_measured, uint32_t voltage_measured)
+void virtcap_update(uint32_t current_measured, uint32_t voltage_measured, uint32_t input_power)
 {
 
   current_measured *= 1000; // convert from mA to uA
   voltage_measured *= 1000; // convert from V to mV
 
   // calculate input current based on input power and input (cap) voltage
-  int32_t input_power = input_power_sim; // TODO this should be formed by a varying input
+  // uint32_t input_power = input_power; // TODO this should be formed by a varying input
 
 
-  int32_t input_current = input_power * kScaleInput / (cap_voltage / 1000) * 1000;
+  int32_t input_current = (int32_t) input_power * kScaleInput / (cap_voltage >> 10) * 1000;
 
   input_current -= kLeakageCurrent; // compensate for leakage current
   
     // compensate output current for higher voltage than input + boost converter efficiency
+  #if 1
   if (!is_outputting)
   {
     current_measured = 0; // force current read to zero while not outputting (to ignore noisy current reading)
   }
+  #endif
 
-  int32_t output_current = (voltage_measured) * 100 / (cap_voltage / 1000) * current_measured / kEfficiency; // + kOnTimeLeakageCurrent;
+  int32_t output_current = (voltage_measured) * 100 / (cap_voltage >> 10) * current_measured / kEfficiency; // + kOnTimeLeakageCurrent;
 
   uint32_t new_cap_voltage = cap_voltage + ((input_current - output_current) * harv_mul_scale / harvest_multiplier);
-
-
 
   // Make sure the voltage does not go beyond it's boundaries
   if (new_cap_voltage >= kMaxCapVoltage)
@@ -165,17 +164,13 @@ void virtcap_update(uint32_t current_measured, uint32_t voltage_measured)
     set_output(TRUE);
   }
 
-#if 0
-
   cap_voltage = new_cap_voltage;
 
-
-  #endif
 }
 
 uint32_t voltage_mv_to_logic (uint32_t voltage)
 {
-  uint32_t value = voltage * 4095 / 3300 * 1000 * 1000;
+  uint32_t value = voltage * 4095 / 3300 * 1024 * 1000;
   return (uint32_t) (value);
 }
 
