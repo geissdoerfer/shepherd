@@ -197,7 +197,9 @@ def poweroff(ctx, restart):
 @click.option("--sudo", "-s", is_flag=True, help="Run command with sudo")
 def run(ctx, command, sudo):
     for cnx in ctx.obj["fab group"]:
-        click.echo(f"************** {ctx.obj['hostnames'][cnx.host]} **************")
+        click.echo(
+            f"************** {ctx.obj['hostnames'][cnx.host]} **************"
+        )
         if sudo:
             cnx.sudo(command, warn=True)
         else:
