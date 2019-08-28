@@ -343,6 +343,7 @@ def reset(ctx):
 @click.option(
     "--init-charge",
     is_flag=True,
+    default=True,
     help="Pre-charge capacitor before starting recording",
 )
 @click.pass_context
@@ -400,6 +401,7 @@ def record(
 @click.option(
     "--init-charge",
     is_flag=True,
+    default=True,
     help="Pre-charge capacitor before starting recording",
 )
 @click.pass_context
