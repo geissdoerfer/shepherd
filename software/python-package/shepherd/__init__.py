@@ -6,7 +6,7 @@ shepherd.__init__
 Provides main API functionality for recording and emulation with shepherd.
 
 
-:copyright: (c) 2019 by Kai Geissdoerfer.
+:copyright: (c) 2019 Networked Embedded Systems Lab, TU Dresden.
 :license: MIT, see LICENSE for more details.
 """
 

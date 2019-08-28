@@ -7,7 +7,7 @@ Provides convenience functions for interacting with the sysfs interface
 provided by the shepherd kernel module
 
 
-:copyright: (c) 2019 by Kai Geissdoerfer.
+:copyright: (c) 2019 Networked Embedded Systems Lab, TU Dresden.
 :license: MIT, see LICENSE for more details.
 """
 

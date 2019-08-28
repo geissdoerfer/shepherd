@@ -8,7 +8,7 @@ is stored on the shepherd cape's EEPROM. Provides a class for accessing EEPROM
 through Linux I2C device driver.
 
 
-:copyright: (c) 2019 by Kai Geissdoerfer.
+:copyright: (c) 2019 Networked Embedded Systems Lab, TU Dresden.
 :license: MIT, see LICENSE for more details.
 """
 

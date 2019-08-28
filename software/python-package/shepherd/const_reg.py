@@ -10,7 +10,7 @@ This file provides a driver for the I2C DAC that is used to set the output
 voltage of the regulator.
 
 
-:copyright: (c) 2019 by Kai Geissdoerfer.
+:copyright: (c) 2019 Networked Embedded Systems Lab, TU Dresden.
 :license: MIT, see LICENSE for more details.
 """
 
