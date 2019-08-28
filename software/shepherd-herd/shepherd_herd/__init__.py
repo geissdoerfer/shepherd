@@ -295,6 +295,21 @@ def halt(ctx):
             logger.info(f"target halted on {ctx.obj['hostnames'][cnx.host]}")
 
 
+@target.command(short_help="Erases the target")
+@click.pass_context
+def erase(ctx):
+    for cnx in ctx.obj["fab group"]:
+
+        with telnetlib.Telnet(cnx.host, ctx.obj["openocd_telnet_port"]) as tn:
+            logger.debug(
+                f"connected to openocd on {ctx.obj['hostnames'][cnx.host]}"
+            )
+            tn.write(b"halt\n")
+            logger.info(f"target halted on {ctx.obj['hostnames'][cnx.host]}")
+            tn.write(b"nrf52 mass_erase\n")
+            logger.info(f"target erased on {ctx.obj['hostnames'][cnx.host]}")
+
+
 @target.command(short_help="Resets the target")
 @click.pass_context
 def reset(ctx):
