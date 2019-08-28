@@ -42,7 +42,11 @@ Args:
 
 
 def start_shepherd(
-    group: Group, command: str, parameters: dict, verbose: int = 0
+    group: Group,
+    command: str,
+    parameters: dict,
+    hostnames: dict,
+    verbose: int = 0,
 ):
 
     # Get the current time on each target node
@@ -76,9 +80,7 @@ def start_shepherd(
     for cnx in group:
         res = cnx.sudo("systemctl status shepherd", hide=True, warn=True)
         if res.exited != 3:
-            raise Exception(
-                f"shepherd not inactive on {ctx.obj['hostnames'][cnx.host]}"
-            )
+            raise Exception(f"shepherd not inactive on {hostnames[cnx.host]}")
 
         cnx.put(StringIO(config_yml), "/tmp/config.yml")
         cnx.sudo("mv /tmp/config.yml /etc/shepherd/config.yml")
@@ -388,7 +390,11 @@ def record(
         "init_charge": init_charge,
     }
     start_shepherd(
-        ctx.obj["fab group"], "record", parameter_dict, ctx.obj["verbose"]
+        ctx.obj["fab group"],
+        "record",
+        parameter_dict,
+        ctx.obj["hostnames"],
+        ctx.obj["verbose"],
     )
 
 
@@ -443,7 +449,11 @@ def emulate(ctx, input, output, length, force, no_calib, load, init_charge):
         parameter_dict["output"] = str(fp_output)
 
     start_shepherd(
-        ctx.obj["fab group"], "emulate", parameter_dict, ctx.obj["verbose"]
+        ctx.obj["fab group"],
+        "emulate",
+        parameter_dict,
+        ctx.obj["hostnames"],
+        ctx.obj["verbose"],
     )
 
 
