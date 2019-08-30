@@ -48,7 +48,8 @@ Install the tools using `pip`:
 pip install ansible shepherd-herd
 ```
 
-Edit the `hosts` file in the root directory of the repository, assigning host names and known IP addresses of your BeagleBones.
+The `inventory/example.yml` file shows an example host names and known IP addresses of  BeagleBones.
+Add yours in similar fashion to `inventory/<name>.yml`, you can remove `example.yml` to remove non existing nodes.
 You can arbitrarily choose and assign the hostnames (sheep0, sheep1, in this example) and the ansible_user.
 
 ```
@@ -67,13 +68,13 @@ sheep:
 Now run the `bootstrap.yml` *Ansible* playbook, which sets the hostname, creates a user and enables passwordless ssh and sudo:
 
 ```
-ansible-playbook -i hosts deploy/bootstrap.yml
+ansible-playbook deploy/bootstrap.yml
 ```
 
 Finally, use the `install.yml` playbook to setup the *shepherd* software, optionally configuring PTP for time-synchronization:
 
 ```
-ansible-playbook -i hosts deploy/install.yml -e ptp=true
+ansible-playbook deploy/install.yml -e ptp=true
 ```
 
 
@@ -82,13 +83,13 @@ ansible-playbook -i hosts deploy/install.yml -e ptp=true
 Record two minutes of data:
 
 ```
-shepherd-herd -i hosts record -l 120 recording.h5
+shepherd-herd record -l 120 recording.h5
 ```
 
 Retrieve the data to analyze it on your local machine:
 
 ```
-shepherd-herd -i hosts retrieve recording.h5 local_dir/
+shepherd-herd -i inventory/example.yml retrieve recording.h5 local_dir/
 ```
 
 For a detailed description of the [HDF5](https://en.wikipedia.org/wiki/Hierarchical_Data_Format) based data format, refer to the [corresponding documentation](https://shepherd-testbed.readthedocs.io/en/latest/user/data_format.html).
@@ -96,7 +97,7 @@ For a detailed description of the [HDF5](https://en.wikipedia.org/wiki/Hierarchi
 Finally, replay the previously recorded data to the attached sensor nodes, recording their power consumption:
 
 ```
-shepherd-herd -i hosts emulate -o consumption.h5 recording.h5
+shepherd-herd -i inventory/example.yml emulate -o consumption.h5 recording.h5
 ```
 
 ## Problems and Questions
