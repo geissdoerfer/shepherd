@@ -15,6 +15,17 @@ voltage of the regulator.
 """
 
 from periphery import I2C
+from periphery import GPIO
+
+# resistor values for 10-bit DAC and LDO for fixed voltage power supply
+R24 = 56_000
+R25 = 40_200
+R26 = 30_000
+
+# feedback voltage of tps73101 LDO
+V_FB_LDO = 1.2
+
+PIN_LDO_ENABLE = 51
 
 
 class DAC6571(object):
@@ -28,7 +39,7 @@ class DAC6571(object):
     """
 
     def __init__(
-        self, bus_number: int = 1, address: int = 0x4C, v_supply: float = 3.3
+        self, bus_number: int = 1, address: int = 0x4C, v_supply: float = 3.38
     ):
         """Initializes DAC by bus number and address.
 
@@ -55,7 +66,7 @@ class DAC6571(object):
             value (int): Digital DAC code to be written to DAC input register
         """
         if not 0 <= value < 1024:
-            raise ValueError("Value outside of range for 10-bit DAC")
+            raise ValueError(f"Value {value} outside of range for 10-bit DAC")
 
         msg_bytes = (value << 2).to_bytes(2, byteorder="big")
         msgs = [I2C.Message(msg_bytes)]
@@ -69,3 +80,50 @@ class DAC6571(object):
         """
         dac_code = int(voltage / self._v_supply * 1024)
         self.write(dac_code)
+
+
+class VariableLDO(object):
+    """Driver for DAC controlled LDO regulator
+
+    The shepherd cape hosts a linear voltage regulator, that can be used to
+    1) power a sensor node with a constant, but configurable voltage
+    2) pre-charge the capacitor before starting recording/emulation
+    The circuit consists of a TI TPS73101 LDO and a TI DAC6571 DAC. The DAC
+    is connected to the feedback pin of the LDO and biases the current from
+    the output pin, effectively controlling the output voltage of the LDO.
+    """
+
+    def __init__(self):
+        self.dac = DAC6571()
+
+    def __enter__(self, *args):
+        self.enable_pin = GPIO(PIN_LDO_ENABLE, "out")
+        self.enable_pin.write(False)
+        self.dac.__enter__()
+        return self
+
+    def __exit__(self, *args):
+        self.dac.__exit__()
+        self.enable_pin.close()
+
+    def set_output(self, state: bool):
+        """Enables or disables LDO
+
+        Args:
+            state (bool): True to enable LDO, False to disable
+        """
+        if not state:
+            self.dac.set_voltage(0.0)
+        self.enable_pin.write(state)
+
+    def set_voltage(self, voltage: float):
+        """Sets the voltage on the output of the LDO
+
+        Args:
+            voltage (float): Voltage in volt. Must be between 1.6V and 3.6V due
+                to hardware limitations.
+        """
+        if voltage > 3.6 or voltage < 1.6:
+            raise ValueError("Fixed voltage must be between 1.6V and 3.6V")
+        v_dac = V_FB_LDO - R24 * ((voltage - V_FB_LDO) / R25 - V_FB_LDO / R26)
+        self.dac.set_voltage(v_dac)
