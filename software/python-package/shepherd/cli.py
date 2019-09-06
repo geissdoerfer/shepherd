@@ -355,9 +355,12 @@ def rpc(port):
 
     shepherd_io = ShepherdDebug()
     shepherd_io.__enter__()
+    logger.debug("Initialized shepherd debug interface")
+    time.sleep(1)
 
     server = zerorpc.Server(shepherd_io)
     server.bind(f"tcp://0.0.0.0:{ port }")
+    time.sleep(1)
 
     def stop_server():
         server.stop()
@@ -368,6 +371,7 @@ def rpc(port):
     gevent.signal(signal.SIGINT, stop_server)
 
     shepherd_io.start()
+    logger.debug("Started shepherd debug interface")
     server.run()
 
 
