@@ -35,6 +35,39 @@ def test_record(shepherd_up, cli_runner, tmp_path):
 
 @pytest.mark.hardware
 @pytest.mark.timeout(60)
+def test_record_ldo(shepherd_up, cli_runner, tmp_path):
+    store = tmp_path / "out.h5"
+    res = cli_runner.invoke(
+        cli, ["record", "-l", "10", "-o", f"{str(store)}", "-c", "2.5"]
+    )
+
+    assert res.exit_code == 0
+    assert store.exists()
+
+    res = cli_runner.invoke(
+        cli,
+        [
+            "record",
+            "-l",
+            "10",
+            "-f",
+            "-o",
+            f"{str(store)}",
+            "--ldo-voltage",
+            "2.5",
+        ],
+    )
+
+    assert res.exit_code == 0
+
+    res = cli_runner.invoke(
+        cli, ["record", "-l", "10", "-f", "-o", f"{str(store)}", "-c", "-1.0"]
+    )
+    assert res.exit_code != -1
+
+
+@pytest.mark.hardware
+@pytest.mark.timeout(60)
 def test_record_no_calib(shepherd_up, cli_runner, tmp_path):
     store = tmp_path / "out.h5"
     res = cli_runner.invoke(
@@ -55,6 +88,51 @@ def test_emulate(shepherd_up, cli_runner, tmp_path, data_h5):
 
     assert res.exit_code == 0
     assert store.exists()
+
+
+@pytest.mark.hardware
+@pytest.mark.timeout(60)
+def test_emulate_ldo(shepherd_up, cli_runner, tmp_path, data_h5):
+    store = tmp_path / "out.h5"
+    res = cli_runner.invoke(
+        cli, ["emulate", "-l", "10", "-o", f"{str(store)}", f"{str(data_h5)}"]
+    )
+
+    assert res.exit_code == 0
+
+    res = cli_runner.invoke(
+        cli,
+        [
+            "emulate",
+            "-l",
+            "10",
+            "-f",
+            "-c",
+            "2.5",
+            "-o",
+            f"{str(store)}",
+            f"{str(data_h5)}",
+        ],
+    )
+
+    assert res.exit_code == 0
+
+    res = cli_runner.invoke(
+        cli,
+        [
+            "emulate",
+            "-l",
+            "10",
+            "-f",
+            "-c",
+            "5.0",
+            "-o",
+            f"{str(store)}",
+            f"{str(data_h5)}",
+        ],
+    )
+
+    assert res.exit_code != 0
 
 
 @pytest.mark.hardware

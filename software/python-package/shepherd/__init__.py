@@ -49,8 +49,8 @@ class Recorder(ShepherdIO):
             Should be one of 'artificial' or 'node'.
         harvesting_voltage (float): Fixed reference voltage for boost
             converter input.
-        init_charge (bool): True to pre-charge the capacitor before starting
-            recording.
+        ldo_voltage (float): Pre-charge capacitor to this voltage before
+            starting recording.
 
     """
 
@@ -59,9 +59,15 @@ class Recorder(ShepherdIO):
         mode: str = "harvesting",
         load: str = "artificial",
         harvesting_voltage: float = None,
-        init_charge: bool = False,
+        ldo_voltage: float = None,
     ):
-        super().__init__(mode, init_charge, load)
+        if ldo_voltage is None:
+            if mode == "load":
+                ldo_voltage = 3.0
+            else:
+                ldo_voltage = 0.0
+
+        super().__init__(mode, ldo_voltage, load)
 
         self.harvesting_voltage = harvesting_voltage
 
@@ -76,10 +82,15 @@ class Recorder(ShepherdIO):
 
         # In 'load' mode, the target is supplied from constant voltage reg
         if self.mode == "load":
-            self.set_v_fixed(True)
-            self.set_harvester(False)
+            self.set_ldo_voltage(self.ldo_voltage)
+
         elif self.mode == "harvesting":
             self.set_harvester(True)
+            if self.ldo_voltage > 0.0:
+                logger.debug(f"Precharging capacitor to {self.ldo_voltage}V")
+                self.set_ldo_voltage(self.ldo_voltage)
+                time.sleep(1)
+                self.set_ldo_voltage(False)
 
         # Give the PRU empty buffers to begin with
         for i in range(self.n_buffers):
@@ -116,8 +127,8 @@ class Emulator(ShepherdIO):
             belonging to the cape used for emulation
         load (str): Selects, which load should be used for recording.
             Should be one of 'artificial' or 'node'.
-        init_charge (bool): True to pre-charge the capacitor before starting
-            recording.
+        ldo_voltage (float): Pre-charge the capacitor to this voltage before
+            starting recording.
     """
 
     def __init__(
@@ -126,9 +137,9 @@ class Emulator(ShepherdIO):
         calibration_recording: CalibrationData = None,
         calibration_emulation: CalibrationData = None,
         load: str = "node",
-        init_charge: bool = False,
+        ldo_voltage: float = 0.0,
     ):
-        super().__init__("emulation", init_charge, load)
+        super().__init__("emulation", ldo_voltage, load)
 
         if calibration_emulation is None:
             calibration_emulation = CalibrationData.from_default()
@@ -160,6 +171,12 @@ class Emulator(ShepherdIO):
 
     def __enter__(self):
         super().__enter__()
+
+        if self.ldo_voltage > 0.0:
+            logger.debug(f"Precharging capacitor to {self.ldo_voltage}V")
+            self.set_ldo_voltage(self.ldo_voltage)
+            time.sleep(1)
+            self.set_ldo_voltage(False)
 
         # Disconnect harvester to avoid leakage in or out of the harvester
         self.set_harvester(False)
@@ -280,7 +297,7 @@ def record(
     no_calib: bool = False,
     harvesting_voltage: float = None,
     load: str = "artificial",
-    init_charge: bool = False,
+    ldo_voltage: float = None,
     start_time: float = None,
 ):
     """Starts recording.
@@ -299,7 +316,7 @@ def record(
             input of the boost converter. Alternative to MPPT algorithm.
         load (str): Type of load. 'artificial' for dummy, 'node' for sensor
             node
-        init_charge (bool): True to pre-charge capacitor before starting
+        ldo_voltage (bool): True to pre-charge capacitor before starting
             emulation
         start_time (float): Desired start time of emulation in unix epoch time
     """
@@ -319,7 +336,7 @@ def record(
         mode=mode,
         load=load,
         harvesting_voltage=harvesting_voltage,
-        init_charge=init_charge,
+        ldo_voltage=ldo_voltage,
     )
     log_writer = LogWriter(
         store_path=output, calibration_data=calib, mode=mode, force=force
@@ -378,7 +395,7 @@ def emulate(
     force: bool = False,
     no_calib: bool = False,
     load: str = "artificial",
-    init_charge: bool = False,
+    ldo_voltage: float = None,
     start_time: float = None,
 ):
     """Starts emulation.
@@ -395,8 +412,8 @@ def emulate(
             read calibration data from EEPROM
         load (str): Type of load. 'artificial' for dummy, 'node' for sensor
             node
-        init_charge (bool): True to pre-charge capacitor before starting
-            emulation
+        ldo_voltage (float): Pre-charge capacitor to this voltage before
+            starting emulation
         start_time (float): Desired start time of emulation in unix epoch time
     """
 
@@ -429,7 +446,7 @@ def emulate(
             calibration_recording=log_reader.get_calibration_data(),
             calibration_emulation=calib,
             initial_buffers=log_reader.read_buffers(end=64),
-            init_charge=init_charge,
+            ldo_voltage=ldo_voltage,
             load=load,
         )
         stack.enter_context(emu)

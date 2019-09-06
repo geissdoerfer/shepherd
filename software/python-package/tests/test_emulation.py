@@ -89,7 +89,7 @@ def test_emulate_fn(tmp_path, data_h5, shepherd_up):
         force=True,
         no_calib=True,
         load="artificial",
-        init_charge=False,
+        ldo_voltage=2.5,
         start_time=start_time,
     )
 

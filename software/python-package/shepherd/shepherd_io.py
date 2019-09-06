@@ -26,6 +26,7 @@ from periphery import GPIO
 from . import sysfs_interface
 from . import commons
 from . import calibration_default
+from . import const_reg
 
 logger = logging.getLogger(__name__)
 
@@ -270,23 +271,24 @@ class ShepherdIO(object):
         return new_class
 
     def __init__(
-        self, mode: str, init_charge: bool = False, load: str = "artificial"
+        self, mode: str, ldo_voltage: float = None, load: str = "artificial"
     ):
         """Initializes relevant variables.
 
         Args:
             mode (str): Shepherd mode, one of 'harvesting', 'load', 'emulation'
-            init_charge (bool): Specifies whether capacitor should be charged
-                initially
+            ldo_voltage (float): Sets voltage of fixed voltage regulator
             load (str): Which load to use, one of 'artificial', 'node'
         """
 
         self.rpmsg_fd = None
         self.mode = mode
         self.gpios = dict()
-        self.init_charge = init_charge
+        self.ldo_voltage = ldo_voltage
         self.load = load
         self.shared_mem = None
+
+        self.ldo = const_reg.VariableLDO()
 
     def __del__(self):
         ShepherdIO._instance = None
@@ -298,7 +300,6 @@ class ShepherdIO(object):
                 self.gpios[name] = GPIO(pin, "out")
 
             self._set_power(True)
-            self.set_v_fixed(False)
             self.set_mppt(False)
             self.set_harvester(False)
             self.set_lvl_conv(False)
@@ -349,11 +350,8 @@ class ShepherdIO(object):
             logger.debug(f"Setting load to '{ self.load }'")
             self.set_load(self.load)
 
-            if self.init_charge:
-                logger.debug("pre-charging capacitor")
-                self.set_v_fixed(True)
-                time.sleep(1.0)
-                self.set_v_fixed(False)
+            self.ldo.__enter__()
+            self.set_ldo_voltage(False)
 
         except Exception:
             self._cleanup()
@@ -434,7 +432,9 @@ class ShepherdIO(object):
         if self.rpmsg_fd is not None:
             os.close(self.rpmsg_fd)
 
-        self.set_v_fixed(False)
+        self.set_ldo_voltage(False)
+        self.ldo.__exit__()
+
         self.set_mppt(False)
         self.set_harvester(False)
         self.set_lvl_conv(False)
@@ -476,7 +476,7 @@ class ShepherdIO(object):
         """
         self.gpios["en_hrvst"].write(state)
 
-    def set_v_fixed(self, state: bool):
+    def set_ldo_voltage(self, voltage: float):
         """Enables or disables the constant voltage regulator.
 
         The shepherd cape has a linear regulator that is connected to the load
@@ -485,9 +485,16 @@ class ShepherdIO(object):
         function allows to enable or disable the output of this regulator.
 
         Args:
-            state (bool): True for enabling regulator, False for disabling
+            voltage (float): Desired output voltage in volt. Providing 0 or
+                False disables the LDO.
         """
-        self.gpios["en_v_fix"].write(state)
+        if not voltage:
+            self.ldo.set_output(False)
+            return
+
+        logger.debug(f"Setting LDO voltage to {voltage}")
+        self.ldo.set_voltage(voltage)
+        self.ldo.set_output(True)
 
     def set_lvl_conv(self, state: bool):
         """Enables or disables the GPIO level converter.

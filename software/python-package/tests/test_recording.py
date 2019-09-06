@@ -73,7 +73,7 @@ def test_record_fn(tmp_path, shepherd_up):
         no_calib=True,
         harvesting_voltage=None,
         load="artificial",
-        init_charge=False,
+        ldo_voltage=2.5,
         start_time=start_time,
     )
 

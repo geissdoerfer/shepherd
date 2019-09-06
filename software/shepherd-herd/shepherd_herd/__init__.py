@@ -360,10 +360,11 @@ def reset(ctx):
     help="Choose artificial or sensor node load",
 )
 @click.option(
-    "--init-charge",
-    is_flag=True,
-    default=True,
-    help="Pre-charge capacitor before starting recording",
+    "--ldo-voltage",
+    "-c",
+    type=float,
+    default=2.1,
+    help="Sets voltage of variable LDO",
 )
 @click.pass_context
 def record(
@@ -375,7 +376,7 @@ def record(
     no_calib,
     harvesting_voltage,
     load,
-    init_charge,
+    ldo_voltage,
 ):
     fp_output = Path(output)
     if not fp_output.is_absolute():
@@ -389,7 +390,7 @@ def record(
         "no_calib": no_calib,
         "harvesting_voltage": harvesting_voltage,
         "load": load,
-        "init_charge": init_charge,
+        "ldo_voltage": ldo_voltage,
     }
     start_shepherd(
         ctx.obj["fab group"],
@@ -422,13 +423,14 @@ def record(
     help="Choose artificial or sensor node load",
 )
 @click.option(
-    "--init-charge",
-    is_flag=True,
-    default=True,
+    "--ldo-voltage",
+    "-c",
+    type=float,
+    default=2.0,
     help="Pre-charge capacitor before starting recording",
 )
 @click.pass_context
-def emulate(ctx, input, output, length, force, no_calib, load, init_charge):
+def emulate(ctx, input, output, length, force, no_calib, load, ldo_voltage):
 
     fp_input = Path(input)
     if not fp_input.is_absolute():
@@ -439,7 +441,7 @@ def emulate(ctx, input, output, length, force, no_calib, load, init_charge):
         "force": force,
         "length": length,
         "no_calib": no_calib,
-        "init_charge": init_charge,
+        "ldo_voltage": ldo_voltage,
         "load": load,
     }
 

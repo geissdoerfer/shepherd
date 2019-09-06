@@ -138,10 +138,11 @@ def run(command, parameters, verbose):
     help="Choose artificial or sensor node load",
 )
 @click.option(
-    "--init-charge",
-    "-i",
-    is_flag=True,
-    help="Pre-charge capacitor before starting recording",
+    "--ldo-voltage",
+    "-c",
+    type=float,
+    default=2.1,
+    help="Set voltage of variable LDO regulator",
 )
 @click.option(
     "--start-time",
@@ -157,7 +158,7 @@ def record(
     no_calib,
     voltage,
     load,
-    init_charge,
+    ldo_voltage,
     start_time,
 ):
     pl_store = Path(output)
@@ -172,7 +173,7 @@ def record(
         no_calib,
         voltage,
         load,
-        init_charge,
+        ldo_voltage,
         start_time,
     )
 
@@ -201,16 +202,17 @@ def record(
     help="Choose artificial or sensor node load",
 )
 @click.option(
-    "--init-charge",
-    "-i",
-    is_flag=True,
-    help="Pre-charge capacitor before starting recording",
+    "--ldo-voltage",
+    "-c",
+    help="Pre-charge capacitor to this voltage before starting emulation",
+    type=float,
+    default=2.1,
 )
 @click.option(
     "--start-time", type=float, help="Desired start time in unix epoch time"
 )
 def emulate(
-    input, output, length, force, no_calib, load, init_charge, start_time
+    input, output, length, force, no_calib, load, ldo_voltage, start_time
 ):
     if output is None:
         pl_store = None
@@ -222,7 +224,7 @@ def emulate(
             pl_store = Path("/var/shepherd/recordings") / output
 
     run_emulate(
-        input, pl_store, length, force, no_calib, load, init_charge, start_time
+        input, pl_store, length, force, no_calib, load, ldo_voltage, start_time
     )
 
 
