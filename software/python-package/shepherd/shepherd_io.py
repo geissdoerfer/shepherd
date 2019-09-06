@@ -23,10 +23,10 @@ import numpy as np
 from pathlib import Path
 from periphery import GPIO
 
-from . import sysfs_interface
-from . import commons
-from . import calibration_default
-from . import const_reg
+from shepherd import sysfs_interface
+from shepherd import commons
+from shepherd import calibration_default
+from shepherd import const_reg
 
 logger = logging.getLogger(__name__)
 

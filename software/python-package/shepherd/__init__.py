@@ -19,15 +19,15 @@ from contextlib import ExitStack
 import invoke
 import signal
 
-from .datalog import LogReader
-from .datalog import LogWriter
-from .datalog import ExceptionRecord
-from .eeprom import EEPROM
-from .eeprom import CapeData
-from .calibration import CalibrationData
-from .shepherd_io import ShepherdIOException
-from .shepherd_io import ShepherdIO
-from . import commons
+from shepherd.datalog import LogReader
+from shepherd.datalog import LogWriter
+from shepherd.datalog import ExceptionRecord
+from shepherd.eeprom import EEPROM
+from shepherd.eeprom import CapeData
+from shepherd.calibration import CalibrationData
+from shepherd.shepherd_io import ShepherdIOException
+from shepherd.shepherd_io import ShepherdIO
+from shepherd import commons
 
 # Set default logging handler to avoid "No handler found" warnings.
 logging.getLogger(__name__).addHandler(NullHandler())

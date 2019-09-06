@@ -18,7 +18,7 @@ import logging
 import yaml
 from pathlib import Path
 
-from .calibration import CalibrationData
+from shepherd.calibration import CalibrationData
 
 logger = logging.getLogger(__name__)
 
