@@ -8,11 +8,6 @@ from shepherd import Recorder
 from shepherd import record
 from shepherd import CalibrationData
 
-consoleHandler = logging.StreamHandler()
-logger = logging.getLogger("shepherd")
-logger.addHandler(consoleHandler)
-logger.setLevel(logging.DEBUG)
-
 
 @pytest.fixture(params=["harvesting", "load"])
 def mode(request):
