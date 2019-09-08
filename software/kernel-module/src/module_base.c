@@ -119,6 +119,7 @@ static int __init mod_init(void)
 	}
 	printk(KERN_INFO "shprd: PRUs started!");
 
+	msleep(250);
 	/* Initialize shared memory and PRU interrupt controller */
 	pru_comm_init();
 
