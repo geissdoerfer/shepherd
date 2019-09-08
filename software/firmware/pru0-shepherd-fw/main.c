@@ -92,7 +92,7 @@ int handle_rpmsg(struct RingBuffer *free_buffers, enum ShepherdMode mode,
 	if (rpmsg_get((void *)&msg_in) != sizeof(struct DEPMsg))
 		return 0;
 
-	_GPIO_TOGGLE(P8_12);
+	_GPIO_TOGGLE(USR_LED1);
 
 	if ((mode == MODE_DEBUG) && (state == STATE_RUNNING)) {
 		unsigned int res;
@@ -170,7 +170,7 @@ void event_loop(volatile struct SharedMem *shared_mem,
 						sample_idx);
 
 				sample_idx = 0;
-				_GPIO_OFF(P8_12);
+				_GPIO_OFF(USR_LED1);
 			}
 			/* We only handle rpmsg comms if we're not at the last sample */
 			else {
@@ -200,7 +200,9 @@ void main(void)
 
 	rpmsg_init("rpmsg-pru");
 
-	_GPIO_OFF(LED);
+	_GPIO_OFF(USR_LED1);
+	_GPIO_OFF(DEBUG_P0);
+	_GPIO_OFF(DEBUG_P1);
 
 	/* 
 	 * The dynamically allocated shared DDR RAM holds all the buffers that

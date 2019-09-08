@@ -12,6 +12,9 @@
 #include "commons.h"
 #include "shepherd_config.h"
 
+#define DEBUG_P0 P8_41
+#define DEBUG_P1 P8_42
+
 /* The IEP is clocked with 200 MHz -> 5 nanoseconds per tick */
 #define TIMER_TICK_NS 5
 #define TIMER_BASE_PERIOD BUFFER_PERIOD_NS / TIMER_TICK_NS
@@ -227,7 +230,6 @@ void event_loop(volatile struct SharedMem *shared_mem)
 			/* With wrap, we'll use next timestamp as base for GPIO timestamps */
 			current_timestamp_ns = shared_mem->next_timestamp_ns;
 
-			_GPIO_TOGGLE(P8_42);
 		}
 		/* Timer compare 1 handle [Event 3] */
 		if (iep_check_evt_cmp(IEP_CMP1) == 0) {
@@ -276,7 +278,7 @@ void event_loop(volatile struct SharedMem *shared_mem)
 			} else if (sync_state == REQUEST_PENDING) {
 				rpmsg_putraw(&ctrl_req,
 					     sizeof(struct CtrlReqMsg));
-				_GPIO_TOGGLE(P8_41);
+
 				sync_state = REPLY_PENDING;
 			}
 		}
@@ -293,9 +295,11 @@ void main(void)
 	iep_init();
 	iep_reset();
 
+	_GPIO_OFF(DEBUG_P0);
+	_GPIO_OFF(DEBUG_P1);
+
 	rpmsg_init("rpmsg-shprd");
 	__delay_cycles(1000);
-	printf("Hello from PRU1");
 
 	/* Enable 'timestamp' interrupt from ARM host */
 	CT_INTC.EISR_bit.EN_SET_IDX = HOST_PRU_EVT_TIMESTAMP;
