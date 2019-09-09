@@ -185,11 +185,12 @@ void event_loop(volatile struct SharedMem *shared_mem)
 	iep_clear_evt_cmp(IEP_CMP0);
 
 	/* Clear raw interrupt status from ARM host */
-	CT_INTC.SICR_bit.STS_CLR_IDX = HOST_PRU_EVT_TIMESTAMP;
+	INTC_CLEAR_EVENT(HOST_PRU_EVT_TIMESTAMP);
 	/* Wait for first timer interrupt from Linux host */
-	while (!(__R31 & HOST_INT_RAW))
+	while(!(__R31 & (1U << 30)))
 		;
-	CT_INTC.SICR_bit.STS_CLR_IDX = HOST_PRU_EVT_TIMESTAMP;
+	if(INTC_CHECK_EVENT(HOST_PRU_EVT_TIMESTAMP))
+		INTC_CLEAR_EVENT(HOST_PRU_EVT_TIMESTAMP);
 
 	iep_start();
 
@@ -198,11 +199,14 @@ void event_loop(volatile struct SharedMem *shared_mem)
 			   last_sample_ticks);
 
 		/* Check for timer interrupt from Linux host [Event1] */
-		if (__R31 & HOST_INT_RAW) {
+		if (__R31 & HOST_INT_TIMESTAMP) {
+			if(!INTC_CHECK_EVENT(HOST_PRU_EVT_TIMESTAMP))
+				continue;
+
 			/* Take timestamp of IEP */
 			ctrl_req.ticks_iep = CT_IEP.TMR_CNT;
 			/* Clear interrupt */
-			CT_INTC.SICR_bit.STS_CLR_IDX = HOST_PRU_EVT_TIMESTAMP;
+			INTC_CLEAR_EVENT(HOST_PRU_EVT_TIMESTAMP);
 
 			/* Prepare and send control request to Linux host */
 			ctrl_req.old_period = CT_IEP.TMR_CMP0;
