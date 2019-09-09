@@ -40,17 +40,25 @@ enum SyncState {
 	REPLY_PENDING
 };
 
+void fault_handler(char *err_msg)
+{
+	while (true) {
+		printf(err_msg);
+		__delay_cycles(2000000000);
+	}
+}
+
 static inline int check_control_reply(struct CtrlRepMsg *ctrl_rep)
 {
 	int n;
 	n = rpmsg_get((void *)ctrl_rep);
 
 	if (n == sizeof(struct CtrlRepMsg)) {
-		if (ctrl_rep->identifier != MSG_SYNC_CTRL_REP) {
-			printf("Wrong RPMSG ID");
-			while (true)
-				;
-		}
+		if (ctrl_rep->identifier != MSG_SYNC_CTRL_REP)
+			fault_handler("Wrong RPMSG ID");
+
+		if (rpmsg_get((void *)ctrl_rep) > 0)
+			fault_handler("Extra pending messages");
 		return 0;
 	}
 	return -1;
@@ -206,8 +214,10 @@ void event_loop(volatile struct SharedMem *shared_mem)
 
 			if (sync_state == WAIT_HOST_INT)
 				sync_state = REQUEST_PENDING;
-			else
+			else if (sync_state == IDLE)
 				sync_state = WAIT_IEP_WRAP;
+			else
+				fault_handler("Wrong state at host interrupt");
 		}
 		/* Timer compare 0 handle [Event 2] */
 		if (iep_check_evt_cmp(IEP_CMP0) == 0) {
@@ -224,12 +234,13 @@ void event_loop(volatile struct SharedMem *shared_mem)
 			last_sample_ticks = 0;
 			if (sync_state == WAIT_IEP_WRAP)
 				sync_state = REQUEST_PENDING;
-			else
+			else if (sync_state == IDLE)
 				sync_state = WAIT_HOST_INT;
+			else
+				fault_handler("Wrong state at timer wrap");
 
 			/* With wrap, we'll use next timestamp as base for GPIO timestamps */
 			current_timestamp_ns = shared_mem->next_timestamp_ns;
-
 		}
 		/* Timer compare 1 handle [Event 3] */
 		if (iep_check_evt_cmp(IEP_CMP1) == 0) {
