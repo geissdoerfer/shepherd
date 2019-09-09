@@ -10,15 +10,13 @@
 #include "rpmsg.h"
 #include "simple_lock.h"
 #include "gpio.h"
+#include "intc.h"
 
 #include "ringbuffer.h"
 #include "sampling.h"
 #include "hw_config.h"
 #include "commons.h"
 #include "shepherd_config.h"
-
-#define CHECK_EVENT(x) CT_INTC.SECR0 &(1U << x)
-#define CLEAR_EVENT(x) CT_INTC.SICR_bit.STS_CLR_IDX = x;
 
 /* Used to signal an invalid buffer index */
 #define NO_BUFFER 0xFFFFFFFF
@@ -131,12 +129,12 @@ void event_loop(volatile struct SharedMem *shared_mem,
 		/* Check if a sample was triggered by PRU1 */
 		if (__R31 & (1U << 31)) {
 			/* Important: We have to clear the interrupt here, to avoid missing interrupts */
-			if (CHECK_EVENT(PRU_PRU_EVT_BLOCK_END)) {
+			if (INTC_CHECK_EVENT(PRU_PRU_EVT_BLOCK_END)) {
 				int_source = SIG_BLOCK_END;
-				CLEAR_EVENT(PRU_PRU_EVT_BLOCK_END);
+				INTC_CLEAR_EVENT(PRU_PRU_EVT_BLOCK_END);
 			} else {
 				int_source = SIG_SAMPLE;
-				CLEAR_EVENT(PRU_PRU_EVT_SAMPLE);
+				INTC_CLEAR_EVENT(PRU_PRU_EVT_SAMPLE);
 			}
 
 			/* The actual sampling takes place here */
@@ -147,15 +145,16 @@ void event_loop(volatile struct SharedMem *shared_mem,
 			}
 
 			if (int_source == SIG_BLOCK_END) {
+
 				/* Did the Linux kernel module ask for reset? */
-				if (CHECK_EVENT(HOST_PRU_EVT_RESET)) {
-					CLEAR_EVENT(HOST_PRU_EVT_RESET);
+				if (INTC_CHECK_EVENT(HOST_PRU_EVT_RESET)) {
+					INTC_CLEAR_EVENT(HOST_PRU_EVT_RESET);
 					return;
 				}
 
 				/* Did the Linux kernel module ask for start? */
-				if (CHECK_EVENT(HOST_PRU_EVT_START)) {
-					CLEAR_EVENT(HOST_PRU_EVT_START);
+				if (INTC_CHECK_EVENT(HOST_PRU_EVT_START)) {
+					INTC_CLEAR_EVENT(HOST_PRU_EVT_START);
 					shared_mem->shepherd_state =
 						STATE_RUNNING;
 				}
