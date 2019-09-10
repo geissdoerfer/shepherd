@@ -5,7 +5,7 @@
 
 /**
  * Initializes snychronization procedure between our Linux clock and PRU0
- * 
+ *
  * This initializes and starts the timer that fires with a period corresponding
  * to the 'buffer period' and a phase aligned with the real time. This timer
  * triggers an interrupt on PRU0
@@ -15,8 +15,8 @@ int sync_exit(void);
 int sync_reset(void);
 
 /**
- * Control loop 
- * 
+ * Control loop
+ *
  * The controller is best described as a Phase-Locked-Loop system: The kernel
  * module runs a reference clock with phase and frequency synchronized to the
  * network-wide master. The frequency equals the 'buffer period' and the phase
@@ -28,10 +28,24 @@ int sync_reset(void);
  * sends us its own phase via RPMSG. The goal of this function is to calculate
  * a 'correction factor' that is added to the IEP's frequency, such that the
  * difference between the phase of our clock and the IEP's is minimized.
- * 
+ *
  * @param ctrl_rep Buffer to store the result of the control loop
  * @param ctrl_req Control request that was received from PRU0
  */
 int sync_loop(struct CtrlRepMsg *ctrl_rep, struct CtrlReqMsg *ctrl_req);
+
+/**
+ * Synchronization data structure
+ *
+ * Holds dynamic info about synchronization loop. Is exposed through sysfs to
+ * allow users to track state.
+ */
+struct sync_data_s {
+	int64_t err_sum;
+	int64_t err;
+	int32_t clock_corr;
+};
+
+extern struct sync_data_s * sync_data;
 
 #endif /* __SYNC_CTRL_H_ */

@@ -6,9 +6,10 @@
 #include "sync_ctrl.h"
 #include "pru_comm.h"
 
+struct sync_data_s *sync_data;
+
 static int64_t ns_sys_to_wrap;
 static uint64_t next_timestamp_ns;
-static int64_t err_sum;
 
 static enum hrtimer_restart timer_callback(struct hrtimer *timer_for_restart);
 
@@ -21,6 +22,8 @@ static struct hrtimer_wrap_s {
 int sync_exit(void)
 {
 	hrtimer_cancel(&trigger_timer.hr_timer);
+	kfree(sync_data);
+
 	return 0;
 }
 
@@ -30,6 +33,11 @@ int sync_init(uint32_t timer_period_ns)
 	uint64_t now_ns_system;
 	uint32_t ns_over_wrap;
 	uint64_t ns_now_until_trigger;
+
+	sync_data = kmalloc(sizeof(struct sync_data_s), GFP_KERNEL);
+	if (!sync_data)
+		return -1;
+	sync_reset();
 
 	trigger_timer.timer_period_ns = timer_period_ns;
 
@@ -56,7 +64,9 @@ int sync_init(uint32_t timer_period_ns)
 
 int sync_reset(void)
 {
-	err_sum = 0;
+	sync_data->err_sum = 0;
+	sync_data->err = 0;
+	sync_data->clock_corr = 0;
 	return 0;
 }
 
@@ -110,7 +120,6 @@ enum hrtimer_restart timer_callback(struct hrtimer *timer_for_restart)
 int sync_loop(struct CtrlRepMsg *ctrl_rep, struct CtrlReqMsg *ctrl_req)
 {
 	int64_t ns_iep_to_wrap;
-	int64_t err;
 	int32_t clock_corr;
 	uint64_t ns_per_tick;
 	int32_t clock_corr_max;
@@ -135,11 +144,12 @@ int sync_loop(struct CtrlRepMsg *ctrl_rep, struct CtrlReqMsg *ctrl_req)
 	}
 
 	/* Difference between system clock and IEP clock phase */
-	err = ((int64_t)ns_iep_to_wrap - ns_sys_to_wrap) >> 32;
-	err_sum += err;
+	sync_data->err = ((int64_t)ns_iep_to_wrap - ns_sys_to_wrap) >> 32;
+	sync_data->err_sum += sync_data->err;
 
 	/* This is the actual PI controller equation */
-	clock_corr = div_s64(err, 32) + div_s64(err_sum, 512);
+	clock_corr =
+		div_s64(sync_data->err, 32) + div_s64(sync_data->err_sum, 512);
 
 	/* Clamp maximum correction to 10% of previous timer period */
 	clock_corr_max = (int32_t)ctrl_req->old_period / 100;
@@ -153,8 +163,7 @@ int sync_loop(struct CtrlRepMsg *ctrl_rep, struct CtrlReqMsg *ctrl_req)
 	ctrl_rep->next_timestamp_ns = next_timestamp_ns;
 	ctrl_rep->identifier = MSG_SYNC_CTRL_REP;
 
-	printk(KERN_INFO "shprd: ERR: %lld CORR: %d", err,
-	       ctrl_rep->clock_corr);
+	sync_data->clock_corr = ctrl_rep->clock_corr;
 
 	return 0;
 }
