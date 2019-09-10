@@ -346,7 +346,8 @@ def record(
         stack.enter_context(recorder)
         stack.enter_context(log_writer)
 
-        res = invoke.run("hostname", hide=True, warn=True)
+        # in_stream has to be disabled to avoid trouble with pytest
+        res = invoke.run("hostname", hide=True, warn=True, in_stream=False)
         log_writer["hostname"] = res.stdout
 
         recorder.start(start_time, wait_blocking=False)
