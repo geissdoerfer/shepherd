@@ -81,7 +81,7 @@ int handle_rpmsg(struct RingBuffer *free_buffers, enum ShepherdMode mode,
 {
 	struct DEPMsg msg_in;
 
-	/* 
+	/*
 	 * TI's implementation of RPMSG on the PRU triggers the same interrupt
 	 * line when sending a message that is used to signal the reception of
 	 * the message. We therefore need to check the length of the potential
@@ -132,9 +132,11 @@ void event_loop(volatile struct SharedMem *shared_mem,
 			if (INTC_CHECK_EVENT(PRU_PRU_EVT_BLOCK_END)) {
 				int_source = SIG_BLOCK_END;
 				INTC_CLEAR_EVENT(PRU_PRU_EVT_BLOCK_END);
-			} else {
+			} else if (INTC_CHECK_EVENT(PRU_PRU_EVT_SAMPLE)) {
 				int_source = SIG_SAMPLE;
 				INTC_CLEAR_EVENT(PRU_PRU_EVT_SAMPLE);
+			} else {
+				continue;
 			}
 
 			/* The actual sampling takes place here */
@@ -145,18 +147,9 @@ void event_loop(volatile struct SharedMem *shared_mem,
 			}
 
 			if (int_source == SIG_BLOCK_END) {
-
 				/* Did the Linux kernel module ask for reset? */
-				if (INTC_CHECK_EVENT(HOST_PRU_EVT_RESET)) {
-					INTC_CLEAR_EVENT(HOST_PRU_EVT_RESET);
+				if (shared_mem->shepherd_state == STATE_RESET) {
 					return;
-				}
-
-				/* Did the Linux kernel module ask for start? */
-				if (INTC_CHECK_EVENT(HOST_PRU_EVT_START)) {
-					INTC_CLEAR_EVENT(HOST_PRU_EVT_START);
-					shared_mem->shepherd_state =
-						STATE_RUNNING;
 				}
 
 				/* We try to exchange a full buffer for a fresh one if we are running */
@@ -193,9 +186,6 @@ void main(void)
 	/* Enable interrupts from PRU1 */
 	CT_INTC.EISR_bit.EN_SET_IDX = PRU_PRU_EVT_SAMPLE;
 	CT_INTC.EISR_bit.EN_SET_IDX = PRU_PRU_EVT_BLOCK_END;
-	/* Enable interrupts from ARM host */
-	CT_INTC.EISR_bit.EN_SET_IDX = HOST_PRU_EVT_START;
-	CT_INTC.EISR_bit.EN_SET_IDX = HOST_PRU_EVT_RESET;
 
 	rpmsg_init("rpmsg-pru");
 
@@ -203,7 +193,7 @@ void main(void)
 	_GPIO_OFF(DEBUG_P0);
 	_GPIO_OFF(DEBUG_P1);
 
-	/* 
+	/*
 	 * The dynamically allocated shared DDR RAM holds all the buffers that
 	 * are used to transfer the actual data between us and the Linux host.
 	 * This memory is requested from remoteproc via a carveour resource request
@@ -229,6 +219,8 @@ void main(void)
 /* Jump to this label, whenever user requests 'stop' */
 reset:
 
+	_GPIO_OFF(USR_LED1);
+
 	init_ring(&free_buffers);
 	sampling_init((enum ShepherdMode)shared_mem->shepherd_mode,
 		      shared_mem->harvesting_voltage);
@@ -238,8 +230,6 @@ reset:
 	/* Clear all interrupt events */
 	CT_INTC.SICR_bit.STS_CLR_IDX = PRU_PRU_EVT_SAMPLE;
 	CT_INTC.SICR_bit.STS_CLR_IDX = PRU_PRU_EVT_BLOCK_END;
-	CT_INTC.SICR_bit.STS_CLR_IDX = HOST_PRU_EVT_START;
-	CT_INTC.SICR_bit.STS_CLR_IDX = HOST_PRU_EVT_RESET;
 
 	shared_mem->shepherd_state = STATE_IDLE;
 

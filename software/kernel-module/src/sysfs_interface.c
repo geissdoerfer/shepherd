@@ -134,7 +134,7 @@ static ssize_t sysfs_state_store(struct kobject *kobj,
 		if (pru_comm_get_state() != STATE_IDLE)
 			return -EBUSY;
 
-		pru_comm_trigger(HOST_PRU_EVT_START);
+		pru_comm_set_state(STATE_RUNNING);
 		return count;
 	}
 
@@ -143,7 +143,7 @@ static ssize_t sysfs_state_store(struct kobject *kobj,
 			return -EINVAL;
 
 		pru_comm_cancel_delayed_start();
-		pru_comm_trigger(HOST_PRU_EVT_RESET);
+		pru_comm_set_state(STATE_RESET);
 		return count;
 	}
 
@@ -230,7 +230,7 @@ static ssize_t sysfs_mode_store(struct kobject *kobj,
 
 	writel(mode, pru_shared_mem_io + kobj_attr_wrapped->val_offset);
 	printk(KERN_INFO "shprd: new mode: %d", mode);
-	pru_comm_trigger(HOST_PRU_EVT_RESET);
+	pru_comm_set_state(STATE_RESET);
 	return count;
 }
 
@@ -252,7 +252,7 @@ static ssize_t sysfs_harvesting_voltage_store(struct kobject *kobj,
 		       tmp);
 		writel(tmp, pru_shared_mem_io + kobj_attr_wrapped->val_offset);
 
-		pru_comm_trigger(HOST_PRU_EVT_RESET);
+		pru_comm_set_state(STATE_RESET);
 		return count;
 	}
 

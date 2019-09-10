@@ -48,7 +48,7 @@ delayed_start_callback(struct hrtimer *timer_for_restart)
 	struct timespec ts_now;
 	uint64_t now_ns_system;
 
-	pru_comm_trigger(HOST_PRU_EVT_START);
+	pru_comm_set_state(STATE_RUNNING);
 
 	/* Timestamp system clock */
 	getnstimeofday(&ts_now);
@@ -67,7 +67,7 @@ int pru_comm_schedule_delayed_start(unsigned int start_time_second)
 	trigger_timer_time = ktime_set((const s64)start_time_second, 0);
 
 	/**
-     * The timer should fire in the middle of the interval before we want to 
+     * The timer should fire in the middle of the interval before we want to
      * start. This allows the PRU enough time to receive the interrupt and
      * prepare itself to start at exactly the right time.
      */

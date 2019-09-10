@@ -4,9 +4,7 @@
 #include "simple_lock.h"
 #include "shepherd_config.h"
 
-#define HOST_PRU_EVT_RESET 27
-#define HOST_PRU_EVT_START 28
-#define HOST_PRU_EVT_TIMESTAMP 29
+#define HOST_PRU_EVT_TIMESTAMP 20
 
 #define PRU_PRU_EVT_SAMPLE 30
 #define PRU_PRU_EVT_BLOCK_END 31
@@ -36,6 +34,7 @@ enum ShepherdState {
 	STATE_IDLE,
 	STATE_ARMED,
 	STATE_RUNNING,
+	STATE_RESET,
 	STATE_FAULT
 };
 
