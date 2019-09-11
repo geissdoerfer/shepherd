@@ -52,7 +52,7 @@ class ShepherdIOException(Exception):
 
 class GPIOEdges(object):
     """Python representation of GPIO edge buffer
-    
+
     On detection of an edge, shepherd stores the state of all sampled GPIO pins
     together with the corresponding timestamp
     """
@@ -73,7 +73,7 @@ class GPIOEdges(object):
 
 class DataBuffer(object):
     """Python representation of a shepherd buffer.
-    
+
     Containing IV samples with corresponding timestamp and info about any
     detected GPIO edges
     """
@@ -168,7 +168,7 @@ class SharedMem(object):
 
         Args:
             index (int): Buffer index. 0 <= index < n_buffers
-        
+
         Returns:
             DataBuffer object pointing to extracted data
         """
@@ -248,7 +248,7 @@ class SharedMem(object):
 
 class ShepherdIO(object):
     """Generic ShepherdIO interface.
-    
+
     This class acts as interface between kernel module and firmware on the PRUs,
     and user space code. It handles the user space part of the double-buffered
     data-exchange protocol between user space and PRUs and configures the
@@ -364,7 +364,7 @@ class ShepherdIO(object):
 
     def _send_msg(self, msg_type: int, value: int):
         """Sends a formatted message to PRU0 via rpmsg channel.
-        
+
         Args:
             msg_type (int): Indicates type of message, must be one of the agreed
                 message types part of the data exchange protocol
@@ -423,8 +423,8 @@ class ShepherdIO(object):
 
         try:
             sysfs_interface.stop()
-        except Exception:
-            pass
+        except Exception as e:
+            print(e)
 
         if self.shared_mem is not None:
             self.shared_mem.__exit__()
@@ -432,8 +432,11 @@ class ShepherdIO(object):
         if self.rpmsg_fd is not None:
             os.close(self.rpmsg_fd)
 
-        self.set_ldo_voltage(False)
-        self.ldo.__exit__()
+        try:
+            self.set_ldo_voltage(False)
+            self.ldo.__exit__()
+        except Exception as e:
+            print(e)
 
         self.set_mppt(False)
         self.set_harvester(False)
@@ -519,7 +522,7 @@ class ShepherdIO(object):
         Args:
             load (str): The load to connect to the output of shepherd's output.
             One of 'artificial' or 'node'.
-        
+
         Raises:
             NotImplementedError: If load is not 'artificial' or 'node'
         """
