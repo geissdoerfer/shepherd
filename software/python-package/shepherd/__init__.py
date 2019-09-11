@@ -503,4 +503,8 @@ def emulate(
                 if output is not None:
                     log_writer.write_buffer(load_buf)
             except ShepherdIOException as e:
-                break
+                # We're done when the PRU has processed all emulation data buffers
+                if e.id == commons.MSG_DEP_ERR_NOFREEBUF:
+                    break
+                else:
+                    raise
