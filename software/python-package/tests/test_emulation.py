@@ -70,7 +70,7 @@ def test_emulation(log_writer, log_reader, emulator):
         log_writer.write_buffer(load_buf)
         emulator.put_buffer(idx, hrvst_buf)
 
-    for _ in range(63):
+    for _ in range(64):
         idx, load_buf = emulator.get_buffer(timeout=1)
         log_writer.write_buffer(load_buf)
 

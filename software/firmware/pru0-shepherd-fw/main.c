@@ -50,6 +50,15 @@ unsigned int handle_block_end(volatile struct SharedMem *shared_mem,
 	/* Lock access to gpio_edges structure to avoid inconsistency */
 	simple_mutex_enter(&shared_mem->gpio_edges_mutex);
 
+	/* If we currently have a valid buffer, return it to host */
+	if (current_buffer_idx != NO_BUFFER) {
+		if (sample_idx != SAMPLES_PER_BUFFER)
+			send_message(MSG_DEP_ERR_INCMPLT, sample_idx);
+
+		(buffers + current_buffer_idx)->len = sample_idx;
+		send_message(MSG_DEP_BUF_FROM_PRU, current_buffer_idx);
+	}
+
 	/* Fetch new buffer from ring */
 	if (ring_get(free_buffers, &tmp_idx) == 0) {
 		next_buffer_idx = (unsigned int)tmp_idx;
@@ -63,15 +72,6 @@ unsigned int handle_block_end(volatile struct SharedMem *shared_mem,
 		send_message(MSG_DEP_ERR_NOFREEBUF, 0);
 	}
 	simple_mutex_exit(&shared_mem->gpio_edges_mutex);
-
-	/* If we currently have a valid buffer, return it to host */
-	if (current_buffer_idx != NO_BUFFER) {
-		if (sample_idx != SAMPLES_PER_BUFFER)
-			send_message(MSG_DEP_ERR_INCMPLT, sample_idx);
-
-		(buffers + current_buffer_idx)->len = sample_idx;
-		send_message(MSG_DEP_BUF_FROM_PRU, current_buffer_idx);
-	}
 
 	return next_buffer_idx;
 }
