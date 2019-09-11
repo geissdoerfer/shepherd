@@ -34,7 +34,7 @@ from shepherd import EEPROM
 from shepherd import CapeData
 from shepherd import ShepherdDebug
 from shepherd.shepherd_io import gpio_pin_nums
-
+from shepherd.const_reg import VariableLDO
 
 consoleHandler = logging.StreamHandler()
 logger = logging.getLogger("shepherd")
@@ -66,10 +66,23 @@ def cli(ctx, verbose):
 
 @cli.command(short_help="Turns sensor node power supply on or off")
 @click.option("--on/--off", default=True)
-def targetpower(on):
-    for pin_name in ["en_v_fix", "en_v_anlg", "en_lvl_cnv", "load"]:
+@click.option("--voltage", type=float, help="Target supply voltage")
+def targetpower(on, voltage):
+    if not voltage:
+        voltage = 3.0
+    else:
+        if not on:
+            raise click.UsageError(
+                "Can't set voltage, when LDO is switched off"
+            )
+    for pin_name in ["en_v_anlg", "en_lvl_cnv", "load"]:
         pin = GPIO(gpio_pin_nums[pin_name], "out")
         pin.write(on)
+
+    with VariableLDO() as ldo:
+        if on:
+            ldo.set_voltage(voltage)
+        ldo.set_output(on)
 
 
 @cli.command(

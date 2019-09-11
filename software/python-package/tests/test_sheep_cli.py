@@ -139,5 +139,19 @@ def test_emulate_ldo(shepherd_up, cli_runner, tmp_path, data_h5):
 @pytest.mark.parametrize("state", ["on", "off"])
 def test_targetpower(state, shepherd_up, cli_runner):
     res = cli_runner.invoke(cli, ["targetpower", f"--{state}"])
-
     assert res.exit_code == 0
+
+
+@pytest.mark.hardware
+def test_targetpower_voltage(shepherd_up, cli_runner):
+    res = cli_runner.invoke(cli, ["targetpower", "--voltage", "2.1"])
+    assert res.exit_code == 0
+
+    res = cli_runner.invoke(cli, ["targetpower", "--on", "--voltage", "3.3"])
+    assert res.exit_code == 0
+
+    res = cli_runner.invoke(cli, ["targetpower", f"--on", "--voltage", "10"])
+    assert res.exit_code != 0
+
+    res = cli_runner.invoke(cli, ["targetpower", f"--off", "--voltage", "3.0"])
+    assert res.exit_code != 0
