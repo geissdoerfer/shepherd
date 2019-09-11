@@ -187,9 +187,9 @@ void event_loop(volatile struct SharedMem *shared_mem)
 	/* Clear raw interrupt status from ARM host */
 	INTC_CLEAR_EVENT(HOST_PRU_EVT_TIMESTAMP);
 	/* Wait for first timer interrupt from Linux host */
-	while(!(__R31 & (1U << 30)))
+	while (!(__R31 & (1U << 30)))
 		;
-	if(INTC_CHECK_EVENT(HOST_PRU_EVT_TIMESTAMP))
+	if (INTC_CHECK_EVENT(HOST_PRU_EVT_TIMESTAMP))
 		INTC_CLEAR_EVENT(HOST_PRU_EVT_TIMESTAMP);
 
 	iep_start();
@@ -200,11 +200,12 @@ void event_loop(volatile struct SharedMem *shared_mem)
 
 		/* Check for timer interrupt from Linux host [Event1] */
 		if (__R31 & HOST_INT_TIMESTAMP) {
-			if(!INTC_CHECK_EVENT(HOST_PRU_EVT_TIMESTAMP))
+			if (!INTC_CHECK_EVENT(HOST_PRU_EVT_TIMESTAMP))
 				continue;
 
 			/* Take timestamp of IEP */
 			ctrl_req.ticks_iep = CT_IEP.TMR_CNT;
+
 			/* Clear interrupt */
 			INTC_CLEAR_EVENT(HOST_PRU_EVT_TIMESTAMP);
 
@@ -225,6 +226,9 @@ void event_loop(volatile struct SharedMem *shared_mem)
 			/* Clear Timer Compare 0 */
 			iep_clear_evt_cmp(IEP_CMP0);
 
+			_GPIO_ON(DEBUG_P1);
+			_GPIO_ON(DEBUG_P0);
+
 			/* Reset sample counter and sample timer period */
 			sample_counter = 1;
 			iep_set_cmp_val(IEP_CMP1, sample_period);
@@ -240,6 +244,8 @@ void event_loop(volatile struct SharedMem *shared_mem)
 
 			/* With wrap, we'll use next timestamp as base for GPIO timestamps */
 			current_timestamp_ns = shared_mem->next_timestamp_ns;
+
+			_GPIO_OFF(DEBUG_P0);
 		}
 		/* Timer compare 1 handle [Event 3] */
 		if (iep_check_evt_cmp(IEP_CMP1) == 0) {
@@ -251,8 +257,10 @@ void event_loop(volatile struct SharedMem *shared_mem)
 				INTC_TRIGGER_EVENT(PRU_PRU_EVT_SAMPLE);
 			}
 			iep_clear_evt_cmp(IEP_CMP1);
-			last_sample_ticks = iep_get_cmp_val(IEP_CMP1);
 
+			_GPIO_ON(DEBUG_P0);
+
+			last_sample_ticks = iep_get_cmp_val(IEP_CMP1);
 			if (sample_counter < SAMPLES_PER_BUFFER) {
 				/* Forward sample timer based on current sample_period*/
 				unsigned int next_cmp_val =
@@ -263,6 +271,10 @@ void event_loop(volatile struct SharedMem *shared_mem)
 					n_comp--;
 				}
 				iep_set_cmp_val(IEP_CMP1, next_cmp_val);
+			}
+
+			if (sample_counter == SAMPLES_PER_BUFFER / 2) {
+				_GPIO_OFF(DEBUG_P1);
 			}
 
 			/* If we are waiting for a reply from Linux kernel module */
@@ -291,6 +303,7 @@ void event_loop(volatile struct SharedMem *shared_mem)
 
 				sync_state = REPLY_PENDING;
 			}
+			_GPIO_OFF(DEBUG_P0);
 		}
 	}
 }
