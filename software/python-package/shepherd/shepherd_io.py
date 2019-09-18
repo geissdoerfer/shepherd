@@ -23,9 +23,9 @@ import numpy as np
 from pathlib import Path
 from periphery import GPIO
 
-import sysfs_interface
-import commons
-import calibration_default
+from . import sysfs_interface
+from . import commons
+from . import calibration_default
 
 logger = logging.getLogger(__name__)
 
