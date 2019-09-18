@@ -31,6 +31,7 @@ struct SampleBuffer *buffers;
 volatile struct SharedMem *shared_mem =
 	(volatile struct SharedMem *)PRU_SHARED_MEM_STRUCT_OFFSET;
 
+
 static void send_message(unsigned int msg_id, unsigned int value)
 {
 	struct DEPMsg msg_out;
@@ -130,9 +131,10 @@ void event_loop(volatile struct SharedMem *shared_mem,
 
 	unsigned int toggle_cntr = 0; //TODO remove
 
-	unsigned int current = 6600 * 4095 / 33000;
-	unsigned int voltage = 2500 * 4095 / 3300;
-	unsigned int input_power = 4000;
+	// unsigned int current = current_ua_to_logic(2210000 / 480);
+	// unsigned int voltage = voltage_mv_to_logic(2110);
+	unsigned int input_power = 2000;
+	unsigned const int efficiency = 0.9 * 8192;
 
 	while (1) {
 		/* Check if a sample was triggered by PRU1 */
@@ -146,31 +148,32 @@ void event_loop(volatile struct SharedMem *shared_mem,
 				CLEAR_EVENT(PRU_PRU_EVT_SAMPLE);
 			}
 
-				_GPIO_ON(LED);
+			#define VIRTCAP 0
+			#if (VIRTCAP == 1)
 
-				virtcap_update(current, voltage, input_power);
-				_GPIO_OFF(LED);
-
-			// TODO remove
-			if (shared_mem->shepherd_state == STATE_RUNNING) {
-				#if 0
-				toggle_cntr++;
-				if(toggle_cntr == 1000) {
-					_GPIO_TOGGLE(VIRTCAP_SLCT_LOAD);
-					toggle_cntr = 0;
-				}
-				#else
-
-
-				#endif
-			}
+			sample(buffers + buffer_idx, sample_idx,
+							MODE_LOAD);
+			
+			#else
 
 			/* The actual sampling takes place here */
 			if (buffer_idx != NO_BUFFER) {
 				sample(buffers + buffer_idx, sample_idx++,
 				       (enum ShepherdMode)
 					       shared_mem->shepherd_mode);
+
+				struct SampleBuffer *current_buffer = buffers + buffer_idx;
+
+				int32_t current = current_buffer->values_current[sample_idx - 1];
+				current -= (1 << 17) - 1; // take away offset
+
+				uint32_t voltage = current_buffer->values_voltage[sample_idx - 1];
+
+				_GPIO_ON(LED);
+				virtcap_update(current, voltage, input_power, efficiency);
+				_GPIO_OFF(LED);
 			}
+			#endif
 
 			if (int_source == SIG_BLOCK_END) {
 				/* Did the Linux kernel module ask for reset? */
@@ -208,6 +211,18 @@ void event_loop(volatile struct SharedMem *shared_mem,
 			}
 		}
 	}
+}
+
+void set_output(uint8_t value)
+{
+  if (value)
+  {
+    _GPIO_ON(VIRTCAP_SLCT_LOAD);
+  }
+  else
+  {
+    _GPIO_OFF(VIRTCAP_SLCT_LOAD);
+  }
 }
 
 void main(void)
@@ -258,7 +273,7 @@ reset:
 	sampling_init((enum ShepherdMode)shared_mem->shepherd_mode,
 		      shared_mem->harvesting_voltage);
 
-	virtcap_init(1250, 1020, 1000);
+	virtcap_init(kRealBQ25570Settings, set_output);
 
 	shared_mem->gpio_edges = NULL;
 

@@ -1,167 +1,186 @@
 #include <stdint.h>
-
-#include "gpio.h"
-#include "hw_config.h"
-
+#include <stdio.h>
 #include "virtcap.h"
 
-void set_output(uint8_t value);
-uint32_t voltage_mv_to_logic (uint32_t voltage);
-uint32_t current_ua_to_logic (uint32_t current_mA);
+#define DEBUG_PRINT 1
+#define debug_print(...) \
+            do { if (DEBUG_PRINT) fprintf(stderr, __VA_ARGS__); } while (0)
 
-// Constant variables
-uint32_t kMaxCapVoltage;
-uint32_t kMinCapVoltage;
-uint32_t kInitCapVoltage;
-uint32_t kDcoutputVoltage;
-uint32_t kMaxVoltageOut;
-uint32_t kMaxCurrentIn;
-uint32_t kLeakageCurrent;
-uint32_t kEfficiency;
-uint32_t kOnTimeLeakageCurrent;
-
-/* Simulating inputs, should later be replaced by measurments from the system*/ 
-uint32_t current_measured_sim;
-uint32_t voltage_measured_sim;
-uint32_t input_power_sim;
-
-/* These are two variables used to keep calculations in 32bit range, note that  harv_div_scale * harv_mul_scale == 1000 */
-const int32_t harv_div_scale = 8;
-const int32_t harv_mul_scale = 128;
-
-const uint32_t sample_period_us = 10;
-
-uint32_t upper_threshold_voltage;
-uint32_t lower_threshold_voltage;
-
+// Derived constants
 int32_t harvest_multiplier;
+uint32_t kScaleInput;
+uint32_t outputcap_scale_factor;
 
-// Initialize vars
+// Working vars
 uint32_t cap_voltage;
 uint8_t is_outputting;
 uint8_t is_enabled;
+uint32_t discretize_cntr;
 
-uint32_t kCorrectionFactor;
-uint32_t kScaleInput;
+// Global vars to access in update function
+VirtCapNoFpSettings settings;
+virtcap_nofp_callback_func_t callback;
 
-void virtcap_init(uint32_t upper_threshold_voltage_param, uint32_t lower_threshold_voltage_param, uint32_t capacitance_uF)
+/**
+ * \brief    Fast Square root algorithm, with rounding
+ *
+ * This does arithmetic rounding of the result. That is, if the real answer
+ * would have a fractional part of 0.5 or greater, the result is rounded up to
+ * the next integer.
+ *      - SquareRootRounded(2) --> 1
+ *      - SquareRootRounded(3) --> 2
+ *      - SquareRootRounded(4) --> 2
+ *      - SquareRootRounded(6) --> 2
+ *      - SquareRootRounded(7) --> 3
+ *      - SquareRootRounded(8) --> 3
+ *      - SquareRootRounded(9) --> 3
+ *
+ * \param[in] a_nInput - unsigned integer for which to find the square root
+ *
+ * \return Integer square root of the input value.
+ */
+uint32_t SquareRootRounded(uint32_t a_nInput)
 {
-  /**
-   * Input current calculation (1):
-   * 
-   * I_in = P_in / V_in
-   * 
-   * To compensate for the current (mA) being stored in logic values (2):
-   * I_in = I'_in * 0.033 / (4095 * 1000)
-   * 
-   * To compensate for the voltage (V) being stored in logic values (3):
-   * V_in = V'_in / 3.3 / (4095 * 1000) 
-   * 
-   * Convert power from uW to W (4): 
-   * P_in = P'_in / 1000000
-   * 
-   * Give the input power a correction factor to increase accuracy (5):
-   * P_in = P'_in / 1000000 * kCorrectionFactor
-   * 
-   * Since we are interested in the current in logic value, we combine (1) and (2), (6):
-   * I_in = I'_in * 33 / (4095 * 1000)
-   * I'_in = I_in * (4095 * 1000) / 33
-   * I'_in = (P_in / V_in) * (4095 * 1000) / 33
-   * 
-   * Combining (6) and (3), (7):
-   * I'_in = (P_in / ( V'_in / 3.3 / (4095 * 1000) ) * (4095 * 1000) / 33
-   * I'_in = (P_in / V'_in)  * ((4095 * 1000) / 33) * ((4095 * 1000) / 3.3)
-   * 
-   * Combining (7) and (5), the final equation becomes (8):
-   * I'_in = ((P'_in / 1000000 * kCorrectionFactor) / V'_in)  * ((4095 * 1000) / 33) * ((4095 * 1000) / 3.3)
-   * I'_in = (P'_in / V'_in) * ((4095 * 1000) / 0.033) * ((4095 * 1000) / 3.3) / 1000000 * kCorrectionFactor
-   * 
-   * We extract the constant part of this equation and we divide this by 1000 to reduce the resolution from ~28bits to ~18bits
-   * 
-   * Later in the final input current calculation the result will be multiplied with 1000 again.
-   * This enables to stay within 32bits during calculation.
-   */
-  
-  kCorrectionFactor = 115;
-  kScaleInput = (uint32_t) 4095 * 1000 * 1000 / 3300 / 33 * 4095 / kCorrectionFactor * 100 / 1000;
+    uint32_t op  = a_nInput;
+    uint32_t res = 0;
+    uint32_t one = 1uL << 30; // The second-to-top bit is set: use 1u << 14 for uint16_t type; use 1uL<<30 for uint32_t type
 
-  // initializing constants
-  kMaxCapVoltage = voltage_mv_to_logic(3300);
-  kMinCapVoltage = 0;
-  kInitCapVoltage = voltage_mv_to_logic(1000);
-  kDcoutputVoltage = voltage_mv_to_logic(3300);
-  kMaxVoltageOut = 3300; // mV
-  kMaxCurrentIn = 33; // mA
-  kLeakageCurrent = current_ua_to_logic(22);
-  kEfficiency = 47; // defined in %
-  kOnTimeLeakageCurrent = current_ua_to_logic(12);
 
-  // initializing simulated constants
-  current_measured_sim = current_ua_to_logic(6600) / 1000;
-  voltage_measured_sim = voltage_mv_to_logic(2500) / 1000000;
-  
-  // Calculate harvest multiplier
-  harvest_multiplier = capacitance_uF * kMaxVoltageOut / kMaxCurrentIn / sample_period_us / harv_div_scale;
+    // "one" starts at the highest power of four <= than the argument.
+    while (one > op)
+    {
+        one >>= 2;
+    }
 
-  // set threshold voltages
-  upper_threshold_voltage = voltage_mv_to_logic(upper_threshold_voltage_param);
-  lower_threshold_voltage = voltage_mv_to_logic(lower_threshold_voltage_param);
+    while (one != 0)
+    {
+        if (op >= res + one)
+        {
+            op = op - (res + one);
+            res = res +  2 * one;
+        }
+        res >>= 1;
+        one >>= 2;
+    }
 
-  // Initialize vars
-  cap_voltage = kInitCapVoltage;
-  is_outputting = FALSE;
-  is_enabled = FALSE;
+    /* Do arithmetic rounding to nearest integer */
+    if (op > res)
+    {
+        res++;
+    }
 
-  // Initialize 'DC-DC' output to false
-  set_output(FALSE);
+    return res;
 }
 
-void virtcap_update(uint32_t current_measured, uint32_t voltage_measured, uint32_t input_power)
+void virtcap_init(VirtCapNoFpSettings settings_arg, virtcap_nofp_callback_func_t callback_arg)
+{
+  settings = settings_arg;
+  callback = callback_arg;
+  
+  // Calculate harvest multiplier
+
+  // convert voltages and currents to logic values
+  settings.upper_threshold_voltage = voltage_mv_to_logic(settings.upper_threshold_voltage);
+  settings.lower_threshold_voltage = voltage_mv_to_logic(settings.lower_threshold_voltage);
+  settings.kMaxCapVoltage = voltage_mv_to_logic(settings.kMaxCapVoltage);
+  settings.kMinCapVoltage = voltage_mv_to_logic(settings.kMinCapVoltage);
+  settings.kInitCapVoltage = voltage_mv_to_logic(settings.kInitCapVoltage);
+  settings.kDcoutputVoltage = voltage_mv_to_logic(settings.kDcoutputVoltage);
+  settings.kLeakageCurrent = current_ua_to_logic(settings.kLeakageCurrent);
+  settings.kOnTimeLeakageCurrent = current_ua_to_logic(settings.kOnTimeLeakageCurrent);
+
+  uint32_t outputcap_scale_factor_pre_sqrt = (settings.capacitance_uF - settings.kOutputCap_uF) * 1024 * 1024 / settings.capacitance_uF;
+
+  outputcap_scale_factor = SquareRootRounded(outputcap_scale_factor_pre_sqrt);
+
+  // Initialize vars
+  cap_voltage = settings.kInitCapVoltage;
+  is_outputting = FALSE;
+  is_enabled = FALSE;
+  discretize_cntr = 0;
+
+  #if 0
+  printf("kScaleInput: %d\n", kScaleInput);
+  #endif 
+
+  // 100.5 * (1 << 17 - 1) * (1 << 18 - 1) / (4.096 * 8.192) / 1e6;
+  kScaleInput = 102911;
+}
+
+#define SHIFT_VOLT 13
+
+void virtcap_update(int32_t current_measured, uint32_t voltage_measured, uint32_t input_power, uint32_t efficiency)
 {
 
-  current_measured *= 1000; // convert from mA to uA
-  voltage_measured *= 1000; // convert from V to mV
+  // x * 1000 * efficiency / 100
+  int32_t input_current = (int32_t) input_power * kScaleInput / (cap_voltage >> SHIFT_VOLT) * efficiency >> SHIFT_VOLT;
 
-  // calculate input current based on input power and input (cap) voltage
-  // uint32_t input_power = input_power; // TODO this should be formed by a varying input
-
-
-  int32_t input_current = (int32_t) input_power * kScaleInput / (cap_voltage >> 10) * 1000;
-
-  input_current -= kLeakageCurrent; // compensate for leakage current
+  input_current -= (settings.kLeakageCurrent); // compensate for leakage current
   
-    // compensate output current for higher voltage than input + boost converter efficiency
-  #if 1
+  // compensate output current for higher voltage than input + boost converter efficiency
   if (!is_outputting)
   {
     current_measured = 0; // force current read to zero while not outputting (to ignore noisy current reading)
   }
+
+  int32_t output_current = voltage_measured * current_measured / (cap_voltage >> SHIFT_VOLT) * settings.kConverterEfficiency >> SHIFT_VOLT; // + kOnTimeLeakageCurrent;
+
+  uint32_t new_cap_voltage = cap_voltage + ((input_current - output_current) << SHIFT_VOLT) * settings.sample_period_us / (100 * settings.capacitance_uF);
+
+  /**
+   * dV = dI * dt / C
+   * dV' * 3.3 / 4095 / 1000 / 512 = dI' * 0.033 * dt / (C * 4095 * 1000)
+   * dV' = (dI' * 0.033 * dt * 512) / (3.3 * C)
+   * dV' = (dI' * dt * 512) / (100 * C)
+   * dV' = (dI' * 5120) / (100 * C)
+   */
+
+  #if (SINGLE_ITERATION == 1)
+  debug_print("input_power:%d, input_current: %d, settings.kLeakageCurrent: %u, cap_voltage: %u\n", 
+              input_power, input_current, settings.kLeakageCurrent, cap_voltage);
   #endif
 
-  int32_t output_current = (voltage_measured) * 100 / (cap_voltage >> 10) * current_measured / kEfficiency; // + kOnTimeLeakageCurrent;
-
-  uint32_t new_cap_voltage = cap_voltage + ((input_current - output_current) * harv_mul_scale / harvest_multiplier);
+  // TODO remove debug
+  #if (PRINT_INTERMEDIATE == 1)
+  static uint16_t cntr;
+  if (cntr++ % 100000 == 0)
+  {
+    printf("input_current: %d, current_measured: %u, voltage_measured: %u, cap_voltage: %u\n",
+            input_current, current_measured, voltage_measured, cap_voltage); 
+    printf("new_cap_voltage: %u, is_outputting: %d, output_current: %d \n", 
+          new_cap_voltage, is_outputting, output_current);
+  } 
+  #endif
 
   // Make sure the voltage does not go beyond it's boundaries
-  if (new_cap_voltage >= kMaxCapVoltage)
+  if (new_cap_voltage >= settings.kMaxCapVoltage)
   {
-    new_cap_voltage = kMaxCapVoltage;
+    new_cap_voltage = settings.kMaxCapVoltage;
   }
-  else if (new_cap_voltage < kMinCapVoltage)
+  else if (new_cap_voltage < settings.kMinCapVoltage)
   {
-    new_cap_voltage = kMinCapVoltage;
+    new_cap_voltage = settings.kMinCapVoltage;
   }
 
-  // determine whether we should be in a new state
-  if (is_outputting && (new_cap_voltage < lower_threshold_voltage))
+  // only update output every 'kDiscretize' time
+  discretize_cntr++;
+  if (discretize_cntr >= settings.kDiscretize)
   {
-    is_outputting = FALSE; // we fall under our threshold
-    set_output(FALSE);
-  }
-  else if (!is_outputting && (new_cap_voltage > upper_threshold_voltage))
-  {
-    is_outputting = TRUE; // we have enough voltage to switch on again
-    set_output(TRUE);
+    discretize_cntr = 0;
+
+    // determine whether we should be in a new state
+    if (is_outputting && (new_cap_voltage < settings.lower_threshold_voltage))
+    {
+      is_outputting = FALSE; // we fall under our threshold
+      callback(FALSE);
+    }
+    else if (!is_outputting && (new_cap_voltage > settings.upper_threshold_voltage))
+    {
+      is_outputting = TRUE; // we have enough voltage to switch on again
+      callback(TRUE);
+      new_cap_voltage = (new_cap_voltage >> 10) * outputcap_scale_factor;
+    }
+
   }
 
   cap_voltage = new_cap_voltage;
@@ -170,24 +189,12 @@ void virtcap_update(uint32_t current_measured, uint32_t voltage_measured, uint32
 
 uint32_t voltage_mv_to_logic (uint32_t voltage)
 {
-  uint32_t value = voltage * 4095 / 3300 * 1024 * 1000;
-  return (uint32_t) (value);
+  // voltage * (1 << 18 - 1) / 8.192 / 1000;
+  return voltage * 32 << SHIFT_VOLT;
 }
 
 uint32_t current_ua_to_logic (uint32_t current)
 {
-  uint32_t value =  current * 4095 / 33000 * 1000;
-  return (uint32_t) (value);
-}
-
-void set_output(uint8_t value)
-{
-  if (value)
-  {
-    _GPIO_ON(VIRTCAP_SLCT_LOAD);
-  }
-  else
-  {
-    _GPIO_OFF(VIRTCAP_SLCT_LOAD);
-  }
+  // current * 100.5 * (1 << 17 - 1) / 4.096 / 1000;
+  return current * 3216 / 1000;
 }
