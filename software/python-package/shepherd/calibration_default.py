@@ -46,10 +46,19 @@ def current_to_adc(current: float):
     # digital value according to ADC gain
     return (2 ** 17) + v_adc / (G_ADC_I * V_REF_ADC) * (2 ** 17 - 1)
 
+def adc_to_current(i_adc: float):
+    # current according to adc value
+    return (i_adc - (2 ** 17)) / (R_SHT * G_INST_AMP * (2 ** 17 - 1)) * (G_ADC_I * V_REF_ADC)
+
 
 def voltage_to_adc(voltage: float):
     # digital value according to ADC gain
     return voltage / (G_ADC_V * V_REF_ADC) * (2 ** 18 - 1)
+
+
+def adc_to_voltage(v_adc: float):
+    # voltage according to ADC value
+    return v_adc * (G_ADC_V * V_REF_ADC) / (2 ** 18 - 1)
 
 
 def dac_to_voltage(value: int):

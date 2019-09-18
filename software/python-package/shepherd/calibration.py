@@ -17,7 +17,7 @@ from scipy import stats
 import numpy as np
 from pathlib import Path
 
-from . import calibration_default
+import calibration_default
 
 
 class CalibrationData(object):

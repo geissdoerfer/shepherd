@@ -20,11 +20,12 @@ from itertools import product
 from collections import defaultdict
 from collections import namedtuple
 
-from shepherd.calibration import CalibrationData
-from shepherd.shepherd_io import DataBuffer
-from shepherd.shepherd_io import GPIOEdges
+from calibration import CalibrationData
+from shepherd_io import DataBuffer
+from shepherd_io import GPIOEdges
 
 logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
 
 """
 An entry for an exception to be stored together with the data consists of a
