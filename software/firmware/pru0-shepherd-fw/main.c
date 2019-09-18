@@ -146,6 +146,11 @@ void event_loop(volatile struct SharedMem *shared_mem,
 				CLEAR_EVENT(PRU_PRU_EVT_SAMPLE);
 			}
 
+				_GPIO_ON(LED);
+
+				virtcap_update(current, voltage, input_power);
+				_GPIO_OFF(LED);
+
 			// TODO remove
 			if (shared_mem->shepherd_state == STATE_RUNNING) {
 				#if 0
@@ -156,24 +161,15 @@ void event_loop(volatile struct SharedMem *shared_mem,
 				}
 				#else
 
-			_GPIO_ON(LED);
-
-			virtcap_update(current, voltage, input_power);
-			_GPIO_OFF(LED);
 
 				#endif
-
-
-
 			}
 
 			/* The actual sampling takes place here */
 			if (buffer_idx != NO_BUFFER) {
-				_GPIO_ON(LED);
 				sample(buffers + buffer_idx, sample_idx++,
 				       (enum ShepherdMode)
 					       shared_mem->shepherd_mode);
-				_GPIO_OFF(LED);
 			}
 
 			if (int_source == SIG_BLOCK_END) {
