@@ -28,7 +28,7 @@ enum DEPMsgID {
 /* Message IDs used in Synchronization Protocol between PRU1 and kernel module */
 enum SyncMsgID { MSG_SYNC_CTRL_REQ = 0xF0, MSG_SYNC_CTRL_REP = 0xF1 };
 
-enum ShepherdMode { MODE_HARVESTING, MODE_LOAD, MODE_EMULATION, MODE_DEBUG };
+enum ShepherdMode { MODE_HARVESTING, MODE_LOAD, MODE_EMULATION, MODE_VIRTCAP, MODE_DEBUG };
 enum ShepherdState {
 	STATE_UNKNOWN,
 	STATE_IDLE,

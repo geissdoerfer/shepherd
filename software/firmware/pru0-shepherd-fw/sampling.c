@@ -76,6 +76,9 @@ void sample(struct SampleBuffer *current_buffer, unsigned int sample_idx,
 	case MODE_EMULATION:
 		sample_emulation(current_buffer, sample_idx);
 		break;
+	case MODE_VIRTCAP:
+		sample_load(current_buffer, sample_idx);
+		break;
 	}
 }
 

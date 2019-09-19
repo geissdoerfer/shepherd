@@ -127,8 +127,6 @@ void event_loop(volatile struct SharedMem *shared_mem,
 	unsigned int sample_idx = 0;
 	unsigned int buffer_idx = NO_BUFFER;
 
-	unsigned int toggle_cntr = 0; //TODO remove
-
 	// unsigned int current = current_ua_to_logic(2210000 / 480);
 	// unsigned int voltage = voltage_mv_to_logic(2110);
 	unsigned int input_power = 2000;
@@ -157,16 +155,18 @@ void event_loop(volatile struct SharedMem *shared_mem,
 					       shared_mem->shepherd_mode);
 
 				#if (USE_VIRTCAP == 1)
-				struct SampleBuffer *current_buffer = buffers + buffer_idx;
+				if (shared_mem->shepherd_mode == MODE_VIRTCAP) {
+					struct SampleBuffer *current_buffer = buffers + buffer_idx;
 
-				int32_t current = current_buffer->values_current[sample_idx - 1];
-				current -= (1 << 17) - 1; // take away offset
+					int32_t current = current_buffer->values_current[sample_idx - 1];
+					current -= (1 << 17) - 1; // take away offset
 
-				uint32_t voltage = current_buffer->values_voltage[sample_idx - 1];
+					uint32_t voltage = current_buffer->values_voltage[sample_idx - 1];
 
-				_GPIO_ON(LED);
-				virtcap_update(current, voltage, input_power, efficiency);
-				_GPIO_OFF(LED);
+					_GPIO_ON(USR_LED1);
+					virtcap_update(current, voltage, input_power, efficiency);
+					_GPIO_OFF(USR_LED1);
+				}
 				#endif 
 
 			}
@@ -205,11 +205,11 @@ void set_output(uint8_t value)
 {
   if (value)
   {
-    _GPIO_ON(VIRTCAP_SLCT_LOAD);
+    _GPIO_ON(DEBUG_P1);
   }
   else
   {
-    _GPIO_OFF(VIRTCAP_SLCT_LOAD);
+    _GPIO_OFF(DEBUG_P1);
   }
 }
 

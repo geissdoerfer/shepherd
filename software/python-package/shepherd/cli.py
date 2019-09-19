@@ -224,8 +224,14 @@ def record(
 @click.option(
     "--start-time", type=float, help="Desired start time in unix epoch time"
 )
+@click.option(
+    "--emulation-type",
+    type=click.Choice(["bq25505", "virtcap"]),
+    default="bq25505",
+    help="Choose default bq25505 emulation or fancy virtcap",
+)
 def emulate(
-    input, output, length, force, no_calib, load, ldo_voltage, start_time
+    input, output, length, force, no_calib, load, ldo_voltage, start_time, emulation_type,
 ):
     if output is None:
         pl_store = None
@@ -237,7 +243,7 @@ def emulate(
             pl_store = Path("/var/shepherd/recordings") / output
 
     run_emulate(
-        input, pl_store, length, force, no_calib, load, ldo_voltage, start_time
+        input, pl_store, length, force, no_calib, load, ldo_voltage, start_time, emulation_type
     )
 
 

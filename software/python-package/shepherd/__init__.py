@@ -129,6 +129,8 @@ class Emulator(ShepherdIO):
             Should be one of 'artificial' or 'node'.
         ldo_voltage (float): Pre-charge the capacitor to this voltage before
             starting recording.
+        emulation_type (str): Selects, which type of emulation occurs.
+            Should be one of 'bq25505' or 'virtcap'.
     """
 
     def __init__(
@@ -138,8 +140,14 @@ class Emulator(ShepherdIO):
         calibration_emulation: CalibrationData = None,
         load: str = "node",
         ldo_voltage: float = 0.0,
+        emulation_type: str = "bq25505",
     ):
-        super().__init__("emulation", ldo_voltage, load)
+        # Set shepherd mode to virtcap if required
+        shepherd_mode = "emulation"
+        if emulation_type == "virtcap":
+            shepherd_mode = "virtcap"
+
+        super().__init__(shepherd_mode, ldo_voltage, load)
 
         if calibration_emulation is None:
             calibration_emulation = CalibrationData.from_default()
@@ -151,10 +159,12 @@ class Emulator(ShepherdIO):
             logger.warning(
                 "No recording calibration data provided - using defaults"
             )
+
+
         # Values from recording are binary ADC values. We have to send binary
         # DAC values to the DAC for emulation. To directly convert ADC to DAC
         # values, we precalculate the 'transformation coefficients' based on
-        # calibration data from the recorder and the emulator
+        # calibration data from the recorder and the emulator.
         self.transform_coeffs = {"voltage": dict(), "current": dict()}
         for channel in ["voltage", "current"]:
             self.transform_coeffs[channel]["gain"] = (
@@ -166,6 +176,13 @@ class Emulator(ShepherdIO):
                 * calibration_recording["harvesting"][channel]["offset"]
                 + calibration_emulation["emulation"][channel]["offset"]
             )
+
+        # Virtcap used binary ADC values, so no conversion is needed.
+        # Therefor coefficients are reset for virtcap
+        if emulation_type == "virtcap":
+            for channel in ["voltage", "current"]:
+                self.transform_coeffs[channel]["gain"] = 1
+                self.transform_coeffs[channel]["offset"] = 0
 
         self._initial_buffers = initial_buffers
 
@@ -398,6 +415,7 @@ def emulate(
     load: str = "artificial",
     ldo_voltage: float = None,
     start_time: float = None,
+    emulation_type: str = "bq25505",
 ):
     """Starts emulation.
 
@@ -416,6 +434,8 @@ def emulate(
         ldo_voltage (float): Pre-charge capacitor to this voltage before
             starting emulation
         start_time (float): Desired start time of emulation in unix epoch time
+        emulation_type (str): Either use default bq25505 for emulation, or
+            virtcap which is a generic model to emulate any energy harvester
     """
 
     if no_calib:
@@ -449,6 +469,7 @@ def emulate(
             initial_buffers=log_reader.read_buffers(end=64),
             ldo_voltage=ldo_voltage,
             load=load,
+            emulation_type=emulation_type,
         )
         stack.enter_context(emu)
 

@@ -233,6 +233,8 @@ static ssize_t sysfs_mode_show(struct kobject *kobj,
 		return sprintf(buf, "load");
 	case MODE_EMULATION:
 		return sprintf(buf, "emulation");
+	case MODE_VIRTCAP:
+		return sprintf(buf, "virtcap");
 	case MODE_DEBUG:
 		return sprintf(buf, "debug");
 	default:
@@ -270,6 +272,11 @@ static ssize_t sysfs_mode_store(struct kobject *kobj,
 			return -EINVAL;
 
 		mode = MODE_EMULATION;
+	} else if (strncmp(buf, "virtcap", 9) == 0) {
+		if ((count < 9) || (count > 10))
+			return -EINVAL;
+
+		mode = MODE_VIRTCAP;
 	} else if (strncmp(buf, "debug", 5) == 0) {
 		if ((count < 5) || (count > 6))
 			return -EINVAL;

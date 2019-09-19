@@ -276,7 +276,7 @@ class ShepherdIO(object):
         """Initializes relevant variables.
 
         Args:
-            mode (str): Shepherd mode, one of 'harvesting', 'load', 'emulation'
+            mode (str): Shepherd mode, one of 'harvesting', 'load', 'emulation', 'virtcap'
             ldo_voltage (float): Sets voltage of fixed voltage regulator
             load (str): Which load to use, one of 'artificial', 'node'
         """

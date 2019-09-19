@@ -110,12 +110,14 @@ def set_mode(mode: str):
     Args:
         mode (str): Target mode. Must be one of harvesting, load, emulation
     """
-    if mode not in ["harvesting", "load", "emulation", "debug"]:
+    if mode not in ["harvesting", "load", "emulation", "virtcap", "debug"]:
         raise SysfsInterfaceException("invalid value for mode")
     if get_state() != "idle":
         raise SysfsInterfaceException(
             f"Cannot set mode when shepherd is { get_state() }"
         )
+
+    logger.debug(f"mode: {mode}")
     with open(str(sysfs_path / "mode"), "w") as f:
         f.write(mode)
 
