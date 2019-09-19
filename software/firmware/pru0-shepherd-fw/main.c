@@ -10,6 +10,7 @@
 #include "rpmsg.h"
 #include "simple_lock.h"
 #include "gpio.h"
+#include "intc.h"
 
 #include "ringbuffer.h"
 #include "sampling.h"
@@ -17,9 +18,6 @@
 #include "commons.h"
 #include "shepherd_config.h"
 #include "virtcap.h"
-
-#define CHECK_EVENT(x) CT_INTC.SECR0 &(1U << x)
-#define CLEAR_EVENT(x) CT_INTC.SICR_bit.STS_CLR_IDX = x;
 
 /* Used to signal an invalid buffer index */
 #define NO_BUFFER 0xFFFFFFFF
@@ -54,6 +52,15 @@ unsigned int handle_block_end(volatile struct SharedMem *shared_mem,
 	/* Lock access to gpio_edges structure to avoid inconsistency */
 	simple_mutex_enter(&shared_mem->gpio_edges_mutex);
 
+	/* If we currently have a valid buffer, return it to host */
+	if (current_buffer_idx != NO_BUFFER) {
+		if (sample_idx != SAMPLES_PER_BUFFER)
+			send_message(MSG_DEP_ERR_INCMPLT, sample_idx);
+
+		(buffers + current_buffer_idx)->len = sample_idx;
+		send_message(MSG_DEP_BUF_FROM_PRU, current_buffer_idx);
+	}
+
 	/* Fetch new buffer from ring */
 	if (ring_get(free_buffers, &tmp_idx) == 0) {
 		next_buffer_idx = (unsigned int)tmp_idx;
@@ -68,15 +75,6 @@ unsigned int handle_block_end(volatile struct SharedMem *shared_mem,
 	}
 	simple_mutex_exit(&shared_mem->gpio_edges_mutex);
 
-	/* If we currently have a valid buffer, return it to host */
-	if (current_buffer_idx != NO_BUFFER) {
-		if (sample_idx != SAMPLES_PER_BUFFER)
-			send_message(MSG_DEP_ERR_INCMPLT, sample_idx);
-
-		(buffers + current_buffer_idx)->len = sample_idx;
-		send_message(MSG_DEP_BUF_FROM_PRU, current_buffer_idx);
-	}
-
 	return next_buffer_idx;
 }
 
@@ -85,7 +83,7 @@ int handle_rpmsg(struct RingBuffer *free_buffers, enum ShepherdMode mode,
 {
 	struct DEPMsg msg_in;
 
-	/* 
+	/*
 	 * TI's implementation of RPMSG on the PRU triggers the same interrupt
 	 * line when sending a message that is used to signal the reception of
 	 * the message. We therefore need to check the length of the potential
@@ -140,12 +138,14 @@ void event_loop(volatile struct SharedMem *shared_mem,
 		/* Check if a sample was triggered by PRU1 */
 		if (__R31 & (1U << 31)) {
 			/* Important: We have to clear the interrupt here, to avoid missing interrupts */
-			if (CHECK_EVENT(PRU_PRU_EVT_BLOCK_END)) {
+			if (INTC_CHECK_EVENT(PRU_PRU_EVT_BLOCK_END)) {
 				int_source = SIG_BLOCK_END;
-				CLEAR_EVENT(PRU_PRU_EVT_BLOCK_END);
-			} else {
+				INTC_CLEAR_EVENT(PRU_PRU_EVT_BLOCK_END);
+			} else if (INTC_CHECK_EVENT(PRU_PRU_EVT_SAMPLE)) {
 				int_source = SIG_SAMPLE;
-				CLEAR_EVENT(PRU_PRU_EVT_SAMPLE);
+				INTC_CLEAR_EVENT(PRU_PRU_EVT_SAMPLE);
+			} else {
+				continue;
 			}
 
 			#define USE_VIRTCAP 1
@@ -173,16 +173,8 @@ void event_loop(volatile struct SharedMem *shared_mem,
 
 			if (int_source == SIG_BLOCK_END) {
 				/* Did the Linux kernel module ask for reset? */
-				if (CHECK_EVENT(HOST_PRU_EVT_RESET)) {
-					CLEAR_EVENT(HOST_PRU_EVT_RESET);
+				if (shared_mem->shepherd_state == STATE_RESET) {
 					return;
-				}
-
-				/* Did the Linux kernel module ask for start? */
-				if (CHECK_EVENT(HOST_PRU_EVT_START)) {
-					CLEAR_EVENT(HOST_PRU_EVT_START);
-					shared_mem->shepherd_state =
-						STATE_RUNNING;
 				}
 
 				/* We try to exchange a full buffer for a fresh one if we are running */
@@ -195,7 +187,7 @@ void event_loop(volatile struct SharedMem *shared_mem,
 						sample_idx);
 
 				sample_idx = 0;
-				_GPIO_OFF(LED);
+				_GPIO_OFF(USR_LED1);
 			}
 			/* We only handle rpmsg comms if we're not at the last sample */
 			else {
@@ -231,15 +223,14 @@ void main(void)
 	/* Enable interrupts from PRU1 */
 	CT_INTC.EISR_bit.EN_SET_IDX = PRU_PRU_EVT_SAMPLE;
 	CT_INTC.EISR_bit.EN_SET_IDX = PRU_PRU_EVT_BLOCK_END;
-	/* Enable interrupts from ARM host */
-	CT_INTC.EISR_bit.EN_SET_IDX = HOST_PRU_EVT_START;
-	CT_INTC.EISR_bit.EN_SET_IDX = HOST_PRU_EVT_RESET;
 
 	rpmsg_init("rpmsg-pru");
 
-	_GPIO_OFF(LED);
+	_GPIO_OFF(USR_LED1);
+	_GPIO_OFF(DEBUG_P0);
+	_GPIO_OFF(DEBUG_P1);
 
-	/* 
+	/*
 	 * The dynamically allocated shared DDR RAM holds all the buffers that
 	 * are used to transfer the actual data between us and the Linux host.
 	 * This memory is requested from remoteproc via a carveour resource request
@@ -265,6 +256,8 @@ void main(void)
 /* Jump to this label, whenever user requests 'stop' */
 reset:
 
+	_GPIO_OFF(USR_LED1);
+
 	init_ring(&free_buffers);
 	sampling_init((enum ShepherdMode)shared_mem->shepherd_mode,
 		      shared_mem->harvesting_voltage);
@@ -276,8 +269,6 @@ reset:
 	/* Clear all interrupt events */
 	CT_INTC.SICR_bit.STS_CLR_IDX = PRU_PRU_EVT_SAMPLE;
 	CT_INTC.SICR_bit.STS_CLR_IDX = PRU_PRU_EVT_BLOCK_END;
-	CT_INTC.SICR_bit.STS_CLR_IDX = HOST_PRU_EVT_START;
-	CT_INTC.SICR_bit.STS_CLR_IDX = HOST_PRU_EVT_RESET;
 
 	shared_mem->shepherd_state = STATE_IDLE;
 

@@ -6,14 +6,27 @@
 #include "commons.h"
 #include "sysfs_interface.h"
 #include "pru_comm.h"
+#include "sync_ctrl.h"
 
 int schedule_start(unsigned int start_time_second);
 
 struct kobject *kobj_ref;
 struct kobject *kobj_mem_ref;
+struct kobject *kobj_sync_ref;
 
-static ssize_t sysfs_SharedMemhow(struct kobject *kobj,
-				  struct kobj_attribute *attr, char *buf);
+static ssize_t sysfs_sync_error_show(struct kobject *kobj,
+				     struct kobj_attribute *attr, char *buf);
+
+static ssize_t sysfs_sync_error_sum_show(struct kobject *kobj,
+					 struct kobj_attribute *attr,
+					 char *buf);
+
+static ssize_t sysfs_sync_correction_show(struct kobject *kobj,
+					  struct kobj_attribute *attr,
+					  char *buf);
+
+static ssize_t sysfs_SharedMem_show(struct kobject *kobj,
+				    struct kobj_attribute *attr, char *buf);
 
 static ssize_t sysfs_state_show(struct kobject *kobj,
 				struct kobj_attribute *attr, char *buf);
@@ -33,7 +46,7 @@ static ssize_t sysfs_harvesting_voltage_store(struct kobject *kobj,
 					      struct kobj_attribute *attr,
 					      const char *buf, size_t count);
 
-struct kobj_attr_SharedMem {
+struct kobj_attr_struct_s {
 	struct kobj_attribute attr;
 	unsigned int val_offset;
 };
@@ -41,36 +54,46 @@ struct kobj_attr_SharedMem {
 struct kobj_attribute attr_state =
 	__ATTR(state, 0660, sysfs_state_show, sysfs_state_store);
 
-struct kobj_attr_SharedMem attr_mem_base_addr = {
-	.attr = __ATTR(address, 0660, sysfs_SharedMemhow, NULL),
+struct kobj_attr_struct_s attr_mem_base_addr = {
+	.attr = __ATTR(address, 0660, sysfs_SharedMem_show, NULL),
 	.val_offset = offsetof(struct SharedMem, mem_base_addr)
 };
-struct kobj_attr_SharedMem attr_mem_size = {
-	.attr = __ATTR(size, 0660, sysfs_SharedMemhow, NULL),
+struct kobj_attr_struct_s attr_mem_size = {
+	.attr = __ATTR(size, 0660, sysfs_SharedMem_show, NULL),
 	.val_offset = offsetof(struct SharedMem, mem_size)
 };
 
-struct kobj_attr_SharedMem attr_n_buffers = {
-	.attr = __ATTR(n_buffers, 0660, sysfs_SharedMemhow, NULL),
+struct kobj_attr_struct_s attr_n_buffers = {
+	.attr = __ATTR(n_buffers, 0660, sysfs_SharedMem_show, NULL),
 	.val_offset = offsetof(struct SharedMem, n_buffers)
 };
-struct kobj_attr_SharedMem attr_samples_per_buffer = {
-	.attr = __ATTR(samples_per_buffer, 0660, sysfs_SharedMemhow, NULL),
+struct kobj_attr_struct_s attr_samples_per_buffer = {
+	.attr = __ATTR(samples_per_buffer, 0660, sysfs_SharedMem_show, NULL),
 	.val_offset = offsetof(struct SharedMem, samples_per_buffer)
 };
-struct kobj_attr_SharedMem attr_buffer_period_ns = {
-	.attr = __ATTR(buffer_period_ns, 0660, sysfs_SharedMemhow, NULL),
+struct kobj_attr_struct_s attr_buffer_period_ns = {
+	.attr = __ATTR(buffer_period_ns, 0660, sysfs_SharedMem_show, NULL),
 	.val_offset = offsetof(struct SharedMem, buffer_period_ns)
 };
-struct kobj_attr_SharedMem attr_mode = {
+struct kobj_attr_struct_s attr_mode = {
 	.attr = __ATTR(mode, 0660, sysfs_mode_show, sysfs_mode_store),
 	.val_offset = offsetof(struct SharedMem, shepherd_mode)
 };
-struct kobj_attr_SharedMem attr_harvesting_voltage = {
-	.attr = __ATTR(harvesting_voltage, 0660, sysfs_SharedMemhow,
+struct kobj_attr_struct_s attr_harvesting_voltage = {
+	.attr = __ATTR(harvesting_voltage, 0660, sysfs_SharedMem_show,
 		       sysfs_harvesting_voltage_store),
 	.val_offset = offsetof(struct SharedMem, harvesting_voltage)
 };
+
+struct kobj_attribute attr_sync_error =
+	__ATTR(error, 0660, sysfs_sync_error_show, NULL);
+
+struct kobj_attribute attr_sync_correction =
+	__ATTR(correction, 0660, sysfs_sync_correction_show, NULL);
+
+struct kobj_attribute attr_sync_error_sum =
+	__ATTR(error_sum, 0660, sysfs_sync_error_sum_show, NULL);
+
 static struct attribute *pru_attrs[] = {
 	&attr_n_buffers.attr.attr,	  &attr_samples_per_buffer.attr.attr,
 	&attr_buffer_period_ns.attr.attr,   &attr_mode.attr.attr,
@@ -91,16 +114,45 @@ static struct attribute_group attr_mem_group = {
 	.attrs = pru_mem_attrs,
 };
 
-static ssize_t sysfs_SharedMemhow(struct kobject *kobj,
-				  struct kobj_attribute *attr, char *buf)
-{
-	struct kobj_attr_SharedMem *kobj_attr_wrapped;
+static struct attribute *pru_sync_attrs[] = {
+	&attr_sync_error.attr,
+	&attr_sync_error_sum.attr,
+	&attr_sync_correction.attr,
+	NULL,
+};
 
-	kobj_attr_wrapped =
-		container_of(attr, struct kobj_attr_SharedMem, attr);
+static struct attribute_group attr_sync_group = {
+	.attrs = pru_sync_attrs,
+};
+
+static ssize_t sysfs_SharedMem_show(struct kobject *kobj,
+				    struct kobj_attribute *attr, char *buf)
+{
+	struct kobj_attr_struct_s *kobj_attr_wrapped;
+
+	kobj_attr_wrapped = container_of(attr, struct kobj_attr_struct_s, attr);
 	return sprintf(
 		buf, "%u",
 		readl(pru_shared_mem_io + kobj_attr_wrapped->val_offset));
+}
+
+static ssize_t sysfs_sync_error_show(struct kobject *kobj,
+				     struct kobj_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%lld", sync_data->err);
+}
+
+static ssize_t sysfs_sync_error_sum_show(struct kobject *kobj,
+					 struct kobj_attribute *attr, char *buf)
+{
+	return sprintf(buf, "%lld", sync_data->err_sum);
+}
+
+static ssize_t sysfs_sync_correction_show(struct kobject *kobj,
+					  struct kobj_attribute *attr,
+					  char *buf)
+{
+	return sprintf(buf, "%d", sync_data->clock_corr);
 }
 
 static ssize_t sysfs_state_show(struct kobject *kobj,
@@ -134,7 +186,7 @@ static ssize_t sysfs_state_store(struct kobject *kobj,
 		if (pru_comm_get_state() != STATE_IDLE)
 			return -EBUSY;
 
-		pru_comm_trigger(HOST_PRU_EVT_START);
+		pru_comm_set_state(STATE_RUNNING);
 		return count;
 	}
 
@@ -143,7 +195,7 @@ static ssize_t sysfs_state_store(struct kobject *kobj,
 			return -EINVAL;
 
 		pru_comm_cancel_delayed_start();
-		pru_comm_trigger(HOST_PRU_EVT_RESET);
+		pru_comm_set_state(STATE_RESET);
 		return count;
 	}
 
@@ -167,11 +219,10 @@ static ssize_t sysfs_state_store(struct kobject *kobj,
 static ssize_t sysfs_mode_show(struct kobject *kobj,
 			       struct kobj_attribute *attr, char *buf)
 {
-	struct kobj_attr_SharedMem *kobj_attr_wrapped;
+	struct kobj_attr_struct_s *kobj_attr_wrapped;
 	unsigned int mode;
 
-	kobj_attr_wrapped =
-		container_of(attr, struct kobj_attr_SharedMem, attr);
+	kobj_attr_wrapped = container_of(attr, struct kobj_attr_struct_s, attr);
 
 	mode = readl(pru_shared_mem_io + kobj_attr_wrapped->val_offset);
 
@@ -193,14 +244,13 @@ static ssize_t sysfs_mode_store(struct kobject *kobj,
 				struct kobj_attribute *attr, const char *buf,
 				size_t count)
 {
-	struct kobj_attr_SharedMem *kobj_attr_wrapped;
+	struct kobj_attr_struct_s *kobj_attr_wrapped;
 	unsigned int mode;
 
 	if (pru_comm_get_state() != STATE_IDLE)
 		return -EBUSY;
 
-	kobj_attr_wrapped =
-		container_of(attr, struct kobj_attr_SharedMem, attr);
+	kobj_attr_wrapped = container_of(attr, struct kobj_attr_struct_s, attr);
 
 	if (pru_comm_get_state() != STATE_IDLE)
 		return -EBUSY;
@@ -230,7 +280,7 @@ static ssize_t sysfs_mode_store(struct kobject *kobj,
 
 	writel(mode, pru_shared_mem_io + kobj_attr_wrapped->val_offset);
 	printk(KERN_INFO "shprd: new mode: %d", mode);
-	pru_comm_trigger(HOST_PRU_EVT_RESET);
+	pru_comm_set_state(STATE_RESET);
 	return count;
 }
 
@@ -239,20 +289,19 @@ static ssize_t sysfs_harvesting_voltage_store(struct kobject *kobj,
 					      const char *buf, size_t count)
 {
 	unsigned int tmp;
-	struct kobj_attr_SharedMem *kobj_attr_wrapped;
+	struct kobj_attr_struct_s *kobj_attr_wrapped;
 
 	if (pru_comm_get_state() != STATE_IDLE)
 		return -EBUSY;
 
-	kobj_attr_wrapped =
-		container_of(attr, struct kobj_attr_SharedMem, attr);
+	kobj_attr_wrapped = container_of(attr, struct kobj_attr_struct_s, attr);
 
 	if (sscanf(buf, "%u", &tmp) == 1) {
 		printk(KERN_INFO "shprd: Setting harvesting voltage to %u",
 		       tmp);
 		writel(tmp, pru_shared_mem_io + kobj_attr_wrapped->val_offset);
 
-		pru_comm_trigger(HOST_PRU_EVT_RESET);
+		pru_comm_set_state(STATE_RESET);
 		return count;
 	}
 
@@ -282,8 +331,19 @@ int sysfs_interface_init(void)
 		       "shprd: cannot create sysfs memory attrib group\n");
 		goto r_group;
 	};
+
+	kobj_sync_ref = kobject_create_and_add("sync", kobj_ref);
+
+	if ((retval = sysfs_create_group(kobj_sync_ref, &attr_sync_group))) {
+		printk(KERN_ERR
+		       "shprd: cannot create sysfs sync attrib group\n");
+		goto r_mem;
+	};
+
 	return 0;
 
+r_mem:
+	kobject_put(kobj_mem_ref);
 r_group:
 	sysfs_remove_group(kobj_ref, &attr_group);
 r_state:
@@ -298,6 +358,7 @@ void sysfs_interface_exit(void)
 {
 	sysfs_remove_group(kobj_ref, &attr_group);
 	sysfs_remove_file(kobj_ref, &attr_state.attr);
+	kobject_put(kobj_sync_ref);
 	kobject_put(kobj_mem_ref);
 	kobject_put(kobj_ref);
 }

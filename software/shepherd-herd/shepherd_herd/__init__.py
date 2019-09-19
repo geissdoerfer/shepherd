@@ -8,7 +8,7 @@ remotely through ssh. Provides commands for starting/stopping recording and
 emulation, retrieving recordings to the local machine and flashing firmware
 images to target sensor nodes.
 
-:copyright: (c) 2019 by Kai Geissdoerfer.
+:copyright: (c) 2019 Networked Embedded Systems Lab, TU Dresden.
 :license: MIT, see LICENSE for more details.
 """
 
@@ -42,7 +42,11 @@ Args:
 
 
 def start_shepherd(
-    group: Group, command: str, parameters: dict, verbose: int = 0
+    group: Group,
+    command: str,
+    parameters: dict,
+    hostnames: dict,
+    verbose: int = 0,
 ):
 
     # Get the current time on each target node
@@ -76,9 +80,7 @@ def start_shepherd(
     for cnx in group:
         res = cnx.sudo("systemctl status shepherd", hide=True, warn=True)
         if res.exited != 3:
-            raise Exception(
-                f"shepherd not inactive on {ctx.obj['hostnames'][cnx.host]}"
-            )
+            raise Exception(f"shepherd not inactive on {hostnames[cnx.host]}")
 
         cnx.put(StringIO(config_yml), "/tmp/config.yml")
         cnx.sudo("mv /tmp/config.yml /etc/shepherd/config.yml")
@@ -91,7 +93,7 @@ def start_shepherd(
     "--inventory",
     "-i",
     type=str,
-    default="hosts",
+    default="inventory/example.yml",
     help="List of target hosts as comma-separated string or path to ansible-style yaml file",
 )
 @click.option(
@@ -195,6 +197,9 @@ def poweroff(ctx, restart):
 @click.option("--sudo", "-s", is_flag=True, help="Run command with sudo")
 def run(ctx, command, sudo):
     for cnx in ctx.obj["fab group"]:
+        click.echo(
+            f"************** {ctx.obj['hostnames'][cnx.host]} **************"
+        )
         if sudo:
             cnx.sudo(command, warn=True)
         else:
@@ -294,6 +299,21 @@ def halt(ctx):
             logger.info(f"target halted on {ctx.obj['hostnames'][cnx.host]}")
 
 
+@target.command(short_help="Erases the target")
+@click.pass_context
+def erase(ctx):
+    for cnx in ctx.obj["fab group"]:
+
+        with telnetlib.Telnet(cnx.host, ctx.obj["openocd_telnet_port"]) as tn:
+            logger.debug(
+                f"connected to openocd on {ctx.obj['hostnames'][cnx.host]}"
+            )
+            tn.write(b"halt\n")
+            logger.info(f"target halted on {ctx.obj['hostnames'][cnx.host]}")
+            tn.write(b"nrf52 mass_erase\n")
+            logger.info(f"target erased on {ctx.obj['hostnames'][cnx.host]}")
+
+
 @target.command(short_help="Resets the target")
 @click.pass_context
 def reset(ctx):
@@ -340,9 +360,11 @@ def reset(ctx):
     help="Choose artificial or sensor node load",
 )
 @click.option(
-    "--init-charge",
-    is_flag=True,
-    help="Pre-charge capacitor before starting recording",
+    "--ldo-voltage",
+    "-c",
+    type=float,
+    default=2.1,
+    help="Sets voltage of variable LDO",
 )
 @click.pass_context
 def record(
@@ -354,7 +376,7 @@ def record(
     no_calib,
     harvesting_voltage,
     load,
-    init_charge,
+    ldo_voltage,
 ):
     fp_output = Path(output)
     if not fp_output.is_absolute():
@@ -368,10 +390,14 @@ def record(
         "no_calib": no_calib,
         "harvesting_voltage": harvesting_voltage,
         "load": load,
-        "init_charge": init_charge,
+        "ldo_voltage": ldo_voltage,
     }
     start_shepherd(
-        ctx.obj["fab group"], "record", parameter_dict, ctx.obj["verbose"]
+        ctx.obj["fab group"],
+        "record",
+        parameter_dict,
+        ctx.obj["hostnames"],
+        ctx.obj["verbose"],
     )
 
 
@@ -397,12 +423,14 @@ def record(
     help="Choose artificial or sensor node load",
 )
 @click.option(
-    "--init-charge",
-    is_flag=True,
+    "--ldo-voltage",
+    "-c",
+    type=float,
+    default=2.0,
     help="Pre-charge capacitor before starting recording",
 )
 @click.pass_context
-def emulate(ctx, input, output, length, force, no_calib, load, init_charge):
+def emulate(ctx, input, output, length, force, no_calib, load, ldo_voltage):
 
     fp_input = Path(input)
     if not fp_input.is_absolute():
@@ -413,7 +441,7 @@ def emulate(ctx, input, output, length, force, no_calib, load, init_charge):
         "force": force,
         "length": length,
         "no_calib": no_calib,
-        "init_charge": init_charge,
+        "ldo_voltage": ldo_voltage,
         "load": load,
     }
 
@@ -425,7 +453,11 @@ def emulate(ctx, input, output, length, force, no_calib, load, init_charge):
         parameter_dict["output"] = str(fp_output)
 
     start_shepherd(
-        ctx.obj["fab group"], "emulate", parameter_dict, ctx.obj["verbose"]
+        ctx.obj["fab group"],
+        "emulate",
+        parameter_dict,
+        ctx.obj["hostnames"],
+        ctx.obj["verbose"],
     )
 
 

@@ -10,7 +10,7 @@
 
    /* This overlay uses the following resources */
    exclusive-use =
-        "P8.11", /* VIRTCAP SELECT LOAD */
+        "P8.11", /* DEBUG PIN1 PRU0 */
         "P8.12", /* LED1 PRU0 */
         "P8.13", /* ENABLE HARVESTER */
         "P8.28", /* ADC RST/PDN */
@@ -18,10 +18,8 @@
         "P8.33", /* GENERAL PURPOSE BUTTON */
         "P8.34", /* GENERAL PURPOSE LED */
         "P8.36", /* ENABLE LEVEL CONVERTER */
-        "P8.39",
-        "P8.40",
-        "P8.41",
-        "P8.42",
+        "P8.41", /* DEBUG PIN0 PRU1 */
+        "P8.42", /* DEBUG PIN1 PRU1 */
         "P8.43", /* TARGET GPIO2 */
         "P8.44", /* TARGET GPIO3 */
         "P8.45", /* TARGET GPIO0 */
@@ -33,7 +31,7 @@
         "P9.25", /* SPI CS ADC */
         "P9.27", /* SPI MISO */
         "P9.28", /* SPI SCLK */
-        "P9.29", /* VIRTCAP CODE TRACE*/
+        "P9.29", /* DEBUG PIN0 PRU0 */
         "P9.30", /* SPI MOSI */
         "P9.31", /* SPI CS DAC */
         "P9.41", /* SWDIO */
@@ -54,14 +52,12 @@
             0x0d4 0x37	/* P8.33, gpio0[9] */
             0x0cc 0x07	/* P8.34, gpio2[17] */
             0x0c8 0x07	/* P8.36, gpio2[16] */
-            0x0b8 0x05	/* P8.39, pr1_pru1_pru_r30_6 */
-            0x0bc 0x05	/* P8.40, pr1_pru1_pru_r30_7 */
             0x0b0 0x05	/* P8.41, pr1_pru1_pru_r30_4 */
             0x0b4 0x05	/* P8.42, pr1_pru1_pru_r30_5 */
-            0x0a8 0x2E	/* P8.43, pr1_pru1_pru_r31_2 */
-            0x0ac 0x2E	/* P8.44, pr1_pru1_pru_r31_3 */
-            0x0a0 0x2E	/* P8.45, pr1_pru1_pru_r31_0 */
-            0x0a4 0x2E	/* P8.46, pr1_pru1_pru_r31_1 */
+            0x0a8 0x26	/* P8.43, pr1_pru1_pru_r31_2 */
+            0x0ac 0x26	/* P8.44, pr1_pru1_pru_r31_3 */
+            0x0a0 0x26	/* P8.45, pr1_pru1_pru_r31_0 */
+            0x0a4 0x26	/* P8.46, pr1_pru1_pru_r31_1 */
 
             0x070 0x07	/* P9_11, gpio0[30] */
             0x078 0x07	/* P9_12, gpio1[28] */
@@ -71,6 +67,7 @@
             0x1a4 0x26	/* P9_27, pr1_pru0_pru_r31_5 */
             0x19c 0x05	/* P9_28, pr1_pru0_pru_r30_3 */
             0x194 0x05  /* P9_29, pr1_pru0_pru_r30_1 */
+            0x194 0x05	/* P9_28, pr1_pru0_pru_r30_1 */
             0x198 0x05	/* P9_30, pr1_pru0_pru_r30_2 */
             0x190 0x05	/* P9_31, pr1_pru0_pru_r30_0 */
             0x1a8 0x27	/* P9_41B, gpio3[20] */

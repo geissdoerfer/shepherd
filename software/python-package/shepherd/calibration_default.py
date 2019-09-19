@@ -9,7 +9,7 @@ an input voltage/current or, for emulation, the expected voltage and current
 given the digital code in the DAC.
 
 
-:copyright: (c) 2019 by Kai Geissdoerfer.
+:copyright: (c) 2019 Networked Embedded Systems Lab, TU Dresden.
 :license: MIT, see LICENSE for more details.
 """
 

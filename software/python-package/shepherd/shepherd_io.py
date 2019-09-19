@@ -7,7 +7,7 @@ Interface layer, abstracting low-level functionality provided by PRUs and
 kernel module. User-space part of the double-buffered data exchange protocol.
 
 
-:copyright: (c) 2019 by Kai Geissdoerfer.
+:copyright: (c) 2019 Networked Embedded Systems Lab, TU Dresden.
 :license: MIT, see LICENSE for more details.
 """
 
@@ -23,9 +23,10 @@ import numpy as np
 from pathlib import Path
 from periphery import GPIO
 
-from . import sysfs_interface
-from . import commons
-from . import calibration_default
+from shepherd import sysfs_interface
+from shepherd import commons
+from shepherd import calibration_default
+from shepherd import const_reg
 
 logger = logging.getLogger(__name__)
 
@@ -51,7 +52,7 @@ class ShepherdIOException(Exception):
 
 class GPIOEdges(object):
     """Python representation of GPIO edge buffer
-    
+
     On detection of an edge, shepherd stores the state of all sampled GPIO pins
     together with the corresponding timestamp
     """
@@ -72,7 +73,7 @@ class GPIOEdges(object):
 
 class DataBuffer(object):
     """Python representation of a shepherd buffer.
-    
+
     Containing IV samples with corresponding timestamp and info about any
     detected GPIO edges
     """
@@ -167,7 +168,7 @@ class SharedMem(object):
 
         Args:
             index (int): Buffer index. 0 <= index < n_buffers
-        
+
         Returns:
             DataBuffer object pointing to extracted data
         """
@@ -247,7 +248,7 @@ class SharedMem(object):
 
 class ShepherdIO(object):
     """Generic ShepherdIO interface.
-    
+
     This class acts as interface between kernel module and firmware on the PRUs,
     and user space code. It handles the user space part of the double-buffered
     data-exchange protocol between user space and PRUs and configures the
@@ -270,23 +271,24 @@ class ShepherdIO(object):
         return new_class
 
     def __init__(
-        self, mode: str, init_charge: bool = False, load: str = "artificial"
+        self, mode: str, ldo_voltage: float = None, load: str = "artificial"
     ):
         """Initializes relevant variables.
 
         Args:
             mode (str): Shepherd mode, one of 'harvesting', 'load', 'emulation'
-            init_charge (bool): Specifies whether capacitor should be charged
-                initially
+            ldo_voltage (float): Sets voltage of fixed voltage regulator
             load (str): Which load to use, one of 'artificial', 'node'
         """
 
         self.rpmsg_fd = None
         self.mode = mode
         self.gpios = dict()
-        self.init_charge = init_charge
+        self.ldo_voltage = ldo_voltage
         self.load = load
         self.shared_mem = None
+
+        self.ldo = const_reg.VariableLDO()
 
     def __del__(self):
         ShepherdIO._instance = None
@@ -298,7 +300,6 @@ class ShepherdIO(object):
                 self.gpios[name] = GPIO(pin, "out")
 
             self._set_power(True)
-            self.set_v_fixed(False)
             self.set_mppt(False)
             self.set_harvester(False)
             self.set_lvl_conv(False)
@@ -349,11 +350,8 @@ class ShepherdIO(object):
             logger.debug(f"Setting load to '{ self.load }'")
             self.set_load(self.load)
 
-            if self.init_charge:
-                logger.debug("pre-charging capacitor")
-                self.set_v_fixed(True)
-                time.sleep(1.0)
-                self.set_v_fixed(False)
+            self.ldo.__enter__()
+            self.set_ldo_voltage(False)
 
         except Exception:
             self._cleanup()
@@ -366,7 +364,7 @@ class ShepherdIO(object):
 
     def _send_msg(self, msg_type: int, value: int):
         """Sends a formatted message to PRU0 via rpmsg channel.
-        
+
         Args:
             msg_type (int): Indicates type of message, must be one of the agreed
                 message types part of the data exchange protocol
@@ -425,8 +423,8 @@ class ShepherdIO(object):
 
         try:
             sysfs_interface.stop()
-        except Exception:
-            pass
+        except Exception as e:
+            print(e)
 
         if self.shared_mem is not None:
             self.shared_mem.__exit__()
@@ -434,7 +432,12 @@ class ShepherdIO(object):
         if self.rpmsg_fd is not None:
             os.close(self.rpmsg_fd)
 
-        self.set_v_fixed(False)
+        try:
+            self.set_ldo_voltage(False)
+            self.ldo.__exit__()
+        except Exception as e:
+            print(e)
+
         self.set_mppt(False)
         self.set_harvester(False)
         self.set_lvl_conv(False)
@@ -476,7 +479,7 @@ class ShepherdIO(object):
         """
         self.gpios["en_hrvst"].write(state)
 
-    def set_v_fixed(self, state: bool):
+    def set_ldo_voltage(self, voltage: float):
         """Enables or disables the constant voltage regulator.
 
         The shepherd cape has a linear regulator that is connected to the load
@@ -485,9 +488,16 @@ class ShepherdIO(object):
         function allows to enable or disable the output of this regulator.
 
         Args:
-            state (bool): True for enabling regulator, False for disabling
+            voltage (float): Desired output voltage in volt. Providing 0 or
+                False disables the LDO.
         """
-        self.gpios["en_v_fix"].write(state)
+        if not voltage:
+            self.ldo.set_output(False)
+            return
+
+        logger.debug(f"Setting LDO voltage to {voltage}")
+        self.ldo.set_voltage(voltage)
+        self.ldo.set_output(True)
 
     def set_lvl_conv(self, state: bool):
         """Enables or disables the GPIO level converter.
@@ -512,7 +522,7 @@ class ShepherdIO(object):
         Args:
             load (str): The load to connect to the output of shepherd's output.
             One of 'artificial' or 'node'.
-        
+
         Raises:
             NotImplementedError: If load is not 'artificial' or 'node'
         """

@@ -7,7 +7,7 @@ Provides classes for storing and retrieving sampled IV data to/from
 HDF5 files.
 
 
-:copyright: (c) 2019 by Kai Geissdoerfer.
+:copyright: (c) 2019 Networked Embedded Systems Lab, TU Dresden.
 :license: MIT, see LICENSE for more details.
 """
 

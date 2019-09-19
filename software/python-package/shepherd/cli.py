@@ -7,7 +7,7 @@ Provides the CLI utility 'shepherd-sheep', exposing most of shepherd's
 functionality to a command line user.
 
 
-:copyright: (c) 2019 by Kai Geissdoerfer.
+:copyright: (c) 2019 Networked Embedded Systems Lab, TU Dresden.
 :license: MIT, see LICENSE for more details.
 """
 import click
@@ -33,8 +33,8 @@ from shepherd import CalibrationData
 from shepherd import EEPROM
 from shepherd import CapeData
 from shepherd import ShepherdDebug
-from .shepherd_io import gpio_pin_nums
-
+from shepherd.shepherd_io import gpio_pin_nums
+from shepherd.const_reg import VariableLDO
 
 consoleHandler = logging.StreamHandler()
 logger = logging.getLogger("shepherd")
@@ -66,10 +66,23 @@ def cli(ctx, verbose):
 
 @cli.command(short_help="Turns sensor node power supply on or off")
 @click.option("--on/--off", default=True)
-def targetpower(on):
-    for pin_name in ["en_v_fix", "en_v_anlg", "en_lvl_cnv", "load"]:
+@click.option("--voltage", type=float, help="Target supply voltage")
+def targetpower(on, voltage):
+    if not voltage:
+        voltage = 3.0
+    else:
+        if not on:
+            raise click.UsageError(
+                "Can't set voltage, when LDO is switched off"
+            )
+    for pin_name in ["en_v_anlg", "en_lvl_cnv", "load"]:
         pin = GPIO(gpio_pin_nums[pin_name], "out")
         pin.write(on)
+
+    with VariableLDO() as ldo:
+        if on:
+            ldo.set_voltage(voltage)
+        ldo.set_output(on)
 
 
 @cli.command(
@@ -138,10 +151,11 @@ def run(command, parameters, verbose):
     help="Choose artificial or sensor node load",
 )
 @click.option(
-    "--init-charge",
-    "-i",
-    is_flag=True,
-    help="Pre-charge capacitor before starting recording",
+    "--ldo-voltage",
+    "-c",
+    type=float,
+    default=2.1,
+    help="Set voltage of variable LDO regulator",
 )
 @click.option(
     "--start-time",
@@ -157,7 +171,7 @@ def record(
     no_calib,
     voltage,
     load,
-    init_charge,
+    ldo_voltage,
     start_time,
 ):
     pl_store = Path(output)
@@ -172,7 +186,7 @@ def record(
         no_calib,
         voltage,
         load,
-        init_charge,
+        ldo_voltage,
         start_time,
     )
 
@@ -201,16 +215,17 @@ def record(
     help="Choose artificial or sensor node load",
 )
 @click.option(
-    "--init-charge",
-    "-i",
-    is_flag=True,
-    help="Pre-charge capacitor before starting recording",
+    "--ldo-voltage",
+    "-c",
+    help="Pre-charge capacitor to this voltage before starting emulation",
+    type=float,
+    default=2.1,
 )
 @click.option(
     "--start-time", type=float, help="Desired start time in unix epoch time"
 )
 def emulate(
-    input, output, length, force, no_calib, load, init_charge, start_time
+    input, output, length, force, no_calib, load, ldo_voltage, start_time
 ):
     if output is None:
         pl_store = None
@@ -222,7 +237,7 @@ def emulate(
             pl_store = Path("/var/shepherd/recordings") / output
 
     run_emulate(
-        input, pl_store, length, force, no_calib, load, init_charge, start_time
+        input, pl_store, length, force, no_calib, load, ldo_voltage, start_time
     )
 
 
@@ -353,9 +368,12 @@ def rpc(port):
 
     shepherd_io = ShepherdDebug()
     shepherd_io.__enter__()
+    logger.debug("Initialized shepherd debug interface")
+    time.sleep(1)
 
     server = zerorpc.Server(shepherd_io)
     server.bind(f"tcp://0.0.0.0:{ port }")
+    time.sleep(1)
 
     def stop_server():
         server.stop()
@@ -366,6 +384,7 @@ def rpc(port):
     gevent.signal(signal.SIGINT, stop_server)
 
     shepherd_io.start()
+    logger.debug("Started shepherd debug interface")
     server.run()
 
 

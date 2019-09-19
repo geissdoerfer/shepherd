@@ -77,7 +77,8 @@ Clone the shepherd repository to your machine:
 
     git clone https://github.com/geissdoerfer/shepherd.git
 
-Edit the `hosts` inventory file in the root of the repository, assigning hostnames to the IP addresses of the shepherd nodes.
+
+Add an inventory file in the `inventory` folder in the repository, assigning hostnames to the IP addresses of the shepherd nodes.
 Pick a username that you want to use to login to the nodes and assign as `ansible_user` variable.
 
 .. code-block:: yaml
@@ -106,8 +107,11 @@ Now run the *bootstrap* `Ansible playbook <https://docs.ansible.com/ansible/late
 
 .. code-block:: bash
 
-    ansible-playbook -i hosts deploy/bootstrap.yml
+    ansible-playbook deploy/bootstrap.yml
 
+.. note::
+
+    The non-existing nodes from `example.yaml` will show failure to connect. This error can be ignored. `example.yml` inventory can be safely removed.
 
 To streamline the installation and upgrading process, the shepherd software is packaged and distributed as debian packages.
 Installing is as easy as adding the shepherd repository to the aptitude sources and installing the shepherd metapackage.
@@ -115,13 +119,13 @@ The *install* playbook allows to easily automate this process on a group of node
 
 .. code-block:: bash
 
-    ansible-playbook -i hosts deploy/install.yml
+    ansible-playbook deploy/install.yml
 
 To install and configure PTP for time-synchronization, you can set the `ptp` variable on the command line:
 
 .. code-block:: bash
 
-    ansible-playbook -i hosts deploy/install.yml -e "ptp=True"
+    ansible-playbook deploy/install.yml -e "ptp=True"
 
 
 On success, the nodes will reboot and should be ready for use, for example, using the *shepherd-herd* command line utility.

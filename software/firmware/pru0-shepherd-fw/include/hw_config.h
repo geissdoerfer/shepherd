@@ -10,8 +10,9 @@
 #define SPI_MOSI P9_30
 #define SPI_MISO P9_27
 
-#define LED P8_12
-#define VIRTCAP_SLCT_LOAD P8_11
-#define PRU0_TRACE P9_29
+#define DEBUG_P0 P9_29
+#define DEBUG_P1 P8_11
+
+#define USR_LED1 P8_12
 
 #endif /* __HW_CONFIG_H_ */

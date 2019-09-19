@@ -5,9 +5,7 @@
  * These are the system events that we use to signal events to the PRUs.
  * See the AM335x TRM Table 4-22 for a list of all events
  */
-#define HOST_PRU_EVT_RESET 27
-#define HOST_PRU_EVT_START 28
-#define HOST_PRU_EVT_TIMESTAMP 29
+#define HOST_PRU_EVT_TIMESTAMP 20
 
 /* The SharedMem struct resides at the beginning of the PRUs shared memory */
 #define PRU_SHARED_MEM_STRUCT_OFFSET 0x10000
@@ -20,6 +18,7 @@ enum ShepherdState {
 	STATE_IDLE,
 	STATE_ARMED,
 	STATE_RUNNING,
+	STATE_RESET,
 	STATE_FAULT
 };
 

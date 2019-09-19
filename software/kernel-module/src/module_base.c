@@ -119,6 +119,7 @@ static int __init mod_init(void)
 	}
 	printk(KERN_INFO "shprd: PRUs started!");
 
+	msleep(250);
 	/* Initialize shared memory and PRU interrupt controller */
 	pru_comm_init();
 
@@ -156,5 +157,5 @@ module_exit(mod_exit);
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Kai Geissdoerfer");
 MODULE_DESCRIPTION("Shepherd time synchronization kernel module");
-MODULE_VERSION("0.0.9");
+MODULE_VERSION("0.1.0");
 MODULE_ALIAS("rpmsg:rpmsg-shprd");

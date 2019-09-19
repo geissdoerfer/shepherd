@@ -8,23 +8,21 @@
 #include "rpmsg.h"
 #include "iep.h"
 #include "gpio.h"
+#include "intc.h"
 
 #include "commons.h"
 #include "shepherd_config.h"
+
+/* The Arm to Host interrupt for the timestamp event is mapped to Host interrupt 0 -> Bit 30 (see resource_table.h) */
+#define HOST_INT_TIMESTAMP (1U << 30)
+
+#define DEBUG_P0 P8_41
+#define DEBUG_P1 P8_42
 
 /* The IEP is clocked with 200 MHz -> 5 nanoseconds per tick */
 #define TIMER_TICK_NS 5
 #define TIMER_BASE_PERIOD BUFFER_PERIOD_NS / TIMER_TICK_NS
 #define SAMPLE_INTERVAL_NS BUFFER_PERIOD_NS / SAMPLES_PER_BUFFER
-
-/* The Arm to Host interrupt for RPMsg is mapped to Host interrupt 0 -> Bit 30 */
-#define HOST_INT_RAW (1U << 30)
-
-/*
- * This triggers the corresponding system event in INTC
- * See PRU-ICSS Reference Guide §5.2.2.2
- */
-#define INTC_TRIGGER_EVENT(x) __R31 = (1 << 5) + (x - 16)
 
 volatile struct SharedMem *shared_mem =
 	(volatile struct SharedMem *)PRU_SHARED_MEM_STRUCT_OFFSET;
@@ -37,17 +35,25 @@ enum SyncState {
 	REPLY_PENDING
 };
 
+void fault_handler(char *err_msg)
+{
+	while (true) {
+		printf(err_msg);
+		__delay_cycles(2000000000);
+	}
+}
+
 static inline int check_control_reply(struct CtrlRepMsg *ctrl_rep)
 {
 	int n;
 	n = rpmsg_get((void *)ctrl_rep);
 
 	if (n == sizeof(struct CtrlRepMsg)) {
-		if (ctrl_rep->identifier != MSG_SYNC_CTRL_REP) {
-			printf("Wrong RPMSG ID");
-			while (true)
-				;
-		}
+		if (ctrl_rep->identifier != MSG_SYNC_CTRL_REP)
+			fault_handler("Wrong RPMSG ID");
+
+		if (rpmsg_get((void *)ctrl_rep) > 0)
+			fault_handler("Extra pending messages");
 		return 0;
 	}
 	return -1;
@@ -179,11 +185,12 @@ void event_loop(volatile struct SharedMem *shared_mem)
 	iep_clear_evt_cmp(IEP_CMP0);
 
 	/* Clear raw interrupt status from ARM host */
-	CT_INTC.SICR_bit.STS_CLR_IDX = HOST_PRU_EVT_TIMESTAMP;
+	INTC_CLEAR_EVENT(HOST_PRU_EVT_TIMESTAMP);
 	/* Wait for first timer interrupt from Linux host */
-	while (!(__R31 & HOST_INT_RAW))
+	while (!(__R31 & (1U << 30)))
 		;
-	CT_INTC.SICR_bit.STS_CLR_IDX = HOST_PRU_EVT_TIMESTAMP;
+	if (INTC_CHECK_EVENT(HOST_PRU_EVT_TIMESTAMP))
+		INTC_CLEAR_EVENT(HOST_PRU_EVT_TIMESTAMP);
 
 	iep_start();
 
@@ -192,19 +199,25 @@ void event_loop(volatile struct SharedMem *shared_mem)
 			   last_sample_ticks);
 
 		/* Check for timer interrupt from Linux host [Event1] */
-		if (__R31 & HOST_INT_RAW) {
+		if (__R31 & HOST_INT_TIMESTAMP) {
+			if (!INTC_CHECK_EVENT(HOST_PRU_EVT_TIMESTAMP))
+				continue;
+
 			/* Take timestamp of IEP */
 			ctrl_req.ticks_iep = CT_IEP.TMR_CNT;
+
 			/* Clear interrupt */
-			CT_INTC.SICR_bit.STS_CLR_IDX = HOST_PRU_EVT_TIMESTAMP;
+			INTC_CLEAR_EVENT(HOST_PRU_EVT_TIMESTAMP);
 
 			/* Prepare and send control request to Linux host */
 			ctrl_req.old_period = CT_IEP.TMR_CMP0;
 
 			if (sync_state == WAIT_HOST_INT)
 				sync_state = REQUEST_PENDING;
-			else
+			else if (sync_state == IDLE)
 				sync_state = WAIT_IEP_WRAP;
+			else
+				fault_handler("Wrong state at host interrupt");
 		}
 		/* Timer compare 0 handle [Event 2] */
 		if (iep_check_evt_cmp(IEP_CMP0) == 0) {
@@ -212,6 +225,9 @@ void event_loop(volatile struct SharedMem *shared_mem)
 			INTC_TRIGGER_EVENT(PRU_PRU_EVT_SAMPLE);
 			/* Clear Timer Compare 0 */
 			iep_clear_evt_cmp(IEP_CMP0);
+
+			_GPIO_ON(DEBUG_P1);
+			_GPIO_ON(DEBUG_P0);
 
 			/* Reset sample counter and sample timer period */
 			sample_counter = 1;
@@ -221,13 +237,15 @@ void event_loop(volatile struct SharedMem *shared_mem)
 			last_sample_ticks = 0;
 			if (sync_state == WAIT_IEP_WRAP)
 				sync_state = REQUEST_PENDING;
-			else
+			else if (sync_state == IDLE)
 				sync_state = WAIT_HOST_INT;
+			else
+				fault_handler("Wrong state at timer wrap");
 
 			/* With wrap, we'll use next timestamp as base for GPIO timestamps */
 			current_timestamp_ns = shared_mem->next_timestamp_ns;
 
-			_GPIO_TOGGLE(P8_42);
+			_GPIO_OFF(DEBUG_P0);
 		}
 		/* Timer compare 1 handle [Event 3] */
 		if (iep_check_evt_cmp(IEP_CMP1) == 0) {
@@ -239,8 +257,10 @@ void event_loop(volatile struct SharedMem *shared_mem)
 				INTC_TRIGGER_EVENT(PRU_PRU_EVT_SAMPLE);
 			}
 			iep_clear_evt_cmp(IEP_CMP1);
-			last_sample_ticks = iep_get_cmp_val(IEP_CMP1);
 
+			_GPIO_ON(DEBUG_P0);
+
+			last_sample_ticks = iep_get_cmp_val(IEP_CMP1);
 			if (sample_counter < SAMPLES_PER_BUFFER) {
 				/* Forward sample timer based on current sample_period*/
 				unsigned int next_cmp_val =
@@ -251,6 +271,10 @@ void event_loop(volatile struct SharedMem *shared_mem)
 					n_comp--;
 				}
 				iep_set_cmp_val(IEP_CMP1, next_cmp_val);
+			}
+
+			if (sample_counter == SAMPLES_PER_BUFFER / 2) {
+				_GPIO_OFF(DEBUG_P1);
 			}
 
 			/* If we are waiting for a reply from Linux kernel module */
@@ -276,9 +300,10 @@ void event_loop(volatile struct SharedMem *shared_mem)
 			} else if (sync_state == REQUEST_PENDING) {
 				rpmsg_putraw(&ctrl_req,
 					     sizeof(struct CtrlReqMsg));
-				_GPIO_TOGGLE(P8_41);
+
 				sync_state = REPLY_PENDING;
 			}
+			_GPIO_OFF(DEBUG_P0);
 		}
 	}
 }
@@ -293,9 +318,11 @@ void main(void)
 	iep_init();
 	iep_reset();
 
+	_GPIO_OFF(DEBUG_P0);
+	_GPIO_OFF(DEBUG_P1);
+
 	rpmsg_init("rpmsg-shprd");
 	__delay_cycles(1000);
-	printf("Hello from PRU1");
 
 	/* Enable 'timestamp' interrupt from ARM host */
 	CT_INTC.EISR_bit.EN_SET_IDX = HOST_PRU_EVT_TIMESTAMP;

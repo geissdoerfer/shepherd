@@ -60,8 +60,7 @@
 /* Mapping sysevts to a channel. Each pair contains a sysevt, channel. */
 /* List of system events in TRM Table 4.22 */
 struct ch_map pru_intc_map[] = {
-	{ HOST_PRU_EVT_TIMESTAMP,
-	  0 }, // External interrupt for sync from ARM host
+	{ HOST_PRU_EVT_TIMESTAMP, 0 }, // Ext int for sync from ARM host
 	{ 18, 2 }, // Interrupt for RPMSG from PRU to ARM host
 };
 
