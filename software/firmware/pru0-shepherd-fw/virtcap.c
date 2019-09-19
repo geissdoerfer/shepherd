@@ -107,13 +107,10 @@ void virtcap_init(VirtCapNoFpSettings settings_arg, virtcap_nofp_callback_func_t
   kScaleInput = 102911;
 }
 
-#define SHIFT_VOLT 13
-
-void virtcap_update(int32_t current_measured, uint32_t voltage_measured, uint32_t input_power, uint32_t efficiency)
+void virtcap_update(int32_t current_measured, uint32_t voltage_measured, int32_t input_current, uint32_t input_voltage, uint32_t efficiency)
 {
-
   // x * 1000 * efficiency / 100
-  int32_t input_current = (int32_t) input_power * kScaleInput / (cap_voltage >> SHIFT_VOLT) * efficiency >> SHIFT_VOLT;
+  input_current = input_current * input_voltage / (cap_voltage >> SHIFT_VOLT) * efficiency >> SHIFT_VOLT;
 
   input_current -= (settings.kLeakageCurrent); // compensate for leakage current
   
@@ -136,8 +133,8 @@ void virtcap_update(int32_t current_measured, uint32_t voltage_measured, uint32_
    */
 
   #if (SINGLE_ITERATION == 1)
-  debug_print("input_power:%d, input_current: %d, settings.kLeakageCurrent: %u, cap_voltage: %u\n", 
-              input_power, input_current, settings.kLeakageCurrent, cap_voltage);
+  debug_print("input_current: %d, settings.kLeakageCurrent: %u, cap_voltage: %u\n", 
+              input_current, settings.kLeakageCurrent, cap_voltage);
   #endif
 
   // TODO remove debug
@@ -197,4 +194,10 @@ uint32_t current_ua_to_logic (uint32_t current)
 {
   // current * 100.5 * (1 << 17 - 1) / 4.096 / 1000;
   return current * 3216 / 1000;
+}
+
+uint32_t current_ma_to_logic (uint32_t current)
+{
+  // current * 100.5 * (1 << 17 - 1) / 4.096;
+  return current * 3216;
 }

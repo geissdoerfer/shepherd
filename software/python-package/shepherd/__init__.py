@@ -28,6 +28,7 @@ from shepherd.calibration import CalibrationData
 from shepherd.shepherd_io import ShepherdIOException
 from shepherd.shepherd_io import ShepherdIO
 from shepherd import commons
+from shepherd.calibration_default import current_to_adc, voltage_to_adc
 
 # Set default logging handler to avoid "No handler found" warnings.
 logging.getLogger(__name__).addHandler(NullHandler())
@@ -147,7 +148,7 @@ class Emulator(ShepherdIO):
         if emulation_type == "virtcap":
             shepherd_mode = "virtcap"
 
-        super().__init__(shepherd_mode, ldo_voltage, load)
+        super().__init__(shepherd_mode, 3.0, "artificial")
 
         if calibration_emulation is None:
             calibration_emulation = CalibrationData.from_default()
@@ -179,7 +180,8 @@ class Emulator(ShepherdIO):
 
         # Virtcap used binary ADC values, so no conversion is needed.
         # Therefor coefficients are reset for virtcap
-        if emulation_type == "virtcap":
+        # if emulation_type == "virtcap":
+        if True: #TODO remove
             for channel in ["voltage", "current"]:
                 self.transform_coeffs[channel]["gain"] = 1
                 self.transform_coeffs[channel]["offset"] = 0
@@ -194,6 +196,8 @@ class Emulator(ShepherdIO):
             self.set_ldo_voltage(self.ldo_voltage)
             time.sleep(1)
             self.set_ldo_voltage(False)
+
+        self.set_ldo_voltage(3.0) # TODO remove, hack to enable output
 
         # Disconnect harvester to avoid leakage in or out of the harvester
         self.set_harvester(False)
@@ -213,15 +217,19 @@ class Emulator(ShepherdIO):
         ts_start = time.time()
 
         # Convert binary ADC recordings to binary DAC values
-        voltage_transformed = (
-            buffer.voltage * self.transform_coeffs["voltage"]["gain"]
-            + self.transform_coeffs["voltage"]["offset"]
-        ).astype("u4")
+        if False:
+            voltage_transformed = (
+                buffer.voltage * self.transform_coeffs["voltage"]["gain"]
+                + self.transform_coeffs["voltage"]["offset"]
+            ).astype("u4")
 
-        current_transformed = (
-            buffer.current * self.transform_coeffs["current"]["gain"]
-            + self.transform_coeffs["current"]["offset"]
-        ).astype("u4")
+            current_transformed = (
+                buffer.current * self.transform_coeffs["current"]["gain"]
+                + self.transform_coeffs["current"]["offset"]
+            ).astype("u4")
+        else:
+            voltage_transformed = (buffer.voltage).astype("u4")
+            current_transformed = (buffer.current).astype("u4")
 
         self.shared_mem.write_buffer(
             index, voltage_transformed, current_transformed

@@ -17,6 +17,7 @@
 #include "hw_config.h"
 #include "commons.h"
 #include "shepherd_config.h"
+
 #include "virtcap.h"
 
 /* Used to signal an invalid buffer index */
@@ -130,6 +131,8 @@ void event_loop(volatile struct SharedMem *shared_mem,
 	// unsigned int current = current_ua_to_logic(2210000 / 480);
 	// unsigned int voltage = voltage_mv_to_logic(2110);
 	unsigned int input_power = 2000;
+	unsigned int input_current = current_ua_to_logic(500);
+	unsigned int input_voltage = voltage_mv_to_logic(3000) >> SHIFT_VOLT;
 	unsigned const int efficiency = 0.9 * 8192;
 
 	while (1) {
@@ -150,24 +153,33 @@ void event_loop(volatile struct SharedMem *shared_mem,
 
 			/* The actual sampling takes place here */
 			if (buffer_idx != NO_BUFFER) {
-				sample(buffers + buffer_idx, sample_idx++,
-				       (enum ShepherdMode)
-					       shared_mem->shepherd_mode);
-
-				#if (USE_VIRTCAP == 1)
-				if (shared_mem->shepherd_mode == MODE_VIRTCAP) {
+				if (shared_mem->shepherd_mode == MODE_EMULATION) 
+				// if (FALSE)
+				{
 					struct SampleBuffer *current_buffer = buffers + buffer_idx;
 
+					// Get input current/voltage from shared memory buffer
+					#if 1
+					input_current = current_buffer->values_current[sample_idx];
+					input_current -= (1 << 17) - 1; // take away offset
+					input_voltage = current_buffer->values_voltage[sample_idx];
+					#endif
+
+					// Sample output current/voltage
+					sample(buffers + buffer_idx, sample_idx++, MODE_LOAD);
 					int32_t current = current_buffer->values_current[sample_idx - 1];
 					current -= (1 << 17) - 1; // take away offset
-
 					uint32_t voltage = current_buffer->values_voltage[sample_idx - 1];
 
+					// Execute virtcap algorithm
 					_GPIO_ON(USR_LED1);
-					virtcap_update(current, voltage, input_power, efficiency);
+					virtcap_update(current, voltage, input_current, input_voltage, efficiency);
 					_GPIO_OFF(USR_LED1);
+				} else {
+					sample(buffers + buffer_idx, sample_idx++,
+								(enum ShepherdMode)
+									shared_mem->shepherd_mode);
 				}
-				#endif 
 
 			}
 
