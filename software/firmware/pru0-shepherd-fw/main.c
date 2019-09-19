@@ -148,13 +148,7 @@ void event_loop(volatile struct SharedMem *shared_mem,
 				CLEAR_EVENT(PRU_PRU_EVT_SAMPLE);
 			}
 
-			#define VIRTCAP 0
-			#if (VIRTCAP == 1)
-
-			sample(buffers + buffer_idx, sample_idx,
-							MODE_LOAD);
-			
-			#else
+			#define USE_VIRTCAP 1
 
 			/* The actual sampling takes place here */
 			if (buffer_idx != NO_BUFFER) {
@@ -162,6 +156,7 @@ void event_loop(volatile struct SharedMem *shared_mem,
 				       (enum ShepherdMode)
 					       shared_mem->shepherd_mode);
 
+				#if (USE_VIRTCAP == 1)
 				struct SampleBuffer *current_buffer = buffers + buffer_idx;
 
 				int32_t current = current_buffer->values_current[sample_idx - 1];
@@ -172,8 +167,9 @@ void event_loop(volatile struct SharedMem *shared_mem,
 				_GPIO_ON(LED);
 				virtcap_update(current, voltage, input_power, efficiency);
 				_GPIO_OFF(LED);
+				#endif 
+
 			}
-			#endif
 
 			if (int_source == SIG_BLOCK_END) {
 				/* Did the Linux kernel module ask for reset? */
