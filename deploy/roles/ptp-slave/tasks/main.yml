@@ -30,7 +30,7 @@
     mode: 0644
   with_items:
    - { src: 'phc2sys_mands.conf', dest: '/etc/systemd/system/phc2sys.service.d/phc2sys_mands.conf' }
-   - { src: 'ptp_restart.conf', dest: '/etc/systemd/system/ptp4l.service.d/phc2sys.service' }
+   - { src: 'ptp_restart.conf', dest: '/etc/systemd/system/ptp4l.service.d/phc2sys.conf' }
   tags: conf
 
 - name: Enable services
