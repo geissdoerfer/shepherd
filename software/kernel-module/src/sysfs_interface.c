@@ -272,8 +272,8 @@ static ssize_t sysfs_mode_store(struct kobject *kobj,
 			return -EINVAL;
 
 		mode = MODE_EMULATION;
-	} else if (strncmp(buf, "virtcap", 9) == 0) {
-		if ((count < 9) || (count > 10))
+	} else if (strncmp(buf, "virtcap", 7) == 0) {
+		if ((count < 7) || (count > 8))
 			return -EINVAL;
 
 		mode = MODE_VIRTCAP;
