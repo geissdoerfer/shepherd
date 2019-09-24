@@ -39,7 +39,7 @@ static const VirtCapNoFpSettings kRealBQ25570Settings =
   .kDcoutputVoltage = 2210,
   .kLeakageCurrent = 9,
   .kHarvesterEfficiency = 0.9 * 8192,   
-  .kConverterEfficiency = (1 / 0.9) * 8192,
+  .kConverterEfficiency = (1.0 / 0.9) * 8192,
   .kOnTimeLeakageCurrent = 12,
   .kFilename = "solar3.bin",
   .kScaleDacOut = 2,
@@ -49,7 +49,7 @@ static const VirtCapNoFpSettings kRealBQ25570Settings =
 
 typedef void (*virtcap_nofp_callback_func_t)(uint8_t);
 
-void virtcap_init(VirtCapNoFpSettings settings, virtcap_nofp_callback_func_t callback);
-void virtcap_update(int32_t current_measured, uint32_t voltage_measured, int32_t input_current, uint32_t input_voltage, uint32_t efficiency);
+int32_t virtcap_init(VirtCapNoFpSettings settings, virtcap_nofp_callback_func_t callback);
+int32_t virtcap_update(int32_t current_measured, uint32_t voltage_measured, int32_t input_current, uint32_t input_voltage, uint32_t efficiency);
 uint32_t voltage_mv_to_logic (uint32_t voltage);
 uint32_t current_ua_to_logic (uint32_t current);

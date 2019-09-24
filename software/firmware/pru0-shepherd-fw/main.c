@@ -17,9 +17,7 @@
 #include "hw_config.h"
 #include "commons.h"
 #include "shepherd_config.h"
-
 #include "virtcap.h"
-
 /* Used to signal an invalid buffer index */
 #define NO_BUFFER 0xFFFFFFFF
 
@@ -30,6 +28,7 @@ struct SampleBuffer *buffers;
 volatile struct SharedMem *shared_mem =
 	(volatile struct SharedMem *)PRU_SHARED_MEM_STRUCT_OFFSET;
 
+uint8_t virtcap_output_state = FALSE; // Output state of virtcap
 
 static void send_message(unsigned int msg_id, unsigned int value)
 {
@@ -93,7 +92,7 @@ int handle_rpmsg(struct RingBuffer *free_buffers, enum ShepherdMode mode,
 	if (rpmsg_get((void *)&msg_in) != sizeof(struct DEPMsg))
 		return 0;
 
-	
+	// _GPIO_TOGGLE(USR_LED1);
 
 	if ((mode == MODE_DEBUG) && (state == STATE_RUNNING)) {
 		unsigned int res;
@@ -128,12 +127,12 @@ void event_loop(volatile struct SharedMem *shared_mem,
 	unsigned int sample_idx = 0;
 	unsigned int buffer_idx = NO_BUFFER;
 
-	// unsigned int current = current_ua_to_logic(2210000 / 480);
-	// unsigned int voltage = voltage_mv_to_logic(2110);
-	unsigned int input_power = 2000;
-	unsigned int input_current = current_ua_to_logic(500);
-	unsigned int input_voltage = voltage_mv_to_logic(3000) >> SHIFT_VOLT;
-	unsigned const int efficiency = 0.9 * 8192;
+	int32_t input_current = current_ua_to_logic(500);
+	uint32_t input_voltage = voltage_mv_to_logic(3000) >> SHIFT_VOLT;
+	int32_t output_current = current_ua_to_logic(2.21 / 1000 * 1e6);
+	uint32_t output_voltage = voltage_mv_to_logic(2210) >> SHIFT_VOLT;
+	uint32_t efficiency = 0.9 * 8192;
+
 
 	while (1) {
 		/* Check if a sample was triggered by PRU1 */
@@ -148,39 +147,64 @@ void event_loop(volatile struct SharedMem *shared_mem,
 			} else {
 				continue;
 			}
-
-			#define USE_VIRTCAP 1
+																	
+			#define VIRTCAP 1
 
 			/* The actual sampling takes place here */
 			if (buffer_idx != NO_BUFFER) {
-				if (shared_mem->shepherd_mode == MODE_EMULATION) 
-				// if (FALSE)
+				_GPIO_ON(USR_LED1);
+				#if (VIRTCAP == 1)
+				// _GPIO_ON(USR_LED1);
+				if (shared_mem->shepherd_mode == MODE_VIRTCAP)
 				{
 					struct SampleBuffer *current_buffer = buffers + buffer_idx;
 
 					// Get input current/voltage from shared memory buffer
-					#if 1
 					input_current = current_buffer->values_current[sample_idx];
 					input_current -= (1 << 17) - 1; // take away offset
 					input_voltage = current_buffer->values_voltage[sample_idx];
-					#endif
 
 					// Sample output current/voltage
 					sample(buffers + buffer_idx, sample_idx++, MODE_LOAD);
-					int32_t current = current_buffer->values_current[sample_idx - 1];
-					current -= (1 << 17) - 1; // take away offset
-					uint32_t voltage = current_buffer->values_voltage[sample_idx - 1];
+					output_current = current_buffer->values_current[sample_idx - 1];
+					output_current -= (1 << 17) - 1; // take away offset
+					output_voltage = current_buffer->values_voltage[sample_idx - 1];
 
 					// Execute virtcap algorithm
-					_GPIO_ON(USR_LED1);
-					virtcap_update(current, voltage, input_current, input_voltage, efficiency);
-					_GPIO_OFF(USR_LED1);
+					if (int_source != SIG_BLOCK_END) {
+						virtcap_update(output_current, output_voltage, input_current, 
+													 input_voltage, efficiency);
+
+						// If output is off, force buffer voltage to zero.
+						// Else it will go to max 2.6V, because voltage sense is put before output switch.
+						if (!virtcap_output_state)
+						{
+							current_buffer->values_voltage[sample_idx - 1] = 0;
+						}
+
+						static uint16_t cntr;
+						if (cntr++ % 100000 == 0)
+						{
+							send_message(MSG_DEP_DBG_PRINT, output_current);
+						}
+					}
 				} else {
+					if (shared_mem->shepherd_mode == MODE_EMULATION)
+					{
+						_GPIO_ON(DEBUG_P1);
+					}
 					sample(buffers + buffer_idx, sample_idx++,
 								(enum ShepherdMode)
 									shared_mem->shepherd_mode);
 				}
-
+				_GPIO_OFF(USR_LED1);
+				#else
+				_GPIO_ON(USR_LED1);
+					sample(buffers + buffer_idx, sample_idx++,
+								(enum ShepherdMode)
+									shared_mem->shepherd_mode);
+				_GPIO_OFF(USR_LED1);
+				#endif
 			}
 
 			if (int_source == SIG_BLOCK_END) {
@@ -199,7 +223,6 @@ void event_loop(volatile struct SharedMem *shared_mem,
 						sample_idx);
 
 				sample_idx = 0;
-				_GPIO_OFF(USR_LED1);
 			}
 			/* We only handle rpmsg comms if we're not at the last sample */
 			else {
@@ -209,12 +232,15 @@ void event_loop(volatile struct SharedMem *shared_mem,
 					     (enum ShepherdState)shared_mem
 						     ->shepherd_state);
 			}
+			_GPIO_OFF(USR_LED1);
 		}
 	}
 }
 
 void set_output(uint8_t value)
 {
+	virtcap_output_state = value;
+
   if (value)
   {
     _GPIO_ON(DEBUG_P1);
@@ -269,13 +295,14 @@ void main(void)
 reset:
 
 	_GPIO_OFF(USR_LED1);
+	_GPIO_OFF(DEBUG_P1);
+
+	int32_t multiplier = virtcap_init(kRealBQ25570Settings, set_output);
+	send_message(MSG_DEP_DBG_PRINT, multiplier);
 
 	init_ring(&free_buffers);
 	sampling_init((enum ShepherdMode)shared_mem->shepherd_mode,
 		      shared_mem->harvesting_voltage);
-
-	virtcap_init(kRealBQ25570Settings, set_output);
-
 	shared_mem->gpio_edges = NULL;
 
 	/* Clear all interrupt events */

@@ -148,7 +148,7 @@ class Emulator(ShepherdIO):
         if emulation_type == "virtcap":
             shepherd_mode = "virtcap"
 
-        super().__init__(shepherd_mode, 3.0, "artificial")
+        super().__init__(shepherd_mode, 0.0, "artificial")
 
         if calibration_emulation is None:
             calibration_emulation = CalibrationData.from_default()
@@ -181,7 +181,7 @@ class Emulator(ShepherdIO):
         # Virtcap used binary ADC values, so no conversion is needed.
         # Therefor coefficients are reset for virtcap
         # if emulation_type == "virtcap":
-        if True: #TODO remove
+        if shepherd_mode == "virtcap":
             for channel in ["voltage", "current"]:
                 self.transform_coeffs[channel]["gain"] = 1
                 self.transform_coeffs[channel]["offset"] = 0
@@ -197,7 +197,8 @@ class Emulator(ShepherdIO):
             time.sleep(1)
             self.set_ldo_voltage(False)
 
-        self.set_ldo_voltage(3.0) # TODO remove, hack to enable output
+        if self.mode == "virtcap":
+            self.set_ldo_voltage(3.0) # TODO remove, hack to enable output
 
         # Disconnect harvester to avoid leakage in or out of the harvester
         self.set_harvester(False)
@@ -217,7 +218,7 @@ class Emulator(ShepherdIO):
         ts_start = time.time()
 
         # Convert binary ADC recordings to binary DAC values
-        if False:
+        if True:
             voltage_transformed = (
                 buffer.voltage * self.transform_coeffs["voltage"]["gain"]
                 + self.transform_coeffs["voltage"]["offset"]
@@ -515,7 +516,7 @@ def emulate(
                     )
                     log_writer.write_exception(err_rec)
 
-                raise
+                idx, load_buf = emu.get_buffer(timeout=1) # was raise
 
             if output is not None:
                 log_writer.write_buffer(load_buf)
@@ -536,4 +537,4 @@ def emulate(
                 if e.id == commons.MSG_DEP_ERR_NOFREEBUF:
                     break
                 else:
-                    raise
+                    idx, load_buf = emu.get_buffer(timeout=1) # was raise

@@ -595,32 +595,37 @@ class ShepherdIO(object):
                 specified timeout
 
         """
-        msg_type, value = self._get_msg(timeout)
+        while True:
+            msg_type, value = self._get_msg(timeout)
 
-        if msg_type == commons.MSG_DEP_BUF_FROM_PRU:
-            logger.debug(f"Retrieving buffer { value } from shared memory")
-            buf = self.shared_mem.read_buffer(value)
-            return value, buf
+            if msg_type == commons.MSG_DEP_DBG_PRINT:
+                logger.info(f"Received print: {value}")
+                continue
 
-        elif msg_type == commons.MSG_DEP_ERR_INCMPLT:
-            raise ShepherdIOException(
-                "Got incomplete buffer", commons.MSG_DEP_ERR_INCMPLT, value
-            )
+            elif msg_type == commons.MSG_DEP_BUF_FROM_PRU:
+                logger.debug(f"Retrieving buffer { value } from shared memory")
+                buf = self.shared_mem.read_buffer(value)
+                return value, buf
 
-        elif msg_type == commons.MSG_DEP_ERR_INVLDCMD:
-            raise ShepherdIOException(
-                "PRU received invalid command",
-                commons.MSG_DEP_ERR_INVLDCMD,
-                value,
-            )
-        elif msg_type == commons.MSG_DEP_ERR_NOFREEBUF:
-            raise ShepherdIOException(
-                "PRU ran out of buffers", commons.MSG_DEP_ERR_NOFREEBUF, value
-            )
-        else:
-            raise ShepherdIOException(
-                (
-                    f"Expected msg type { commons.MSG_DEP_BUF_FROM_PRU } "
-                    f"got { msg_type }[{ value }]"
+            elif msg_type == commons.MSG_DEP_ERR_INCMPLT:
+                raise ShepherdIOException(
+                    "Got incomplete buffer", commons.MSG_DEP_ERR_INCMPLT, value
                 )
-            )
+
+            elif msg_type == commons.MSG_DEP_ERR_INVLDCMD:
+                raise ShepherdIOException(
+                    "PRU received invalid command",
+                    commons.MSG_DEP_ERR_INVLDCMD,
+                    value,
+                )
+            elif msg_type == commons.MSG_DEP_ERR_NOFREEBUF:
+                raise ShepherdIOException(
+                    "PRU ran out of buffers", commons.MSG_DEP_ERR_NOFREEBUF, value
+                )
+            else:
+                raise ShepherdIOException(
+                    (
+                        f"Expected msg type { commons.MSG_DEP_BUF_FROM_PRU } "
+                        f"got { msg_type }[{ value }]"
+                    )
+                )

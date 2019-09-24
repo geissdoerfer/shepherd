@@ -8,8 +8,10 @@
 
 // Derived constants
 int32_t harvest_multiplier;
+uint32_t output_multiplier;
 uint32_t kScaleInput;
 uint32_t outputcap_scale_factor;
+uint32_t avg_cap_voltage;
 
 // Working vars
 uint32_t cap_voltage;
@@ -72,7 +74,7 @@ uint32_t SquareRootRounded(uint32_t a_nInput)
     return res;
 }
 
-void virtcap_init(VirtCapNoFpSettings settings_arg, virtcap_nofp_callback_func_t callback_arg)
+int32_t virtcap_init(VirtCapNoFpSettings settings_arg, virtcap_nofp_callback_func_t callback_arg)
 {
   settings = settings_arg;
   callback = callback_arg;
@@ -99,15 +101,24 @@ void virtcap_init(VirtCapNoFpSettings settings_arg, virtcap_nofp_callback_func_t
   is_enabled = FALSE;
   discretize_cntr = 0;
 
-  #if 0
-  printf("kScaleInput: %d\n", kScaleInput);
-  #endif 
-
   // 100.5 * (1 << 17 - 1) * (1 << 18 - 1) / (4.096 * 8.192) / 1e6;
   kScaleInput = 102911;
+
+  harvest_multiplier = (settings.sample_period_us << (SHIFT_VOLT + SHIFT_VOLT)) / (100 * settings.capacitance_uF);
+  
+  avg_cap_voltage = ((settings.upper_threshold_voltage + settings.lower_threshold_voltage) / 2);
+  output_multiplier = ((settings.kDcoutputVoltage >> SHIFT_VOLT) * settings.kConverterEfficiency) / (avg_cap_voltage >> SHIFT_VOLT);
+
+  #if 0
+  // printf("kScaleInput: %d\n", kScaleInput);
+  printf("settings.kDcoutputVoltage: %d, settings.kConverterEfficiency: %d, avg_cap_voltage: %d, output_multiplier: %d\n", 
+        settings.kDcoutputVoltage, settings.kConverterEfficiency, avg_cap_voltage, output_multiplier);
+  #endif 
+
+  return output_multiplier;
 }
 
-void virtcap_update(int32_t current_measured, uint32_t voltage_measured, int32_t input_current, uint32_t input_voltage, uint32_t efficiency)
+int32_t virtcap_update(int32_t current_measured, uint32_t voltage_measured, int32_t input_current, uint32_t input_voltage, uint32_t efficiency)
 {
   // x * 1000 * efficiency / 100
   input_current = input_current * input_voltage / (cap_voltage >> SHIFT_VOLT) * efficiency >> SHIFT_VOLT;
@@ -120,10 +131,11 @@ void virtcap_update(int32_t current_measured, uint32_t voltage_measured, int32_t
     current_measured = 0; // force current read to zero while not outputting (to ignore noisy current reading)
   }
 
-  int32_t output_current = voltage_measured * current_measured / (cap_voltage >> SHIFT_VOLT) * settings.kConverterEfficiency >> SHIFT_VOLT; // + kOnTimeLeakageCurrent;
+  // int32_t output_current = current_measured * (settings.kDcoutputVoltage >> SHIFT_VOLT) / (avg_cap_voltage >> SHIFT_VOLT) * settings.kConverterEfficiency >> SHIFT_VOLT; // + kOnTimeLeakageCurrent;
+  int32_t output_current = current_measured * output_multiplier >> SHIFT_VOLT;
 
-  uint32_t new_cap_voltage = cap_voltage + ((input_current - output_current) << SHIFT_VOLT) * settings.sample_period_us / (100 * settings.capacitance_uF);
-
+  uint32_t new_cap_voltage = cap_voltage + ((input_current - output_current) * harvest_multiplier >> SHIFT_VOLT);
+  
   /**
    * dV = dI * dt / C
    * dV' * 3.3 / 4095 / 1000 / 512 = dI' * 0.033 * dt / (C * 4095 * 1000)
@@ -148,7 +160,7 @@ void virtcap_update(int32_t current_measured, uint32_t voltage_measured, int32_t
           new_cap_voltage, is_outputting, output_current);
   } 
   #endif
-
+  
   // Make sure the voltage does not go beyond it's boundaries
   if (new_cap_voltage >= settings.kMaxCapVoltage)
   {
@@ -182,6 +194,7 @@ void virtcap_update(int32_t current_measured, uint32_t voltage_measured, int32_t
 
   cap_voltage = new_cap_voltage;
 
+  return output_current;
 }
 
 uint32_t voltage_mv_to_logic (uint32_t voltage)
