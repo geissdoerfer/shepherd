@@ -39,6 +39,8 @@
         "pru0",
         "pru1";
    /* Check Table 9-60 in am335x TRM */
+
+
    fragment@0 {
       target = <&am33xx_pinmux>;
       __overlay__ {
@@ -80,9 +82,13 @@
        target = <&pruss>;
        __overlay__ {
            status = "okay";
-
-           pinctrl-names = "default";
-           pinctrl-0 = <&bb_shprd_pins>;
+            pinctrl-names = "default";
+            pinctrl-0 = <&bb_shprd_pins>;
+            shepherd{
+               compatible = "shepherd";
+               prusses = <&pruss>;
+            };	
        };
    };
+
 };
