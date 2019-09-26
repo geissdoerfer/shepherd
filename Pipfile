@@ -17,6 +17,7 @@ ansible = "*"
 sphinx-click = "*"
 sphinx-rtd-theme = "*"
 matplotlib = "*"
+pandas = "*"
 
 [pipenv]
 allow_prereleases = true
