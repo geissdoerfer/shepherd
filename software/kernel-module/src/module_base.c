@@ -15,6 +15,9 @@
 #include "sysfs_interface.h"
 
 #define MODULE_NAME "shepherd"
+MODULE_SOFTDEP("pre: pruss");
+MODULE_SOFTDEP("pre: remoteproc");
+MODULE_SOFTDEP("pre: rpmsg_pru");
 
 static const struct of_device_id shepherd_dt_ids[] = {
 	{
@@ -82,7 +85,7 @@ get_shepherd_platform_data(struct platform_device *pdev)
 
 	pruss_dn = of_parse_phandle(np, "prusses", 0);
 	if (!pruss_dn) {
-		dev_err(&pdev->dev, "Unable to parse device node\n");
+		dev_err(&pdev->dev, "Unable to parse device node: prusses\n");
 		devm_kfree(&pdev->dev, pdata);
 		return NULL;
 	}
@@ -95,7 +98,8 @@ get_shepherd_platform_data(struct platform_device *pdev)
 			if (tmp_rproc == NULL) {
 				of_node_put(pruss_dn);
 				dev_err(&pdev->dev,
-					"Unable to parse device node\n");
+					"Unable to parse device node: %s \n",
+					child->name);
 				devm_kfree(&pdev->dev, pdata);
 				return NULL;
 			}
@@ -134,7 +138,8 @@ static int shepherd_drv_probe(struct platform_device *pdev)
 	pdata = get_shepherd_platform_data(pdev);
 
 	if (pdata == NULL) {
-		return -ENODEV;
+		/*pru device are not ready yet so kernel should retry the probe function later again*/
+		return -EPROBE_DEFER;
 	}
 
 	/* Boot the two PRU cores with the corresponding the shepherd firmware */
@@ -152,7 +157,7 @@ static int shepherd_drv_probe(struct platform_device *pdev)
 	}
 	printk(KERN_INFO "shprd: PRUs started!");
 
-	msleep(250);
+	msleep(500);
 	/* Initialize shared memory and PRU interrupt controller */
 	pru_comm_init();
 
