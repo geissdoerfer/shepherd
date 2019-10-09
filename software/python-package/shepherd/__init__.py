@@ -30,6 +30,8 @@ from shepherd.shepherd_io import ShepherdIO
 from shepherd import commons
 from shepherd.calibration_default import current_to_adc, voltage_to_adc
 
+from shepherd import sysfs_interface
+
 # Set default logging handler to avoid "No handler found" warnings.
 logging.getLogger(__name__).addHandler(NullHandler())
 
@@ -143,12 +145,6 @@ class Emulator(ShepherdIO):
         ldo_voltage: float = 0.0,
         emulation_type: str = "bq25505",
     ):
-        # Set shepherd mode to virtcap if required
-        shepherd_mode = "emulation"
-        if emulation_type == "virtcap":
-            shepherd_mode = "virtcap"
-
-        super().__init__(shepherd_mode, 0.0, "artificial")
 
         if calibration_emulation is None:
             calibration_emulation = CalibrationData.from_default()
@@ -161,6 +157,13 @@ class Emulator(ShepherdIO):
                 "No recording calibration data provided - using defaults"
             )
 
+        # Set shepherd mode to virtcap if required
+        shepherd_mode = "emulation"
+        if emulation_type == "virtcap":
+            sysfs_interface.set_calibration_settings(calibration_emulation)
+            shepherd_mode = "virtcap"
+
+        super().__init__(shepherd_mode, 0.0, "artificial")
 
         # Values from recording are binary ADC values. We have to send binary
         # DAC values to the DAC for emulation. To directly convert ADC to DAC
@@ -198,7 +201,7 @@ class Emulator(ShepherdIO):
             self.set_ldo_voltage(False)
 
         if self.mode == "virtcap":
-            self.set_ldo_voltage(3.0) # TODO remove, hack to enable output
+            self.set_ldo_voltage(3.0)  # TODO remove, hack to enable output
 
         # Disconnect harvester to avoid leakage in or out of the harvester
         self.set_harvester(False)
@@ -516,7 +519,7 @@ def emulate(
                     )
                     log_writer.write_exception(err_rec)
 
-                idx, load_buf = emu.get_buffer(timeout=1) # was raise
+                idx, load_buf = emu.get_buffer(timeout=1)  # was raise
 
             if output is not None:
                 log_writer.write_buffer(load_buf)
@@ -537,4 +540,5 @@ def emulate(
                 if e.id == commons.MSG_DEP_ERR_NOFREEBUF:
                     break
                 else:
-                    idx, load_buf = emu.get_buffer(timeout=1) # was raise
+                    idx, load_buf = emu.get_buffer(timeout=1)  # was raise
+

@@ -347,7 +347,7 @@ static ssize_t sysfs_calibration_settings_store(struct kobject *kobj,
 		       "shprd: Setting current calibration settings. Current gain: %u, current offset: %u\n",
 		       tmp.adc_load_current_gain, tmp.adc_load_current_offset);
 
-		printk(KERN INFO
+		printk(KERN_INFO
 		       "shprd: Setting voltage calibration settings. Voltage gain: %u, voltage offset: %u\n",
 		       tmp.adc_load_voltage_gain, tmp.adc_load_voltage_offset);
 
