@@ -29,7 +29,13 @@ enum DEPMsgID {
 /* Message IDs used in Synchronization Protocol between PRU1 and kernel module */
 enum SyncMsgID { MSG_SYNC_CTRL_REQ = 0xF0, MSG_SYNC_CTRL_REP = 0xF1 };
 
-enum ShepherdMode { MODE_HARVESTING, MODE_LOAD, MODE_EMULATION, MODE_VIRTCAP, MODE_DEBUG };
+enum ShepherdMode {
+	MODE_HARVESTING,
+	MODE_LOAD,
+	MODE_EMULATION,
+	MODE_VIRTCAP,
+	MODE_DEBUG
+};
 enum ShepherdState {
 	STATE_UNKNOWN,
 	STATE_IDLE,
@@ -51,6 +57,17 @@ struct SampleBuffer {
 	uint32_t values_voltage[SAMPLES_PER_BUFFER];
 	uint32_t values_current[SAMPLES_PER_BUFFER];
 	struct GPIOEdges gpio_edges;
+} __attribute__((packed));
+
+struct CalibrationSettings {
+	/* Gain of load current adc. It converts current to adc value */
+	uint32_t adc_load_current_gain;
+	/* Offset of load current adc */
+	uint32_t adc_load_current_offset;
+	/* Gain of load voltage adc. It converts voltage to adc value */
+	uint32_t adc_load_voltage_gain;
+	/* Offset of load voltage adc */
+	uint32_t adc_load_voltage_offset;
 } __attribute__((packed));
 
 /* Format of RPMSG used in Data Exchange Protocol between PRU0 and user space */
@@ -76,6 +93,8 @@ struct SharedMem {
 	uint32_t samples_per_buffer;
 	/* The time for sampling samples_per_buffer. Determines sampling rate */
 	uint32_t buffer_period_ns;
+	/* ADC calibration settings */
+	struct CalibrationSettings calibration_settings;
 	/* Used to exchange timestamp of next buffer between PRU1 and PRU0 */
 	uint64_t next_timestamp_ns;
 	/* Protects write access to below gpio_edges structure */

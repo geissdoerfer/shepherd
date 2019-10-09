@@ -14,6 +14,7 @@ provided by the shepherd kernel module
 import sys
 import logging
 import time
+import struct
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -31,6 +32,7 @@ attribs = {
     "buffer_period_ns": {"path": "buffer_period_ns", "type": int},
     "samples_per_buffer": {"path": "samples_per_buffer", "type": int},
     "harvesting_voltage": {"path": "harvesting_voltage", "type": int},
+    # "calibration_settings": {"path": "calibration_settings", "type": int},
     "mem_address": {"path": "memory/address", "type": int},
     "mem_size": {"path": "memory/size", "type": int},
 }
@@ -120,6 +122,26 @@ def set_mode(mode: str):
     logger.debug(f"mode: {mode}")
     with open(str(sysfs_path / "mode"), "w") as f:
         f.write(mode)
+
+
+def set_calibration_settings(
+    current_gain: int, current_offset: int, voltage_gain: int, voltage_offset
+):
+    """Sets the calibration settings.
+
+    The virtcap algorithm uses adc measurements of load current.
+
+    """
+
+    if get_state() != "idle":
+        raise SysfsInterfaceException(
+            f"Cannot set calibration settings when shepherd is { get_state() }"
+        )
+    with open(str(sysfs_path / "calibration_settings"), "w") as f:
+        output = (
+            f"{current_gain} {current_offset} {voltage_gain} {voltage_offset}"
+        )
+        f.write(output)
 
 
 def set_harvesting_voltage(harvesting_voltage: int):

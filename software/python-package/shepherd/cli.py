@@ -35,6 +35,7 @@ from shepherd import CapeData
 from shepherd import ShepherdDebug
 from shepherd.shepherd_io import gpio_pin_nums
 from shepherd.const_reg import VariableLDO
+from shepherd import sysfs_interface
 
 consoleHandler = logging.StreamHandler()
 logger = logging.getLogger("shepherd")
@@ -332,8 +333,16 @@ def write(infofile, version, serial_number, calibfile, no_calib):
     help="If provided, calibration data is dumped to this file",
 )
 def read(infofile, calibfile):
+
+    sysfs_interface.set_calibration_settings(10,20,30,40)
+    print("set calibration settings")
+
+    return
+
     with EEPROM() as eeprom:
         cape_data = eeprom.read_cape_data()
+        # print(calibration_default.current_to_adc(0))
+        # calib = CalibrationData.from_default()
         calib = eeprom.read_calibration()
 
     if infofile:

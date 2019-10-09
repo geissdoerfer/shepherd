@@ -12,7 +12,13 @@
 
 enum SyncMsg { MSG_SYNC_CTRL_REQ = 0xF0, MSG_SYNC_CTRL_REP = 0xF1 };
 
-enum ShepherdMode { MODE_HARVESTING, MODE_LOAD, MODE_EMULATION, MODE_VIRTCAP, MODE_DEBUG };
+enum ShepherdMode {
+	MODE_HARVESTING,
+	MODE_LOAD,
+	MODE_EMULATION,
+	MODE_VIRTCAP,
+	MODE_DEBUG
+};
 enum ShepherdState {
 	STATE_UNKNOWN,
 	STATE_IDLE,
@@ -21,6 +27,17 @@ enum ShepherdState {
 	STATE_RESET,
 	STATE_FAULT
 };
+
+struct CalibrationSettings {
+	/* Gain of load current adc. It converts current to adc value */
+	uint32_t adc_load_current_gain;
+	/* Offset of load current adc */
+	uint32_t adc_load_current_offset;
+	/* Gain of load voltage adc. It converts voltage to adc value */
+	uint32_t adc_load_voltage_gain;
+	/* Offset of load voltage adc */
+	uint32_t adc_load_voltage_offset;
+} __attribute__((packed));
 
 /* This is external to expose some of the attributes through sysfs */
 extern void __iomem *pru_shared_mem_io;
@@ -41,6 +58,8 @@ struct SharedMem {
 	uint32_t samples_per_buffer;
 	/* The time for sampling samples_per_buffer. Determines sampling rate */
 	uint32_t buffer_period_ns;
+	/* ADC calibration settings */
+	struct CalibrationSettings calibration_settings;
 } __attribute__((packed));
 
 /* Control request message sent from PRU0 to this kernel module */

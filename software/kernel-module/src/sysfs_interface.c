@@ -46,6 +46,10 @@ static ssize_t sysfs_harvesting_voltage_store(struct kobject *kobj,
 					      struct kobj_attribute *attr,
 					      const char *buf, size_t count);
 
+static ssize_t sysfs_calibration_settings_store(struct kobject *kobj,
+						struct kobj_attribute *attr,
+						const char *buf, size_t count);
+
 struct kobj_attr_struct_s {
 	struct kobj_attribute attr;
 	unsigned int val_offset;
@@ -84,6 +88,11 @@ struct kobj_attr_struct_s attr_harvesting_voltage = {
 		       sysfs_harvesting_voltage_store),
 	.val_offset = offsetof(struct SharedMem, harvesting_voltage)
 };
+struct kobj_attr_struct_s attr_calibration_settings = {
+	.attr = __ATTR(calibration_settings, 0660, sysfs_SharedMem_show,
+		       sysfs_calibration_settings_store),
+	.val_offset = offsetof(struct SharedMem, calibration_settings)
+};
 
 struct kobj_attribute attr_sync_error =
 	__ATTR(error, 0660, sysfs_sync_error_show, NULL);
@@ -95,9 +104,13 @@ struct kobj_attribute attr_sync_error_sum =
 	__ATTR(error_sum, 0660, sysfs_sync_error_sum_show, NULL);
 
 static struct attribute *pru_attrs[] = {
-	&attr_n_buffers.attr.attr,	  &attr_samples_per_buffer.attr.attr,
-	&attr_buffer_period_ns.attr.attr,   &attr_mode.attr.attr,
-	&attr_harvesting_voltage.attr.attr, NULL,
+	&attr_n_buffers.attr.attr,
+	&attr_samples_per_buffer.attr.attr,
+	&attr_buffer_period_ns.attr.attr,
+	&attr_mode.attr.attr,
+	&attr_harvesting_voltage.attr.attr,
+	&attr_calibration_settings.attr.attr,
+	NULL,
 };
 
 static struct attribute_group attr_group = {
@@ -307,6 +320,45 @@ static ssize_t sysfs_harvesting_voltage_store(struct kobject *kobj,
 		printk(KERN_INFO "shprd: Setting harvesting voltage to %u",
 		       tmp);
 		writel(tmp, pru_shared_mem_io + kobj_attr_wrapped->val_offset);
+
+		pru_comm_set_state(STATE_RESET);
+		return count;
+	}
+
+	return -EINVAL;
+}
+
+static ssize_t sysfs_calibration_settings_store(struct kobject *kobj,
+						struct kobj_attribute *attr,
+						const char *buf, size_t count)
+{
+	struct CalibrationSettings tmp;
+	struct kobj_attr_struct_s *kobj_attr_wrapped;
+
+	if (pru_comm_get_state() != STATE_IDLE)
+		return -EBUSY;
+
+	kobj_attr_wrapped = container_of(attr, struct kobj_attr_struct_s, attr);
+
+	if (sscanf(buf, "%u %u %u %u", &tmp.adc_load_current_gain,
+		   &tmp.adc_load_current_offset, &tmp.adc_load_voltage_gain,
+		   &tmp.adc_load_voltage_offset) == 4) {
+		printk(KERN_INFO
+		       "shprd: Setting current calibration settings. Current gain: %u, current offset: %u\n",
+		       tmp.adc_load_current_gain, tmp.adc_load_current_offset);
+
+		printk(KERN INFO
+		       "shprd: Setting voltage calibration settings. Voltage gain: %u, voltage offset: %u\n",
+		       tmp.adc_load_voltage_gain, tmp.adc_load_voltage_offset);
+
+		writel(tmp.adc_load_current_gain,
+		       pru_shared_mem_io + kobj_attr_wrapped->val_offset);
+		writel(tmp.adc_load_current_offset,
+		       pru_shared_mem_io + kobj_attr_wrapped->val_offset + 4);
+		writel(tmp.adc_load_voltage_gain,
+		       pru_shared_mem_io + kobj_attr_wrapped->val_offset + 8);
+		writel(tmp.adc_load_voltage_offset,
+		       pru_shared_mem_io + kobj_attr_wrapped->val_offset + 12);
 
 		pru_comm_set_state(STATE_RESET);
 		return count;
