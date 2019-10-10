@@ -340,7 +340,7 @@ static ssize_t sysfs_calibration_settings_store(struct kobject *kobj,
 
 	kobj_attr_wrapped = container_of(attr, struct kobj_attr_struct_s, attr);
 
-	if (sscanf(buf, "%u %u %u %u", &tmp.adc_load_current_gain,
+	if (sscanf(buf,"%u %u %u %u", &tmp.adc_load_current_gain,
 		   &tmp.adc_load_current_offset, &tmp.adc_load_voltage_gain,
 		   &tmp.adc_load_voltage_offset) == 4) {
 		printk(KERN_INFO

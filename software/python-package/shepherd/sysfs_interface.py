@@ -124,23 +124,19 @@ def set_mode(mode: str):
         f.write(mode)
 
 
-def set_calibration_settings(
+def send_calibration_settings(
     current_gain: int, current_offset: int, voltage_gain: int, voltage_offset
 ):
-    """Sets the calibration settings.
+    """Sends the calibration settings to the PRU core.
 
     The virtcap algorithm uses adc measurements of load current.
 
     """
-
-    if get_state() != "idle":
-        raise SysfsInterfaceException(
-            f"Cannot set calibration settings when shepherd is { get_state() }"
-        )
     with open(str(sysfs_path / "calibration_settings"), "w") as f:
         output = (
             f"{current_gain} {current_offset} {voltage_gain} {voltage_offset}"
         )
+        print("going to send", output)
         f.write(output)
 
 

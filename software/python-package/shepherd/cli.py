@@ -334,16 +334,14 @@ def write(infofile, version, serial_number, calibfile, no_calib):
 )
 def read(infofile, calibfile):
 
-    sysfs_interface.set_calibration_settings(10,20,30,40)
-    print("set calibration settings")
-
-    return
-
     with EEPROM() as eeprom:
         cape_data = eeprom.read_cape_data()
         # print(calibration_default.current_to_adc(0))
         # calib = CalibrationData.from_default()
         calib = eeprom.read_calibration()
+
+        sysfs_interface.send_calibration_settings(10,20,30,40)
+
 
     if infofile:
         with open(infofile, "w") as f:

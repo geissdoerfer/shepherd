@@ -27,6 +27,7 @@ from shepherd import sysfs_interface
 from shepherd import commons
 from shepherd import calibration_default
 from shepherd import const_reg
+from shepherd.calibration import CalibrationData
 
 logger = logging.getLogger(__name__)
 
@@ -388,9 +389,7 @@ class ShepherdIO(object):
             except BlockingIOError:
                 time.sleep(0.1)
                 continue
-        raise ShepherdIOException(
-            "Timeout waiting for message", ID_ERR_TIMEOUT
-        )
+        raise ShepherdIOException("Timeout waiting for message", ID_ERR_TIMEOUT)
 
     def _flush_msgs(self):
         """Flushes rpmsg channel by reading all available bytes."""
@@ -563,6 +562,23 @@ class ShepherdIO(object):
             raise ValueError("Voltage out of range 0..4.8V")
         dac_value = calibration_default.voltage_to_dac(voltage)
         sysfs_interface.set_harvesting_voltage(dac_value)
+
+    def send_calibration_settings(self, calibration_settings: CalibrationData):
+        """Sends calibration settings to PRU core
+
+        For virtcap it is required to have the calibration settings.
+
+        Args:
+            calibration_settings (CalibrationData): Contains the device's
+            calibration settings.
+        """
+
+        sysfs_interface.send_calibration_settings(
+            int(1/calibration_settings["load"]["current"]["gain"]),
+            int(calibration_settings["load"]["current"]["offset"] / calibration_settings["load"]["current"]["gain"]),
+            int(1/calibration_settings["load"]["voltage"]["gain"]),
+            int(calibration_settings["load"]["voltage"]["offset"] / calibration_settings["load"]["voltage"]["gain"]),
+        )
 
     def _release_buffer(self, index: int):
         """Returns a buffer to the PRU
