@@ -136,7 +136,7 @@ def send_calibration_settings(
         output = (
             f"{current_gain} {current_offset} {voltage_gain} {voltage_offset}"
         )
-        print("going to send", output)
+        logger.debug(f"Sending calibration settings: {output}")
         f.write(output)
 
 

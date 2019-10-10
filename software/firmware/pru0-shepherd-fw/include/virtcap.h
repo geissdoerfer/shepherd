@@ -49,7 +49,7 @@ static const VirtCapNoFpSettings kRealBQ25570Settings =
 
 typedef void (*virtcap_nofp_callback_func_t)(uint8_t);
 
-int32_t virtcap_init(VirtCapNoFpSettings settings, virtcap_nofp_callback_func_t callback);
+int32_t virtcap_init(VirtCapNoFpSettings settings_arg, virtcap_nofp_callback_func_t callback_arg, struct CalibrationSettings calib);
 int32_t virtcap_update(int32_t current_measured, uint32_t voltage_measured, int32_t input_current, uint32_t input_voltage, uint32_t efficiency);
 uint32_t voltage_mv_to_logic (uint32_t voltage);
 uint32_t current_ua_to_logic (uint32_t current);

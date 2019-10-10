@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include "virtcap.h"
+#include "commons.h"
 
 #define DEBUG_PRINT 1
 #define debug_print(...) \
@@ -19,65 +20,19 @@ uint8_t is_outputting;
 uint8_t is_enabled;
 uint32_t discretize_cntr;
 
+uint32_t SquareRootRounded(uint32_t a_nInput);
+
 // Global vars to access in update function
 VirtCapNoFpSettings settings;
 virtcap_nofp_callback_func_t callback;
+struct CalibrationSettings calibration_settings;
 
-/**
- * \brief    Fast Square root algorithm, with rounding
- *
- * This does arithmetic rounding of the result. That is, if the real answer
- * would have a fractional part of 0.5 or greater, the result is rounded up to
- * the next integer.
- *      - SquareRootRounded(2) --> 1
- *      - SquareRootRounded(3) --> 2
- *      - SquareRootRounded(4) --> 2
- *      - SquareRootRounded(6) --> 2
- *      - SquareRootRounded(7) --> 3
- *      - SquareRootRounded(8) --> 3
- *      - SquareRootRounded(9) --> 3
- *
- * \param[in] a_nInput - unsigned integer for which to find the square root
- *
- * \return Integer square root of the input value.
- */
-uint32_t SquareRootRounded(uint32_t a_nInput)
-{
-    uint32_t op  = a_nInput;
-    uint32_t res = 0;
-    uint32_t one = 1uL << 30; // The second-to-top bit is set: use 1u << 14 for uint16_t type; use 1uL<<30 for uint32_t type
-
-
-    // "one" starts at the highest power of four <= than the argument.
-    while (one > op)
-    {
-        one >>= 2;
-    }
-
-    while (one != 0)
-    {
-        if (op >= res + one)
-        {
-            op = op - (res + one);
-            res = res +  2 * one;
-        }
-        res >>= 1;
-        one >>= 2;
-    }
-
-    /* Do arithmetic rounding to nearest integer */
-    if (op > res)
-    {
-        res++;
-    }
-
-    return res;
-}
-
-int32_t virtcap_init(VirtCapNoFpSettings settings_arg, virtcap_nofp_callback_func_t callback_arg)
+int32_t virtcap_init(VirtCapNoFpSettings settings_arg, virtcap_nofp_callback_func_t callback_arg, struct CalibrationSettings calib)
 {
   settings = settings_arg;
   callback = callback_arg;
+
+  calibration_settings = calib;
   
   // Calculate harvest multiplier
 
@@ -197,20 +152,53 @@ int32_t virtcap_update(int32_t current_measured, uint32_t voltage_measured, int3
   return output_current;
 }
 
+uint32_t SquareRootRounded(uint32_t a_nInput)
+{
+    uint32_t op  = a_nInput;
+    uint32_t res = 0;
+    uint32_t one = 1uL << 30; // The second-to-top bit is set: use 1u << 14 for uint16_t type; use 1uL<<30 for uint32_t type
+
+
+    // "one" starts at the highest power of four <= than the argument.
+    while (one > op)
+    {
+        one >>= 2;
+    }
+
+    while (one != 0)
+    {
+        if (op >= res + one)
+        {
+            op = op - (res + one);
+            res = res +  2 * one;
+        }
+        res >>= 1;
+        one >>= 2;
+    }
+
+    /* Do arithmetic rounding to nearest integer */
+    if (op > res)
+    {
+        res++;
+    }
+
+    return res;
+}
+
 uint32_t voltage_mv_to_logic (uint32_t voltage)
 {
-  // voltage * (1 << 18 - 1) / 8.192 / 1000;
-  return voltage * 32 << SHIFT_VOLT;
+  // voltage * (1 << 18 - 1) / 8.192 / 1.25 / 1000;
+  return voltage * calibration_settings.
 }
 
 uint32_t current_ua_to_logic (uint32_t current)
 {
-  // current * 100.5 * (1 << 17 - 1) / 4.096 / 1000;
+  // current * 100.5 * (1 << 17 - 1) / 4.096 / 0.625 / 1000;
   return current * 3216 / 1000;
 }
 
 uint32_t current_ma_to_logic (uint32_t current)
 {
-  // current * 100.5 * (1 << 17 - 1) / 4.096;
+  // current * 100.5 * (1 << 17 - 1) / 4.096 / 0.625;
   return current * 3216;
 }

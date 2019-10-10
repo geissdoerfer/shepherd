@@ -30,13 +30,13 @@ enum ShepherdState {
 
 struct CalibrationSettings {
 	/* Gain of load current adc. It converts current to adc value */
-	uint32_t adc_load_current_gain;
+	int32_t adc_load_current_gain;
 	/* Offset of load current adc */
-	uint32_t adc_load_current_offset;
+	int32_t adc_load_current_offset;
 	/* Gain of load voltage adc. It converts voltage to adc value */
-	uint32_t adc_load_voltage_gain;
+	int32_t adc_load_voltage_gain;
 	/* Offset of load voltage adc */
-	uint32_t adc_load_voltage_offset;
+	int32_t adc_load_voltage_offset;
 } __attribute__((packed));
 
 /* This is external to expose some of the attributes through sysfs */

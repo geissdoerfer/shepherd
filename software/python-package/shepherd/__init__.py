@@ -148,6 +148,7 @@ class Emulator(ShepherdIO):
         if emulation_type == "virtcap":
             shepherd_mode = "virtcap"
 
+
         super().__init__(shepherd_mode, 0.0, "artificial")
 
         if calibration_emulation is None:
@@ -160,6 +161,9 @@ class Emulator(ShepherdIO):
             logger.warning(
                 "No recording calibration data provided - using defaults"
             )
+
+        # self.send_calibration_settings(calibration_emulation)
+        
 
         # Values from recording are binary ADC values. We have to send binary
         # DAC values to the DAC for emulation. To directly convert ADC to DAC
@@ -199,7 +203,6 @@ class Emulator(ShepherdIO):
             self.set_ldo_voltage(False)
 
         if self.mode == "virtcap":
-            self.send_calibration_settings(self._calibration_emulation)
             self.set_ldo_voltage(3.0)  # TODO remove, hack to enable output
 
         # Disconnect harvester to avoid leakage in or out of the harvester

@@ -340,7 +340,12 @@ def read(infofile, calibfile):
         # calib = CalibrationData.from_default()
         calib = eeprom.read_calibration()
 
-        sysfs_interface.send_calibration_settings(10,20,30,40)
+        sysfs_interface.send_calibration_settings(
+            int(1/calib["load"]["current"]["gain"]),
+            int(calib["load"]["current"]["offset"] / calib["load"]["current"]["gain"]),
+            int(1/calib["load"]["voltage"]["gain"]),
+            int(calib["load"]["voltage"]["offset"] / calib["load"]["voltage"]["gain"]),
+        )
 
 
     if infofile:
