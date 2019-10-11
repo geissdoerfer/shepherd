@@ -3,39 +3,31 @@
 #include "virtcap.h"
 #include "commons.h"
 
-#define DEBUG_PRINT 1
-#define debug_print(...) \
-            do { if (DEBUG_PRINT) fprintf(stderr, __VA_ARGS__); } while (0)
-
 // Derived constants
-int32_t harvest_multiplier;
-uint32_t output_multiplier;
-uint32_t kScaleInput;
-uint32_t outputcap_scale_factor;
-uint32_t avg_cap_voltage;
+static int32_t harvest_multiplier;
+static uint32_t output_multiplier;
+static uint32_t outputcap_scale_factor;
+static uint32_t avg_cap_voltage;
 
 // Working vars
-uint32_t cap_voltage;
-uint8_t is_outputting;
-uint8_t is_enabled;
-uint32_t discretize_cntr;
+static uint32_t cap_voltage;
+static uint8_t is_outputting;
+static uint8_t is_enabled;
+static uint32_t discretize_cntr;
 
 uint32_t SquareRootRounded(uint32_t a_nInput);
 
 // Global vars to access in update function
-VirtCapNoFpSettings settings;
-virtcap_nofp_callback_func_t callback;
-struct CalibrationSettings calibration_settings;
+static VirtCapNoFpSettings settings;
+static virtcap_nofp_callback_func_t callback;
+static struct CalibrationSettings calibration_settings;
 
 int32_t virtcap_init(VirtCapNoFpSettings settings_arg, virtcap_nofp_callback_func_t callback_arg, struct CalibrationSettings calib)
 {
   settings = settings_arg;
   callback = callback_arg;
-
   calibration_settings = calib;
   
-  // Calculate harvest multiplier
-
   // convert voltages and currents to logic values
   settings.upper_threshold_voltage = voltage_mv_to_logic(settings.upper_threshold_voltage);
   settings.lower_threshold_voltage = voltage_mv_to_logic(settings.lower_threshold_voltage);
@@ -56,16 +48,13 @@ int32_t virtcap_init(VirtCapNoFpSettings settings_arg, virtcap_nofp_callback_fun
   is_enabled = FALSE;
   discretize_cntr = 0;
 
-  // 100.5 * (1 << 17 - 1) * (1 << 18 - 1) / (4.096 * 8.192) / 1e6;
-  kScaleInput = 102911;
-
+  // Calculate harvest multiplier
   harvest_multiplier = (settings.sample_period_us << (SHIFT_VOLT + SHIFT_VOLT)) / (100 * settings.capacitance_uF);
   
   avg_cap_voltage = ((settings.upper_threshold_voltage + settings.lower_threshold_voltage) / 2);
   output_multiplier = ((settings.kDcoutputVoltage >> SHIFT_VOLT) * settings.kConverterEfficiency) / (avg_cap_voltage >> SHIFT_VOLT);
 
   #if 0
-  // printf("kScaleInput: %d\n", kScaleInput);
   printf("settings.kDcoutputVoltage: %d, settings.kConverterEfficiency: %d, avg_cap_voltage: %d, output_multiplier: %d\n", 
         settings.kDcoutputVoltage, settings.kConverterEfficiency, avg_cap_voltage, output_multiplier);
   #endif 
@@ -100,7 +89,7 @@ int32_t virtcap_update(int32_t current_measured, uint32_t voltage_measured, int3
    */
 
   #if (SINGLE_ITERATION == 1)
-  debug_print("input_current: %d, settings.kLeakageCurrent: %u, cap_voltage: %u\n", 
+  print("input_current: %d, settings.kLeakageCurrent: %u, cap_voltage: %u\n", 
               input_current, settings.kLeakageCurrent, cap_voltage);
   #endif
 
@@ -187,18 +176,25 @@ uint32_t SquareRootRounded(uint32_t a_nInput)
 
 uint32_t voltage_mv_to_logic (uint32_t voltage)
 {
-  // voltage * (1 << 18 - 1) / 8.192 / 1.25 / 1000;
-  return voltage * calibration_settings.
+  /* Compenesate for adc gain and offset, division for mv is split to optimize accuracy */
+  uint32_t logic_voltage = voltage * (calibration_settings.adc_load_voltage_gain / 100) / 10;
+  logic_voltage += calibration_settings.adc_load_voltage_offset;
+  return logic_voltage;
 }
 
 uint32_t current_ua_to_logic (uint32_t current)
 {
-  // current * 100.5 * (1 << 17 - 1) / 4.096 / 0.625 / 1000;
-  return current * 3216 / 1000;
+  /* Compensate for adc gain and offset, division for ua is split to optimize accuracy */
+  uint32_t logic_current = current * (calibration_settings.adc_load_current_gain / 1000) / 1000;
+  /* Add 2^17 because current is defined around zero, not 2^17 */
+  logic_current += calibration_settings.adc_load_current_offset + (2 >> 17);
+  return logic_current;
 }
 
 uint32_t current_ma_to_logic (uint32_t current)
 {
-  // current * 100.5 * (1 << 17 - 1) / 4.096 / 0.625;
-  return current * 3216;
+  uint32_t logic_current = current * calibration_settings.adc_load_current_gain / 1000;
+  /* Add 2^17 because current is defined around zero, not 2^17 */
+  logic_current += calibration_settings.adc_load_current_offset + (2 >> 17);
+  return logic_current;
 }
