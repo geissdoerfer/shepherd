@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE eagle SYSTEM "eagle.dtd">
-<eagle version="9.3.2">
+<eagle version="9.4.2">
 <drawing>
 <settings>
 <setting alwaysvectorfont="no"/>
@@ -1008,8 +1008,8 @@ diameter 2 mm, horizontal, grid 10.16 mm</description>
 <instance part="+3V1" gate="G$1" x="134.62" y="60.96" smashed="yes">
 <attribute name="VALUE" x="132.08" y="55.88" size="1.778" layer="96" rot="R90"/>
 </instance>
-<instance part="+3V2" gate="G$1" x="200.66" y="60.96" smashed="yes">
-<attribute name="VALUE" x="198.12" y="55.88" size="1.778" layer="96" rot="R90"/>
+<instance part="+3V2" gate="G$1" x="203.2" y="60.96" smashed="yes">
+<attribute name="VALUE" x="200.66" y="55.88" size="1.778" layer="96" rot="R90"/>
 </instance>
 <instance part="+3V3" gate="G$1" x="73.66" y="76.2" smashed="yes">
 <attribute name="VALUE" x="71.12" y="71.12" size="1.778" layer="96" rot="R90"/>
@@ -1088,8 +1088,8 @@ diameter 2 mm, horizontal, grid 10.16 mm</description>
 <segment>
 <pinref part="U$2" gate="G$3" pin="VDD_3V3@2"/>
 <pinref part="+3V2" gate="G$1" pin="+3V3"/>
-<wire x1="190.5" y1="7.62" x2="200.66" y2="7.62" width="0.1524" layer="91"/>
-<wire x1="200.66" y1="7.62" x2="200.66" y2="58.42" width="0.1524" layer="91"/>
+<wire x1="190.5" y1="7.62" x2="203.2" y2="7.62" width="0.1524" layer="91"/>
+<wire x1="203.2" y1="7.62" x2="203.2" y2="58.42" width="0.1524" layer="91"/>
 </segment>
 </net>
 <net name="SDA" class="0">
