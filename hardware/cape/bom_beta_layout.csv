@@ -52,7 +52,7 @@ R26,30k,R_SMD0402,RESC1005X40, , ,1,YES,NO,Digi-Key,311-30.0KLRCT-ND,https://www
 R43,300k,R_SMD0402,RESC1005X40, , ,1,YES,NO,Digi-Key,311-300KLRCT-ND,https://www.digikey.com/products/en?keywords=311-300KLRCT-ND, , , , , , , 
 R45,294k,R_SMD0402,RESC1005X40, , ,1,YES,NO,Digi-Key,YAG3092CT-ND,https://www.digikey.com/products/en?keywords=YAG3092CT-ND, , , , , , , 
 "ROK1, ROK2, ROV1, ROV2, RUV1",5.62M,R_SMD0603,RESC1608X55, , ,5,YES,NO,Digi-Key,541-5.62MHCT-ND,https://www.digikey.com/products/en?keywords=541-5.62MHCT-ND, , , , , , , 
-ROK3,1.87M,R_SMD0603,RESC1608X55, , ,1,YES,NO,Digi-Key,P1.87BTCT-ND,https://www.digikey.com/products/en?keywords=P1.87BTCT-ND, , , , , , , 
+ROK3,1.87M,R_SMD0603,RESC1608X55, , ,1,YES,NO,Digi-Key,RMCF0603FT1M87CT-ND,https://www.digikey.com/products/en?keywords=RMCF0603FT1M87CT-ND, , , , , , , 
 RUV2,3.6M,R_SMD0603,RESC1608X55, , ,1,YES,NO,Digi-Key,RMCF0603FT3M60CT-ND,https://www.digikey.com/products/en?keywords=RMCF0603FT3M60CT-ND, , , , , , , 
 S1,ADG849YKSZ-REELKS_6-L,ADG849YKSZ-REELKS_6-L,KS_6-L, , ,1,YES,NO,Digi-Key,ADG849YKSZ500RLCT-ND,https://www.digikey.com/products/en?keywords=ADG849YKSZ500RLCT-ND, , , , , , , 
 S2,ADG736LBRMZRM_10-L,ADG736LBRMZRM_10-L,RM_10-L, , ,1,YES,NO,Digi-Key,ADG736LBRMZ-ND,https://www.digikey.com/products/en?keywords=ADG736LBRMZ-ND, , , , , , , 
