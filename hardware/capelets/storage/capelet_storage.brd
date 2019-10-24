@@ -165,7 +165,7 @@
 <plain>
 <dimension x1="17.145" y1="12.7" x2="17.145" y2="0" x3="20.32" y3="6.35" textsize="1.143" textratio="16" layer="47"/>
 <dimension x1="0.635" y1="12.7" x2="17.145" y2="12.7" x3="8.89" y3="13.97" textsize="1.143" textratio="16" layer="47"/>
-<text x="2.286" y="11.684" size="0.889" layer="25" font="vector" ratio="16">SHPRD v1.3 CPLT STRG</text>
+<text x="2.286" y="11.684" size="0.889" layer="25" font="vector" ratio="16">SHPRD v1.4 CPLT STRG</text>
 </plain>
 <libraries>
 <library name="shepherd">
@@ -1530,7 +1530,7 @@ Covered vias can be set in Masks (Limit).
 <elements>
 <element name="U$1" library="shepherd" package="SHPRD_CPLT_S" value="SHPRD_CPLT_S" x="0" y="0" smashed="yes"/>
 <element name="C1" library="shepherd" package="CAPC2012X145" package3d_urn="urn:adsk.eagle:package:4930364/1" value="" x="8.89" y="10.16" smashed="yes">
-<attribute name="NAME" x="6.985" y="8.7876" size="1.016" layer="25" font="vector" ratio="16" align="bottom-center"/>
+<attribute name="NAME" x="6.731" y="8.5336" size="1.016" layer="25" font="vector" ratio="16" align="bottom-center"/>
 <attribute name="VALUE" x="8.89" y="8.4844" size="1.27" layer="27" align="top-center"/>
 </element>
 <element name="C2" library="shepherd" package="CAPC3225X280" package3d_urn="urn:adsk.eagle:package:4926069/1" value="" x="8.89" y="2.54" smashed="yes">
@@ -1538,7 +1538,7 @@ Covered vias can be set in Masks (Limit).
 <attribute name="VALUE" x="8.89" y="0.2784" size="1.27" layer="27" align="top-center"/>
 </element>
 <element name="C3" library="rcl" library_urn="urn:adsk.eagle:library:334" package="E5-8,5" package3d_urn="urn:adsk.eagle:package:23374/1" value="" x="8.89" y="6.35" smashed="yes">
-<attribute name="NAME" x="10.1092" y="7.747" size="1.016" layer="25" font="vector" ratio="16"/>
+<attribute name="NAME" x="10.8712" y="7.874" size="1.016" layer="25" font="vector" ratio="16"/>
 <attribute name="SPICEPREFIX" value="C" x="8.89" y="6.35" size="1.778" layer="27" display="off"/>
 <attribute name="VALUE" x="6.3754" y="3.3274" size="1.27" layer="27" ratio="10"/>
 </element>
