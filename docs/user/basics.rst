@@ -5,7 +5,7 @@ Basics
 It allows to record harvesting conditions at multiple points in space over time.
 The recorded data can be replayed to attached wireless sensor nodes, examining their behaviour under the constraints of spatio-temporal energy availability.
 
-For a detailed description see our paper [TODO]
+For a detailed description see our `Paper <https://wwwpub.zih.tu-dresden.de/~mzimmerl/pubs/geissdoerfer19shepherd.pdf>`_.
 
 A *shepherd* instance consists of a group of spatially distributed *shepherd* nodes that are time-synchronized with each other.
 Each *shepherd* node consists of a BeagleBone, the *shepherd* cape and a particular choice of capelets according to the user requirements.

@@ -17,7 +17,7 @@ The recorded data can be replayed to attached wireless sensor nodes, examining t
  - Configurable, constant voltage power supply for attached sensor nodes
  - Level-translated serial connection to the attached sensor nodes
 
-For a detailed description see our paper [TODO]
+For a detailed description see our [Paper](https://wwwpub.zih.tu-dresden.de/~mzimmerl/pubs/geissdoerfer19shepherd.pdf).
 
 A *shepherd* instance consists of a group of spatially distributed *shepherd* nodes that are time-synchronized with each other.
 Each *shepherd* node consists of a [BeagleBone](https://beagleboard.org/bone), the *shepherd* cape and a particular choice of capelets according to the user requirements.
@@ -29,6 +29,7 @@ This repository contains the hardware design files for the shepherd cape and the
 Start by assembling your *shepherd* nodes, consisting of a BeagleBone Green/Black, a *shepherd* cape, a harvesting capelet and a target capelet.
 The next step is to manually install the latest Ubuntu Linux on each BeagleBone.
 You can install it to SD-card or the on-board EMMC flash, following [the official instructions](https://elinux.org/BeagleBoardUbuntu).
+Make sure to follow the instructions for **BeagleBone**.
 
 The following instructions describe how to install the *shepherd* software on a group of *shepherd* nodes connected to an Ethernet network.
 We assume that you know the IP address of each node and that your local machine is connected to the same network.
@@ -42,15 +43,17 @@ git clone https://github.com/geissdoerfer/shepherd.git
 Next, install the tools used for installing and controlling the *shepherd* nodes.
 We'll use [Ansible](https://www.ansible.com/) to remotely roll out the basic configuration to each *shepherd* node and *shepherd-herd* to orchestrate recording/emulation across all nodes.
 The tools are hosted on `PyPI` and require Python version >= 3.6.
+You'll also need to have `sshpass` installed on your machine, which is available through the package management system of all major distributions.
 Install the tools using `pip`:
 
 ```
-pip install ansible shepherd-herd
+pip3 install ansible shepherd-herd
 ```
 
-The `inventory/example.yml` file shows an example host names and known IP addresses of  BeagleBones.
-Add yours in similar fashion to `inventory/<name>.yml`, you can remove `example.yml` to remove non existing nodes.
-You can arbitrarily choose and assign the hostnames (sheep0, sheep1, in this example) and the ansible_user.
+The `inventory/example.yml` file shows an example of how to provide the host names and known IP addresses of your BeagleBones.
+Add yours in similar fashion as a new file `inventory/<name>.yml`.
+You can arbitrarily choose and assign the hostnames (sheep0, sheep1, in this example) and the ansible_user (jane in this example).
+Afterwards, you can remove the `example.yml`.
 
 ```
 sheep:
@@ -83,7 +86,7 @@ ansible-playbook deploy/install.yml -e ptp=true
 Record two minutes of data:
 
 ```
-shepherd-herd record -l 120 recording.h5
+shepherd-herd record -l 120 -o recording.h5
 ```
 
 Retrieve the data to analyze it on your local machine:
