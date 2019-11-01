@@ -26,7 +26,7 @@ The shepherd cape has a large number of small components and we suggest to send 
 Place a capacitor of desired capacitry on your storage capelets.
 The reference layout offers a choice of three footprints allowing to flexibly choose a suitable capacitor and package.
 
-If you have questions or need assistance with getting the hardware manufactured, get in touch with the developers.
+If you don't have the necessary resource or need assistance with getting the hardware manufactured, get in touch with the developers.
 
 To connect the shepherd nodes to each other for control, data collection and time-synchronization, you need to setup an Ethernet network.
 The network should be as flat as possible, i.e. have a minimum number of switches.
@@ -61,7 +61,7 @@ Installation
 Prepare the SD-cards.
 If you plan to install the OS and shepherd software on the onboard EMMC flash, you can prepare one SD card and sequentially flash the nodes.
 If you plan to install the OS and shepherd software on SD card, you have to prepare one SD card for every shepherd node.
-Depending on your choice, follow `the official instructions <https://elinux.org/BeagleBoardUbuntu>`_.
+Depending on your choice, follow `the official instructions <https://elinux.org/BeagleBoardUbuntu>`_ for **BeagleBone**.
 Shepherd has been tested on Ubuntu 18.04 LTS, but might work with other Debian based distributions.
 
 After installing the OS on the BeagleBones and booting them, find out their IP addresses.
@@ -96,12 +96,12 @@ Pick a username that you want to use to login to the nodes and assign as `ansibl
 
 We'll use `Ansible <https://www.ansible.com/>`_ to roll out a basic configuration to the nodes.
 This includes setting the hostname, adding the user, allowing password-less ssh access and sudo without password.
-
-Install it with:
+Make sure that you have `Python >=3.6`, `pip` and `sshpass` installed on your machine.
+Install `Ansible` with:
 
 .. code-block:: bash
 
-    pip install ansible
+    pip3 install ansible
 
 Now run the *bootstrap* `Ansible playbook <https://docs.ansible.com/ansible/latest/user_guide/playbooks_intro.html>`_ using the previously prepared inventory file:
 
