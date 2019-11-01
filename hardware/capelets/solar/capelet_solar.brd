@@ -497,11 +497,11 @@ Covered vias can be set in Masks (Limit).
 </pass>
 </autorouter>
 <elements>
-<element name="ROC2" library="mylib" package="RESC2012X65" value="" x="25.781" y="29.337" smashed="yes" rot="R180">
+<element name="ROC2" library="mylib" package="RESC2012X65" value="2M" x="25.781" y="29.337" smashed="yes" rot="R180">
 <attribute name="NAME" x="27.305" y="31.877" size="1.27" layer="25" font="vector" ratio="15" rot="R180"/>
 <attribute name="VALUE" x="28.0416" y="29.972" size="1.27" layer="27" ratio="10" rot="R180"/>
 </element>
-<element name="ROC1" library="mylib" package="RESC2012X65" value="" x="29.591" y="29.337" smashed="yes" rot="R180">
+<element name="ROC1" library="mylib" package="RESC2012X65" value="8M" x="29.591" y="29.337" smashed="yes" rot="R180">
 <attribute name="NAME" x="32.131" y="31.877" size="1.27" layer="25" font="vector" ratio="15" rot="R180"/>
 <attribute name="VALUE" x="31.8516" y="29.972" size="1.27" layer="27" ratio="10" rot="R180"/>
 </element>
