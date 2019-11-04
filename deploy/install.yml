@@ -20,7 +20,7 @@
       repo: deb [trusted=yes] https://shepherd.nes-lab.org debian/
       state: present
 
-  - name: Install shepherd meta-package
+  - name: Install shepherd meta-package (This may take >15 minutes)
     apt:
       name: shepherd
       state: latest
