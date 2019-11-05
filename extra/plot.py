@@ -25,9 +25,9 @@ def extract_hdf(hdf_file: Path, ds_factor: int = 1):
             data[var] = sig_phys
 
         if ds_factor > 1:
-            data["time"] = times[::ds_factor]
+            data["time"] = times[::ds_factor] - times[0]
         else:
-            data["time"] = times
+            data["time"] = times - times[0]
 
     return data
 
@@ -48,7 +48,7 @@ def cli(directory, filename, sampling_rate):
             raise click.FileError(str(hdf_file), hint="File not found")
         data = extract_hdf(hdf_file, ds_factor=ds_factor)
         axes[0].plot(data["time"], data["voltage"])
-        axes[1].plot(data["time"], data["current"] * 1000)
+        axes[1].plot(data["time"], data["current"] * 1e6)
     else:
         data = dict()
         pl_dir = Path(directory)
@@ -66,12 +66,12 @@ def cli(directory, filename, sampling_rate):
             )
             axes[1].plot(
                 data[hostname]["time"],
-                data[hostname]["current"] * 1000,
+                data[hostname]["current"] * 1e6,
                 label=hostname,
             )
 
     axes[0].set_ylabel("voltage [V]")
-    axes[1].set_ylabel("current [mA]")
+    axes[1].set_ylabel(r"current [$\mu$A]")
     axes[0].legend()
     axes[1].legend()
     axes[1].set_xlabel("time [s]")
