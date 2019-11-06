@@ -371,7 +371,7 @@ class ShepherdIO(object):
                 message types part of the data exchange protocol
             value (int): Actual content of the message
         """
-        msg = struct.pack("=II", msg_type, value)
+        msg = struct.pack("=ii", msg_type, value)
         os.write(self.rpmsg_fd, msg)
 
     def _get_msg(self, timeout: float = 0.5):
@@ -385,7 +385,7 @@ class ShepherdIO(object):
         while time.time() < ts_end:
             try:
                 rep = os.read(self.rpmsg_fd, 8)
-                return struct.unpack("=II", rep)
+                return struct.unpack("=ii", rep)
             except BlockingIOError:
                 time.sleep(0.1)
                 continue

@@ -182,7 +182,7 @@ void event_loop(volatile struct SharedMem *shared_mem,
 
 					// Execute virtcap algorithm
 					if (int_source != SIG_BLOCK_END) {
-						virtcap_update(output_current,
+						int returncs = virtcap_update(output_current,
 							       output_voltage,
 							       input_current,
 							       input_voltage,
@@ -198,19 +198,11 @@ void event_loop(volatile struct SharedMem *shared_mem,
 
 						static uint16_t cntr;
 						if (cntr++ % 100000 == 0) {
-							send_message(
-								MSG_DEP_DBG_PRINT,
-								shared_mem->calibration_settings
-										.adc_load_current_gain +
-									shared_mem
-										->calibration_settings
-										.adc_load_current_offset +
-									shared_mem
-										->calibration_settings
-										.adc_load_voltage_gain +
-									shared_mem
-										->calibration_settings
-										.adc_load_voltage_offset);
+							send_message(MSG_DEP_DBG_PRINT, returncs);
+							send_message(MSG_DEP_DBG_PRINT, output_current);
+							send_message(MSG_DEP_DBG_PRINT, output_voltage);
+							send_message(MSG_DEP_DBG_PRINT, input_current);
+							send_message(MSG_DEP_DBG_PRINT, input_voltage);
 						}
 					}
 				} else {
@@ -267,6 +259,9 @@ void set_output(uint8_t value)
 {
 	virtcap_output_state = value;
 
+
+	send_message(MSG_DEP_DBG_PRINT, value);
+
 	if (value) {
 		_GPIO_ON(DEBUG_P1);
 	} else {
@@ -313,7 +308,7 @@ void main(void)
 
 	shared_mem->calibration_settings.adc_load_current_gain = 0;
 	shared_mem->calibration_settings.adc_load_current_offset = 0;
-	shared_mem->calibration_settings.adc_load_voltage_offset = 0;
+	shared_mem->calibration_settings.adc_load_voltage_gain = 0;
 	shared_mem->calibration_settings.adc_load_voltage_offset = 0;
 
 	shared_mem->harvesting_voltage = 0;
@@ -325,8 +320,25 @@ reset:
 	_GPIO_OFF(USR_LED1);
 	_GPIO_OFF(DEBUG_P1);
 
-	int32_t multiplier = virtcap_init(kRealBQ25570Settings, set_output);
-	send_message(MSG_DEP_DBG_PRINT, multiplier);
+	// TODO remove these!!
+	send_message(MSG_DEP_DBG_PRINT, shared_mem->calibration_settings.adc_load_current_gain);
+	send_message(MSG_DEP_DBG_PRINT, shared_mem->calibration_settings.adc_load_current_offset);
+	send_message(MSG_DEP_DBG_PRINT, shared_mem->calibration_settings.adc_load_voltage_gain);
+	send_message(MSG_DEP_DBG_PRINT, shared_mem->calibration_settings.adc_load_voltage_offset);
+
+	struct CalibrationSettings cs;
+  cs.adc_load_current_gain = (int32_t) (2.0 * 50.25 / (0.625 * 4.096) * ((1 << 17) - 1));
+  cs.adc_load_current_offset = - (1 << 17);
+  cs.adc_load_voltage_gain = (int32_t) (1 / (1.25 * 4.096) * ((1 << 18) - 1));
+  cs.adc_load_voltage_offset = 0;
+
+	send_message(MSG_DEP_DBG_PRINT, cs.adc_load_current_gain);
+	send_message(MSG_DEP_DBG_PRINT, cs.adc_load_current_offset);
+	send_message(MSG_DEP_DBG_PRINT, cs.adc_load_voltage_gain);
+	send_message(MSG_DEP_DBG_PRINT, cs.adc_load_voltage_offset);
+	// TODO remove these!!
+
+	int32_t multiplier = virtcap_init(kRealBQ25570Settings, set_output, shared_mem->calibration_settings);
 
 	init_ring(&free_buffers);
 	sampling_init((enum ShepherdMode)shared_mem->shepherd_mode,

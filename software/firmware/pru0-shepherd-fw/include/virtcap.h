@@ -1,29 +1,30 @@
 #pragma once
 
 #include <stdint.h>
+#include "commons.h"
 
 #define TRUE  1
 #define FALSE 0
 
-#define SHIFT_VOLT 13
+#define SHIFT_VOLT 12
 
 typedef struct VirtCapNoFpSettings
 {
-  uint32_t upper_threshold_voltage;
-  uint32_t lower_threshold_voltage;
+  int32_t upper_threshold_voltage;
+  int32_t lower_threshold_voltage;
   uint16_t sample_period_us;
   uint16_t capacitance_uF;
-  uint32_t kMaxCapVoltage;
-  uint32_t kMinCapVoltage;
-  uint32_t kInitCapVoltage;
-  uint32_t kDcoutputVoltage;
-  uint32_t kLeakageCurrent;
-  uint32_t kHarvesterEfficiency;
-  uint32_t kConverterEfficiency;
-  uint32_t kOnTimeLeakageCurrent;
+  int32_t kMaxCapVoltage;
+  int32_t kMinCapVoltage;
+  int32_t kInitCapVoltage;
+  int32_t kDcoutputVoltage;
+  int32_t kLeakageCurrent;
+  int32_t kHarvesterEfficiency;
+  int32_t kConverterEfficiency;
+  int32_t kOnTimeLeakageCurrent;
   const char* kFilename;
   int kScaleDacOut;
-  uint32_t kDiscretize;
+  int32_t kDiscretize;
   uint16_t kOutputCap_uF;
 } VirtCapNoFpSettings;
 
@@ -32,14 +33,14 @@ static const VirtCapNoFpSettings kRealBQ25570Settings =
   .upper_threshold_voltage = 3500,
   .lower_threshold_voltage = 3200,
   .sample_period_us = 10,   
-  .capacitance_uF = 1000,    
+  .capacitance_uF = 520,    
   .kMaxCapVoltage = 4200,
   .kMinCapVoltage = 0,    
   .kInitCapVoltage = 3200,
   .kDcoutputVoltage = 2210,
-  .kLeakageCurrent = 9,
+  .kLeakageCurrent = 4,
   .kHarvesterEfficiency = 0.9 * 8192,   
-  .kConverterEfficiency = (1.0 / 0.9) * 8192,
+  .kConverterEfficiency = 0.86 * 8192,
   .kOnTimeLeakageCurrent = 12,
   .kFilename = "solar3.bin",
   .kScaleDacOut = 2,
@@ -50,6 +51,7 @@ static const VirtCapNoFpSettings kRealBQ25570Settings =
 typedef void (*virtcap_nofp_callback_func_t)(uint8_t);
 
 int32_t virtcap_init(VirtCapNoFpSettings settings_arg, virtcap_nofp_callback_func_t callback_arg, struct CalibrationSettings calib);
-int32_t virtcap_update(int32_t current_measured, uint32_t voltage_measured, int32_t input_current, uint32_t input_voltage, uint32_t efficiency);
-uint32_t voltage_mv_to_logic (uint32_t voltage);
-uint32_t current_ua_to_logic (uint32_t current);
+int32_t virtcap_update(int32_t current_measured, int32_t voltage_measured, int32_t input_current, int32_t input_voltage, int32_t efficiency);
+int32_t voltage_mv_to_logic (int32_t voltage);
+int32_t current_ua_to_logic (int32_t current);
+int32_t current_ma_to_logic (int32_t current);

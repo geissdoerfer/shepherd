@@ -50,6 +50,9 @@ static ssize_t sysfs_calibration_settings_store(struct kobject *kobj,
 						struct kobj_attribute *attr,
 						const char *buf, size_t count);
 
+static ssize_t sysfs_calibration_settings_show(struct kobject *kobj,
+				    struct kobj_attribute *attr, char *buf);
+
 struct kobj_attr_struct_s {
 	struct kobj_attribute attr;
 	unsigned int val_offset;
@@ -89,7 +92,7 @@ struct kobj_attr_struct_s attr_harvesting_voltage = {
 	.val_offset = offsetof(struct SharedMem, harvesting_voltage)
 };
 struct kobj_attr_struct_s attr_calibration_settings = {
-	.attr = __ATTR(calibration_settings, 0660, sysfs_SharedMem_show,
+	.attr = __ATTR(calibration_settings, 0660, sysfs_calibration_settings_show,
 		       sysfs_calibration_settings_store),
 	.val_offset = offsetof(struct SharedMem, calibration_settings)
 };
@@ -360,11 +363,24 @@ static ssize_t sysfs_calibration_settings_store(struct kobject *kobj,
 		writel(tmp.adc_load_voltage_offset,
 		       pru_shared_mem_io + kobj_attr_wrapped->val_offset + 12);
 
-		pru_comm_set_state(STATE_RESET);
 		return count;
 	}
 
 	return -EINVAL;
+}
+
+static ssize_t sysfs_calibration_settings_show(struct kobject *kobj,
+				    struct kobj_attribute *attr, char *buf)
+{
+	struct kobj_attr_struct_s *kobj_attr_wrapped;
+
+	kobj_attr_wrapped = container_of(attr, struct kobj_attr_struct_s, attr);
+	return sprintf(
+		buf, "%d %d %d %d",
+		readl(pru_shared_mem_io + kobj_attr_wrapped->val_offset),
+		readl(pru_shared_mem_io + kobj_attr_wrapped->val_offset + 4),
+		readl(pru_shared_mem_io + kobj_attr_wrapped->val_offset + 8),
+		readl(pru_shared_mem_io + kobj_attr_wrapped->val_offset + 12));
 }
 
 int sysfs_interface_init(void)

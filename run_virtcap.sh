@@ -1,3 +1,3 @@
 #!/bin/bash
-# sudo python3 /opt/shepherd/software/python-package/shepherd/cli.py -vv record --mode load -l 10
-sudo shepherd-sheep -vv record --mode load -l $1
+cd /opt/shepherd/software/python-package
+sudo python3 -m shepherd.cli -vv emulate --emulation-type virtcap -l 1 -o /var/shepherd/emulation/emu.0.h5 /var/shepherd/recordings/rec.40.good.h5
