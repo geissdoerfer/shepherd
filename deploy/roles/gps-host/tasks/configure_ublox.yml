@@ -1,0 +1,44 @@
+---
+- name: install required packages
+  apt:
+    name: '{{ item }}'
+    state: present
+  with_items:
+    - python
+    - python-serial
+
+- name: Stop services
+  systemd:
+    name: '{{ item }}'
+    state: stopped
+  with_items:
+   - gpsd
+   - chrony
+
+#install tool for ublox config
+- name: Copy program for config
+  synchronize:
+    src: files/u-blox-config/
+    dest: /opt/u-blox-config/
+    rsync_opts:
+      - "--no-motd"
+      - "--exclude=.git"
+      - "--exclude=.vscode"
+  tags: config
+
+
+- name: disable sbas; enable gps and galileo; set stationary mode
+  command: python /opt/u-blox-config/ubloxmsg_exchange.py /opt/u-blox-config/config_files/config_time /dev/ttyO2
+
+
+- name: Enable services
+  systemd:
+    name: '{{ item.name }}'
+    state: restarted
+    enabled: '{{ item.enabled }}'
+    daemon_reload: yes
+  with_items:
+   - { name: chrony, enabled: no }
+   - { name: chrony.path, enabled: yes }
+   - { name: gpsd, enabled: yes}
+  tags: conf

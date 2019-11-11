@@ -1,0 +1,6 @@
+[submodule "deploy/roles/gps-host/files/pps-gmtimer"]
+	path = deploy/roles/gps-host/files/pps-gmtimer
+	url = https://github.com/kugelbit/pps-gmtimer
+[submodule "deploy/roles/gps-host/files/ubx-packet-exchange"]
+	path = deploy/roles/gps-host/files/ubx-packet-exchange
+	url = https://github.com/kugelbit/ubx-packet-exchange
