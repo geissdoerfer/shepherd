@@ -17,7 +17,7 @@ static int32_t discretize_cntr;
 uint32_t SquareRootRounded(uint32_t a_nInput);
 
 // Global vars to access in update function
-VirtCapNoFpSettings s;
+struct VirtCapSettings s;
 virtcap_nofp_callback_func_t callback;
 struct CalibrationSettings cs = {
     .adc_load_current_gain =
@@ -32,7 +32,7 @@ struct CalibrationSettings cs = {
 #define FIXED_INPUT 0
 #define FIXED_EFFICIENCY 0
 
-int32_t virtcap_init(const VirtCapNoFpSettings* s_arg,
+int32_t virtcap_init(const struct VirtCapSettings* s_arg,
                      virtcap_nofp_callback_func_t callback_arg,
                      const struct CalibrationSettings* calib, int32_t dbg[]) {
   s = *s_arg;
@@ -44,23 +44,23 @@ int32_t virtcap_init(const VirtCapNoFpSettings* s_arg,
   s.lower_threshold_voltage = 3.2 * 1e3;
   s.capacitance_uf = 137;
   s.sample_period_us = 10;
-  s.kMaxCapVoltage = 4.2 * 1e3;
-  s.kMinCapVoltage = 0;
-  s.kInitCapVoltage = 3.2 * 1e3;
-  s.kDcoutputVoltage = 2.23 * 1e3;
-  s.kLeakageCurrent = 4;
-  s.kDiscretize = 5695;
-  s.kOutputCap_uf = 10;
+  s.max_cap_voltage = 4.2 * 1e3;
+  s.min_cap_voltage = 0;
+  s.init_cap_voltage = 3.2 * 1e3;
+  s.dc_output_voltage = 2.23 * 1e3;
+  s.leakage_current = 4;
+  s.discretize = 5695;
+  s.output_cap_uf = 10;
 #endif
 
   // convert voltages and currents to logic values
   s.upper_threshold_voltage = voltage_mv_to_logic(s_arg->upper_threshold_voltage);
   s.lower_threshold_voltage = voltage_mv_to_logic(s_arg->lower_threshold_voltage);
-  s.kMaxCapVoltage = voltage_mv_to_logic(s_arg->kMaxCapVoltage);
-  s.kMinCapVoltage = voltage_mv_to_logic(s_arg->kMinCapVoltage);
-  s.kInitCapVoltage = voltage_mv_to_logic(s_arg->kInitCapVoltage);
-  s.kDcoutputVoltage = voltage_mv_to_logic(s_arg->kDcoutputVoltage);
-  s.kLeakageCurrent = current_ua_to_logic(s_arg->kLeakageCurrent);
+  s.max_cap_voltage = voltage_mv_to_logic(s_arg->max_cap_voltage);
+  s.min_cap_voltage = voltage_mv_to_logic(s_arg->min_cap_voltage);
+  s.init_cap_voltage = voltage_mv_to_logic(s_arg->init_cap_voltage);
+  s.dc_output_voltage = voltage_mv_to_logic(s_arg->dc_output_voltage);
+  s.leakage_current = current_ua_to_logic(s_arg->leakage_current);
 
   #if (FIXED_CALIBRATION == 1)
   cs.adc_load_current_gain = (int32_t) (2.0 * 50.25 / (0.625 * 4.096) * ((1 << 17) - 1)),
@@ -75,20 +75,20 @@ int32_t virtcap_init(const VirtCapNoFpSettings* s_arg,
   dbg[6] = cs.adc_load_voltage_gain;
   dbg[7] = cs.adc_load_voltage_offset;
   #else
-  dbg[4] = s.kDiscretize;
-  dbg[5] = s.kOutputCap_uf;
-  dbg[6] = s.kMaxCapVoltage;
-  dbg[7] = s.kMinCapVoltage;
+  dbg[4] = s.discretize;
+  dbg[5] = s.output_cap_uf;
+  dbg[6] = s.max_cap_voltage;
+  dbg[7] = s.min_cap_voltage;
   #endif
 
   /* Calculate how much output cap should be discharged when turning on, based
    * on the storage capacitor and output capacitor size */
   int32_t scale =
-      ((s.capacitance_uf - s.kOutputCap_uf) << 20) / s.capacitance_uf;
+      ((s.capacitance_uf - s.output_cap_uf) << 20) / s.capacitance_uf;
   outputcap_scale_factor = SquareRootRounded(scale);
 
   // Initialize vars
-  cap_voltage = s.kInitCapVoltage;
+  cap_voltage = s.init_cap_voltage;
   is_outputting = FALSE;
   discretize_cntr = 0;
 
@@ -98,7 +98,7 @@ int32_t virtcap_init(const VirtCapNoFpSettings* s_arg,
       (cs.adc_load_current_gain / cs.adc_load_voltage_gain * s.capacitance_uf);
 
   avg_cap_voltage = (s.upper_threshold_voltage + s.lower_threshold_voltage) / 2;
-  output_multiplier = s.kDcoutputVoltage / (avg_cap_voltage >> SHIFT_VOLT);
+  output_multiplier = s.dc_output_voltage / (avg_cap_voltage >> SHIFT_VOLT);
 
   lookup_init(dbg);
 
@@ -110,9 +110,9 @@ int32_t virtcap_init(const VirtCapNoFpSettings* s_arg,
       calib.adc_load_voltage_gain, calib.adc_load_voltage_offset);
 
   printf(
-      "s.kDcoutputVoltage: %d, s.kConverterEfficiency: %d, avg_cap_voltage: "
+      "s.dc_output_voltage: %d, s.kConverterEfficiency: %d, avg_cap_voltage: "
       "%d, output_multiplier: %d\n",
-      s.kDcoutputVoltage, s.kConverterEfficiency, avg_cap_voltage,
+      s.dc_output_voltage, s.kConverterEfficiency, avg_cap_voltage,
       output_multiplier);
 #endif
 
@@ -137,8 +137,8 @@ int32_t virtcap_update(int32_t output_current, int32_t output_voltage,
   input_efficiency = 0.90 * EFFICIENCY_RANGE;
   output_efficiency = (1 / 0.86) * EFFICIENCY_RANGE;
   #else
-  output_efficiency = lookup(s.kLookupOutputEfficiency, output_current, dbg);
-  input_efficiency = lookup(s.kLookupInputEfficiency, input_current, dbg);
+  output_efficiency = lookup(s.lookup_output_efficiency, output_current, dbg);
+  input_efficiency = lookup(s.lookup_input_efficiency, input_current, dbg);
   #endif 
 
   /* Calculate current (cin) flowing into the storage capacitor */
@@ -154,7 +154,7 @@ int32_t virtcap_update(int32_t output_current, int32_t output_voltage,
   int32_t cout = output_current * output_multiplier >> SHIFT_VOLT;
   cout *= output_efficiency;
   cout = cout >> SHIFT_VOLT;
-  cout += s.kLeakageCurrent;
+  cout += s.leakage_current;
 
   /* Calculate delta V*/
   int32_t delta_i = cin - cout;
@@ -163,9 +163,9 @@ int32_t virtcap_update(int32_t output_current, int32_t output_voltage,
 
 #if (SINGLE_ITERATION == 1)
   printf(
-      "cin: %d, cin: %d, s.kLeakageCurrent: %u, "
+      "cin: %d, cin: %d, s.leakage_current: %u, "
       "cap_voltage: %u\n",
-      input_current, cin, s.kLeakageCurrent, cap_voltage);
+      input_current, cin, s.leakage_current, cap_voltage);
 #endif
 
 // TODO remove debug
@@ -180,15 +180,15 @@ int32_t virtcap_update(int32_t output_current, int32_t output_voltage,
 #endif
 
   // Make sure the voltage does not go beyond it's boundaries
-  if (new_cap_voltage >= s.kMaxCapVoltage) {
-    new_cap_voltage = s.kMaxCapVoltage;
-  } else if (new_cap_voltage < s.kMinCapVoltage) {
-    new_cap_voltage = s.kMinCapVoltage;
+  if (new_cap_voltage >= s.max_cap_voltage) {
+    new_cap_voltage = s.max_cap_voltage;
+  } else if (new_cap_voltage < s.min_cap_voltage) {
+    new_cap_voltage = s.min_cap_voltage;
   }
 
-  // only update output every 'kDiscretize' time
+  // only update output every 'discretize' time
   discretize_cntr++;
-  if (discretize_cntr >= s.kDiscretize) {
+  if (discretize_cntr >= s.discretize) {
     discretize_cntr = 0;
 
     // determine whether we should be in a new state

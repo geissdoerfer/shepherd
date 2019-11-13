@@ -39,6 +39,23 @@ struct CalibrationSettings {
 	int32_t adc_load_voltage_offset;
 } __attribute__((packed));
 
+/* This structure defines all settings of virtcap emulation*/
+struct VirtCapSettings {
+  int32_t upper_threshold_voltage;
+  int32_t lower_threshold_voltage;
+  int32_t sample_period_us;
+  int32_t capacitance_uf;
+  int32_t max_cap_voltage;
+  int32_t min_cap_voltage;
+  int32_t init_cap_voltage;
+  int32_t dc_output_voltage;
+  int32_t leakage_current;
+  int32_t discretize;
+  int32_t output_cap_uf;
+  int32_t lookup_input_efficiency[4][9];
+  int32_t lookup_output_efficiency[4][9];
+} __attribute__((packed));
+
 /* This is external to expose some of the attributes through sysfs */
 extern void __iomem *pru_shared_mem_io;
 
@@ -60,6 +77,8 @@ struct SharedMem {
 	uint32_t buffer_period_ns;
 	/* ADC calibration settings */
 	struct CalibrationSettings calibration_settings;
+	/* This structure defines all settings of virtcap emulation*/
+	struct VirtCapSettings;
 } __attribute__((packed));
 
 /* Control request message sent from PRU0 to this kernel module */

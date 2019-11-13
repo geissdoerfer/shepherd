@@ -142,11 +142,11 @@ class Emulator(ShepherdIO):
         virtcap: dict = None,
     ):
 
-        print(virtcap)
 
         # Set shepherd mode to virtcap if required
         shepherd_mode = "emulation"
         if virtcap != None:
+            print(virtcap)
             shepherd_mode = "virtcap"
 
         super().__init__(shepherd_mode, 0.0, "artificial")
@@ -162,7 +162,9 @@ class Emulator(ShepherdIO):
                 "No recording calibration data provided - using defaults"
             )
 
-        self.send_calibration_settings(calibration_emulation)
+        if virtcap != None:
+            self.send_calibration_settings(calibration_emulation)
+            # self.send_virtcap_settings(virtcap)
 
         # Values from recording are binary ADC values. We have to send binary
         # DAC values to the DAC for emulation. To directly convert ADC to DAC
@@ -180,32 +182,16 @@ class Emulator(ShepherdIO):
                 + calibration_emulation["emulation"][channel]["offset"]
             )
 
-        print(f"Calculating coefficients")
-        for channel in ["voltage", "current"]:
-            for ctype in ["gain", "offset"]:
-                print(
-                    f'Calibration recording harvesting {channel} {ctype}: {1/calibration_recording["harvesting"][channel][ctype]}'
-                )
-                print(
-                    f'Calibration emulation load {channel} {ctype}: {1/calibration_emulation["load"][channel][ctype]}'
-                )
-
         if shepherd_mode == "virtcap":
             for channel in ["voltage", "current"]:
                 self.transform_coeffs[channel]["gain"] = (
                     calibration_recording["harvesting"][channel]["gain"]
                     / calibration_emulation["load"][channel]["gain"]
                 )
-                print(
-                    f'transform_coeffs {channel} gain: {self.transform_coeffs[channel]["gain"]}'
-                )
                 self.transform_coeffs[channel]["offset"] = (
                     calibration_recording["harvesting"][channel]["offset"]
                      - calibration_emulation["load"][channel]["offset"]
                 ) / calibration_emulation["load"][channel]["gain"]
-                print(
-                    f'transform_coeffs {channel} offset: {self.transform_coeffs[channel]["offset"]}'
-                )
 
         self._initial_buffers = initial_buffers
 

@@ -70,6 +70,23 @@ struct CalibrationSettings {
 	int32_t adc_load_voltage_offset;
 } __attribute__((packed));
 
+/* This structure defines all settings of virtcap emulation*/
+struct VirtCapSettings {
+  int32_t upper_threshold_voltage;
+  int32_t lower_threshold_voltage;
+  int32_t sample_period_us;
+  int32_t capacitance_uf;
+  int32_t max_cap_voltage;
+  int32_t min_cap_voltage;
+  int32_t init_cap_voltage;
+  int32_t dc_output_voltage;
+  int32_t leakage_current;
+  int32_t discretize;
+  int32_t output_cap_uf;
+  int32_t lookup_input_efficiency[4][9];
+  int32_t lookup_output_efficiency[4][9];
+} __attribute__((packed));
+
 /* Format of RPMSG used in Data Exchange Protocol between PRU0 and user space */
 struct DEPMsg {
 	uint32_t msg_type;
@@ -95,6 +112,8 @@ struct SharedMem {
 	uint32_t buffer_period_ns;
 	/* ADC calibration settings */
 	struct CalibrationSettings calibration_settings;
+	/* This structure defines all settings of virtcap emulation*/
+	struct VirtCapSettings;
 	/* Used to exchange timestamp of next buffer between PRU1 and PRU0 */
 	uint64_t next_timestamp_ns;
 	/* Protects write access to below gpio_edges structure */

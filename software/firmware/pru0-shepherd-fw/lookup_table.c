@@ -39,7 +39,7 @@ void lookup_init(int32_t dbg[])
 }
 
 
-int32_t lookup(int16_t table[][9], int32_t current, int32_t dbg[])
+int32_t lookup(int32_t table[][9], int32_t current, int32_t dbg[])
 {
   // static int counter = 0;
 

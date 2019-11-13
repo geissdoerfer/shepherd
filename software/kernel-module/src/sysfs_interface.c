@@ -383,6 +383,34 @@ static ssize_t sysfs_calibration_settings_show(struct kobject *kobj,
 		readl(pru_shared_mem_io + kobj_attr_wrapped->val_offset + 12));
 }
 
+static ssize_t sysfs_virtcap_settings_store(struct kobject *kobj,
+						struct kobj_attribute *attr,
+						const char *buf, size_t count)
+{
+	struct VirtCapSettings virtcap_settings;
+	struct kobj_attr_struct_s *kobj_attr_wrapped;
+
+	if (pru_comm_get_state() != STATE_IDLE)
+		return -EBUSY;
+
+	kobj_attr_wrapped = container_of(attr, struct kobj_attr_struct_s, attr);
+	int pos = 0;
+
+	for (int i = 0; i < sizeof(virtcap_settings); i += 4)
+	{
+		int read, n;
+		int ret = sscanf(&buf[pos],"%d%n",&read,&n);
+    pos += n;
+
+		if (ret != 1)
+			return -EINVAL;
+		
+		writel(read, pru_shared_mem_io + kobj_attr_wrapped->val_offset + i);	
+	}
+
+	return count;
+}
+
 int sysfs_interface_init(void)
 {
 	int retval = 0;
