@@ -94,7 +94,7 @@ def targetpower(on, voltage):
 )
 @click.option("--parameters", default=dict())
 @click.option("-v", "--verbose", count=True)
-@click_config_file.configuration_option(provider=yamlprovider)
+@click_config_file.configuration_option(provider=yamlprovider, implicit=False)
 def run(command, parameters, verbose):
 
     if verbose is not None:
@@ -226,13 +226,12 @@ def record(
     "--start-time", type=float, help="Desired start time in unix epoch time"
 )
 @click.option(
-    "--emulation-type",
-    type=click.Choice(["bq25505", "virtcap"]),
-    default="bq25505",
-    help="Choose default bq25505 emulation or fancy virtcap",
+    "--virtcap",
+    help="Use virtcap, it can emulate any energy harvesting power supply chain by the given virtcap model parameters",
 )
+@click_config_file.configuration_option(provider=yamlprovider, implicit=False)
 def emulate(
-    input, output, length, force, no_calib, load, ldo_voltage, start_time, emulation_type,
+    input, output, length, force, no_calib, load, ldo_voltage, start_time, virtcap,
 ):
     if output is None:
         pl_store = None
@@ -244,7 +243,7 @@ def emulate(
             pl_store = Path("/var/shepherd/recordings") / output
 
     run_emulate(
-        input, pl_store, length, force, no_calib, load, ldo_voltage, start_time, emulation_type
+        input, pl_store, length, force, no_calib, load, ldo_voltage, start_time, virtcap
     )
 
 

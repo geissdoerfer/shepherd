@@ -129,8 +129,7 @@ class Emulator(ShepherdIO):
             Should be one of 'artificial' or 'node'.
         ldo_voltage (float): Pre-charge the capacitor to this voltage before
             starting recording.
-        emulation_type (str): Selects, which type of emulation occurs.
-            Should be one of 'bq25505' or 'virtcap'.
+        virtcap (dict): Settings which define the behavior of virtcap emulation
     """
 
     def __init__(
@@ -140,12 +139,14 @@ class Emulator(ShepherdIO):
         calibration_emulation: CalibrationData = None,
         load: str = "node",
         ldo_voltage: float = 0.0,
-        emulation_type: str = "bq25505",
+        virtcap: dict = None,
     ):
+
+        print(virtcap)
 
         # Set shepherd mode to virtcap if required
         shepherd_mode = "emulation"
-        if emulation_type == "virtcap":
+        if virtcap != None:
             shepherd_mode = "virtcap"
 
         super().__init__(shepherd_mode, 0.0, "artificial")
@@ -179,13 +180,32 @@ class Emulator(ShepherdIO):
                 + calibration_emulation["emulation"][channel]["offset"]
             )
 
-        # Virtcap used binary ADC values, so no conversion is needed.
-        # Therefor coefficients are reset for virtcap
-        # if emulation_type == "virtcap":
+        print(f"Calculating coefficients")
+        for channel in ["voltage", "current"]:
+            for ctype in ["gain", "offset"]:
+                print(
+                    f'Calibration recording harvesting {channel} {ctype}: {1/calibration_recording["harvesting"][channel][ctype]}'
+                )
+                print(
+                    f'Calibration emulation load {channel} {ctype}: {1/calibration_emulation["load"][channel][ctype]}'
+                )
+
         if shepherd_mode == "virtcap":
             for channel in ["voltage", "current"]:
-                self.transform_coeffs[channel]["gain"] = 1
-                self.transform_coeffs[channel]["offset"] = 0
+                self.transform_coeffs[channel]["gain"] = (
+                    calibration_recording["harvesting"][channel]["gain"]
+                    / calibration_emulation["load"][channel]["gain"]
+                )
+                print(
+                    f'transform_coeffs {channel} gain: {self.transform_coeffs[channel]["gain"]}'
+                )
+                self.transform_coeffs[channel]["offset"] = (
+                    calibration_recording["harvesting"][channel]["offset"]
+                     - calibration_emulation["load"][channel]["offset"]
+                ) / calibration_emulation["load"][channel]["gain"]
+                print(
+                    f'transform_coeffs {channel} offset: {self.transform_coeffs[channel]["offset"]}'
+                )
 
         self._initial_buffers = initial_buffers
 
@@ -201,7 +221,7 @@ class Emulator(ShepherdIO):
             self.set_ldo_voltage(False)
 
         if self.mode == "virtcap":
-            self.set_ldo_voltage(3.0)  # TODO remove, hack to enable output
+            self.set_ldo_voltage(2.55)  # TODO remove, hack to enable output
 
         # Disconnect harvester to avoid leakage in or out of the harvester
         self.set_harvester(False)
@@ -221,19 +241,15 @@ class Emulator(ShepherdIO):
         ts_start = time.time()
 
         # Convert binary ADC recordings to binary DAC values
-        if False:
-            voltage_transformed = (
-                buffer.voltage * self.transform_coeffs["voltage"]["gain"]
-                + self.transform_coeffs["voltage"]["offset"]
-            ).astype("u4")
+        voltage_transformed = (
+            buffer.voltage * self.transform_coeffs["voltage"]["gain"]
+            + self.transform_coeffs["voltage"]["offset"]
+        ).astype("u4")
 
-            current_transformed = (
-                buffer.current * self.transform_coeffs["current"]["gain"]
-                + self.transform_coeffs["current"]["offset"]
-            ).astype("u4")
-        else:
-            voltage_transformed = (buffer.voltage).astype("u4")
-            current_transformed = (buffer.current).astype("u4")
+        current_transformed = (
+            buffer.current * self.transform_coeffs["current"]["gain"]
+            + self.transform_coeffs["current"]["offset"]
+        ).astype("u4")
 
         self.shared_mem.write_buffer(
             index, voltage_transformed, current_transformed
@@ -427,7 +443,7 @@ def emulate(
     load: str = "artificial",
     ldo_voltage: float = None,
     start_time: float = None,
-    emulation_type: str = "bq25505",
+    virtcap: dict = None,
 ):
     """Starts emulation.
 
@@ -446,8 +462,7 @@ def emulate(
         ldo_voltage (float): Pre-charge capacitor to this voltage before
             starting emulation
         start_time (float): Desired start time of emulation in unix epoch time
-        emulation_type (str): Either use default bq25505 for emulation, or
-            virtcap which is a generic model to emulate any energy harvester
+        virtcap (dict): Settings which define the behavior of virtcap emulation
     """
 
     if no_calib:
@@ -481,7 +496,7 @@ def emulate(
             initial_buffers=log_reader.read_buffers(end=64),
             ldo_voltage=ldo_voltage,
             load=load,
-            emulation_type=emulation_type,
+            virtcap=virtcap,
         )
         stack.enter_context(emu)
 

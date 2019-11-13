@@ -1,7 +1,7 @@
-#include "virtcap.h"
 #include <stdint.h>
 #include <stdio.h>
 #include "commons.h"
+#include "virtcap.h"
 
 // Derived constants
 static int32_t harvest_multiplier;
@@ -17,58 +17,74 @@ static int32_t discretize_cntr;
 uint32_t SquareRootRounded(uint32_t a_nInput);
 
 // Global vars to access in update function
-static VirtCapNoFpSettings s;
-static virtcap_nofp_callback_func_t callback;
-static struct CalibrationSettings cs;
+VirtCapNoFpSettings s;
+virtcap_nofp_callback_func_t callback;
+struct CalibrationSettings cs = {
+    .adc_load_current_gain =
+        (int32_t)(2.0 * 50.25 / (0.625 * 4.096) * ((1 << 17) - 1)),
+    .adc_load_current_offset = -(1 << 17),
+    .adc_load_voltage_gain = (int32_t)(1 / (1.25 * 4.096) * ((1 << 18) - 1)),
+    .adc_load_voltage_offset = 0,
+};
 
-#define FIXED_VALUES 1
+#define FIXED_SETTINGS 0
+#define FIXED_CALIBRATION 0
+#define FIXED_INPUT 0
+#define FIXED_EFFICIENCY 0
 
-
-int32_t virtcap_init(VirtCapNoFpSettings settings_arg,
+int32_t virtcap_init(const VirtCapNoFpSettings* s_arg,
                      virtcap_nofp_callback_func_t callback_arg,
-                     struct CalibrationSettings calib) {
-  s = settings_arg;
+                     const struct CalibrationSettings* calib, int32_t dbg[]) {
+  s = *s_arg;
   callback = callback_arg;
-  cs = calib;
+  cs = *calib;
 
-  #if (FIXED_VALUES == 1)
+#if (FIXED_INPUT == 1 || FIXED_SETTINGS == 1)
   s.upper_threshold_voltage = 3.5 * 1e3;
   s.lower_threshold_voltage = 3.2 * 1e3;
-  s.capacitance_uF = 1000;    
-  s.sample_period_us = 10;   
+  s.capacitance_uf = 137;
+  s.sample_period_us = 10;
   s.kMaxCapVoltage = 4.2 * 1e3;
-  s.kMinCapVoltage = 0;    
+  s.kMinCapVoltage = 0;
   s.kInitCapVoltage = 3.2 * 1e3;
   s.kDcoutputVoltage = 2.23 * 1e3;
   s.kLeakageCurrent = 4;
-  s.kHarvesterEfficiency = 0.90 * 8192;   
-  s.kConverterEfficiency = 0.86 * 8192;
-  s.kOnTimeLeakageCurrent = 12;
-  s.kFilename = "solv3_10.bin";
-  s.kScaleDacOut = 2;
   s.kDiscretize = 5695;
-  s.kOutputCap_uF = 10;
-
-  cs.adc_load_current_gain = (int32_t) (2.0 * 50.25 / (0.625 * 4.096) * ((1 << 17) - 1));
-  cs.adc_load_current_offset = - (1 << 17);
-  cs.adc_load_voltage_gain = (int32_t) (1 / (1.25 * 4.096) * ((1 << 18) - 1));
-  cs.adc_load_voltage_offset = 0;
-  #endif
+  s.kOutputCap_uf = 10;
+#endif
 
   // convert voltages and currents to logic values
-  s.upper_threshold_voltage = voltage_mv_to_logic(s.upper_threshold_voltage);
-  s.lower_threshold_voltage = voltage_mv_to_logic(s.lower_threshold_voltage);
-  s.kMaxCapVoltage = voltage_mv_to_logic(s.kMaxCapVoltage);
-  s.kMinCapVoltage = voltage_mv_to_logic(s.kMinCapVoltage);
-  s.kInitCapVoltage = voltage_mv_to_logic(s.kInitCapVoltage);
-  s.kDcoutputVoltage = voltage_mv_to_logic(s.kDcoutputVoltage);
-  s.kLeakageCurrent = current_ua_to_logic(s.kLeakageCurrent);
-  s.kOnTimeLeakageCurrent = current_ua_to_logic(s.kOnTimeLeakageCurrent);
+  s.upper_threshold_voltage = voltage_mv_to_logic(s_arg->upper_threshold_voltage);
+  s.lower_threshold_voltage = voltage_mv_to_logic(s_arg->lower_threshold_voltage);
+  s.kMaxCapVoltage = voltage_mv_to_logic(s_arg->kMaxCapVoltage);
+  s.kMinCapVoltage = voltage_mv_to_logic(s_arg->kMinCapVoltage);
+  s.kInitCapVoltage = voltage_mv_to_logic(s_arg->kInitCapVoltage);
+  s.kDcoutputVoltage = voltage_mv_to_logic(s_arg->kDcoutputVoltage);
+  s.kLeakageCurrent = current_ua_to_logic(s_arg->kLeakageCurrent);
+
+  #if (FIXED_CALIBRATION == 1)
+  cs.adc_load_current_gain = (int32_t) (2.0 * 50.25 / (0.625 * 4.096) * ((1 << 17) - 1)),
+  cs.adc_load_current_offset = - (1 << 17),
+  cs.adc_load_voltage_gain = (int32_t) (1 / (1.25 * 4.096) * ((1 << 18) - 1)),
+  cs.adc_load_voltage_offset = -2,
+  #endif
+
+  #if 1
+  dbg[4] = cs.adc_load_current_gain;
+  dbg[5] = cs.adc_load_current_offset;
+  dbg[6] = cs.adc_load_voltage_gain;
+  dbg[7] = cs.adc_load_voltage_offset;
+  #else
+  dbg[4] = s.kDiscretize;
+  dbg[5] = s.kOutputCap_uf;
+  dbg[6] = s.kMaxCapVoltage;
+  dbg[7] = s.kMinCapVoltage;
+  #endif
 
   /* Calculate how much output cap should be discharged when turning on, based
    * on the storage capacitor and output capacitor size */
   int32_t scale =
-      ((s.capacitance_uF - s.kOutputCap_uF) << 20) / s.capacitance_uF;
+      ((s.capacitance_uf - s.kOutputCap_uf) << 20) / s.capacitance_uf;
   outputcap_scale_factor = SquareRootRounded(scale);
 
   // Initialize vars
@@ -79,12 +95,12 @@ int32_t virtcap_init(VirtCapNoFpSettings settings_arg,
   // Calculate harvest multiplier
   harvest_multiplier =
       (s.sample_period_us << (SHIFT_VOLT + SHIFT_VOLT)) /
-      (cs.adc_load_current_gain / cs.adc_load_voltage_gain * s.capacitance_uF);
+      (cs.adc_load_current_gain / cs.adc_load_voltage_gain * s.capacitance_uf);
 
   avg_cap_voltage = (s.upper_threshold_voltage + s.lower_threshold_voltage) / 2;
-  output_multiplier =
-      ((s.kDcoutputVoltage >> SHIFT_VOLT) * s.kConverterEfficiency) /
-      (avg_cap_voltage >> SHIFT_VOLT);
+  output_multiplier = s.kDcoutputVoltage / (avg_cap_voltage >> SHIFT_VOLT);
+
+  lookup_init(dbg);
 
 #if (SINGLE_ITERATION == 1)
   printf(
@@ -103,41 +119,53 @@ int32_t virtcap_init(VirtCapNoFpSettings settings_arg,
   return output_multiplier;
 }
 
-
 int32_t virtcap_update(int32_t output_current, int32_t output_voltage,
-                       int32_t input_current, int32_t input_voltage,
-                       int32_t efficiency) {
-#if (FIXED_VALUES == 1)
+                       int32_t input_current, int32_t input_voltage, int32_t dbg[]) {
+
+  int32_t input_efficiency;
+  int32_t output_efficiency;
+
+
+#if (FIXED_INPUT == 1)
   output_current = 24006;
   output_voltage = 113953;
   input_current = 7717;
   input_voltage = 76650;
-  efficiency = 0.9 * 8192;
 #endif
 
-  /* Calculate current flowing into the storage capacitor */
-  int32_t input_power = input_current * input_voltage;
-  int32_t input_current_cap = input_power / (cap_voltage >> SHIFT_VOLT);
-  input_current_cap *= efficiency;
-  input_current_cap = input_current_cap >> SHIFT_VOLT;
-  input_current_cap -= s.kLeakageCurrent;
+  #if (FIXED_EFFICIENCY == 1)
+  input_efficiency = 0.90 * EFFICIENCY_RANGE;
+  output_efficiency = (1 / 0.86) * EFFICIENCY_RANGE;
+  #else
+  output_efficiency = lookup(s.kLookupOutputEfficiency, output_current, dbg);
+  input_efficiency = lookup(s.kLookupInputEfficiency, input_current, dbg);
+  #endif 
 
-  /* Calculate current flowing out of the storage capacitor*/
+  /* Calculate current (cin) flowing into the storage capacitor */
+  int32_t input_power = input_current * input_voltage;
+  int32_t cin = input_power / (cap_voltage >> SHIFT_VOLT);
+  cin *= input_efficiency;
+  cin = cin >> SHIFT_VOLT;
+
+  /* Calculate current (cout) flowing out of the storage capacitor*/
   if (!is_outputting) {
     output_current = 0;
   }
-  int32_t output_current_cap = output_current * output_multiplier >> SHIFT_VOLT;
+  int32_t cout = output_current * output_multiplier >> SHIFT_VOLT;
+  cout *= output_efficiency;
+  cout = cout >> SHIFT_VOLT;
+  cout += s.kLeakageCurrent;
 
   /* Calculate delta V*/
-  int32_t delta_i = input_current_cap - output_current_cap;
+  int32_t delta_i = cin - cout;
   int32_t delta_v = delta_i * harvest_multiplier >> SHIFT_VOLT;
   int32_t new_cap_voltage = cap_voltage + delta_v;
 
 #if (SINGLE_ITERATION == 1)
   printf(
-      "input_current_cap: %d, input_current_cap: %d, s.kLeakageCurrent: %u, "
+      "cin: %d, cin: %d, s.kLeakageCurrent: %u, "
       "cap_voltage: %u\n",
-      input_current, input_current_cap, s.kLeakageCurrent, cap_voltage);
+      input_current, cin, s.kLeakageCurrent, cap_voltage);
 #endif
 
 // TODO remove debug
@@ -145,11 +173,9 @@ int32_t virtcap_update(int32_t output_current, int32_t output_voltage,
   static uint16_t cntr;
   if (cntr++ % 100000 == 0) {
     printf(
-        "input_current_cap: %d, output_current: %u, output_voltage: %u, "
-        "cap_voltage: %u\n",
-        input_current_cap, output_current, output_voltage, cap_voltage);
-    printf("new_cap_voltage: %u, is_outputting: %d, output_current_cap: %d \n",
-           new_cap_voltage, is_outputting, output_current_cap);
+        "output_current: %d, output_voltage: %d, input_current: %d, "
+        "input_voltage: %d\n",
+        output_current, output_voltage, input_current, input_voltage);
   }
 #endif
 
@@ -179,7 +205,7 @@ int32_t virtcap_update(int32_t output_current, int32_t output_voltage,
 
   cap_voltage = new_cap_voltage;
 
-  return new_cap_voltage;
+  return cap_voltage;
 }
 
 uint32_t SquareRootRounded(uint32_t a_nInput) {
@@ -219,13 +245,6 @@ int32_t current_ua_to_logic(int32_t current) {
   /* Compensate for adc gain and offset, division for ua is split to optimize
    * accuracy */
   int32_t logic_current = current * (cs.adc_load_current_gain / 1000) / 1000;
-  /* Add 2^17 because current is defined around zero, not 2^17 */
-  logic_current += cs.adc_load_current_offset + (1 << 17);
-  return logic_current;
-}
-
-int32_t current_ma_to_logic(int32_t current) {
-  int32_t logic_current = current * cs.adc_load_current_gain / 1000;
   /* Add 2^17 because current is defined around zero, not 2^17 */
   logic_current += cs.adc_load_current_offset + (1 << 17);
   return logic_current;

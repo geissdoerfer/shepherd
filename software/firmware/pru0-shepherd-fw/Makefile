@@ -8,7 +8,6 @@ SOURCES = $(notdir $(wildcard ./*.c))
 SOURCES += printf.c
 SOURCES += rpmsg.c
 SOURCES += simple_lock.c
-SOURCES += virtcap.c
 
 ASM_SOURCES = spi_transfer.asm
 

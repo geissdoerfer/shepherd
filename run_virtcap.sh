@@ -1,3 +1,6 @@
 #!/bin/bash
 cd /opt/shepherd/software/python-package
-sudo python3 -m shepherd.cli -vv emulate --emulation-type virtcap -l 1 -o /var/shepherd/emulation/emu.0.h5 /var/shepherd/recordings/rec.40.good.h5
+suffix=b
+number=1
+# sudo python3 -m shepherd.cli -vv emulate --emulation-type virtcap --force -o /var/shepherd/emulation/emu.$number$suffix.h5 /var/shepherd/recordings/solv3_$number.h5
+sudo python3 -m shepherd.cli "$@"

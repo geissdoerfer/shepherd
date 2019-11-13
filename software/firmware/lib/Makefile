@@ -38,12 +38,12 @@ INCLUDE += --include_path=${PRU_SUPPORT}/include
 INCLUDE += --include_path=${PRU_SUPPORT}/include/am335x
 INCLUDE += --include_path=$(BASE_PATH)/lib/include
 
-STACK_SIZE=0x100
+STACK_SIZE=0x200
 HEAP_SIZE=0x100
 GEN_DIR=gen
 
 #Common compiler and linker flags (Defined in 'PRU Optimizing C/C++ Compiler User's Guide)
-CFLAGS=-v3 -O2 --display_error_number --endian=little --hardware_mac=on --obj_directory=$(GEN_DIR) --pp_directory=$(GEN_DIR) -ppd -ppa
+CFLAGS=-v3 -O2 --display_error_number --endian=little --hardware_mac=on --obj_directory=$(GEN_DIR) --pp_directory=$(GEN_DIR) -ppd -ppa --c99
 #Linker flags (Defined in 'PRU Optimizing C/C++ Compiler User's Guide)
 LFLAGS=--reread_libs --warn_sections --stack_size=$(STACK_SIZE) --heap_size=$(HEAP_SIZE)
 
