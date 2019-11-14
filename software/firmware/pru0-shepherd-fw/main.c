@@ -307,7 +307,8 @@ void main(void) {
     _GPIO_OFF(DEBUG_P1);
 
     virtcap_init(
-        &kBQ25570Settings, set_output,
+        (const struct VirtCapSettings *)&shared_mem->virtcap_settings,
+        set_output,
         (const struct CalibrationSettings *)&shared_mem->calibration_settings,
         dbg);
     send_message(MSG_DEP_DBG_PRINT, 777777);

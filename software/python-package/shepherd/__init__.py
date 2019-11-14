@@ -146,7 +146,6 @@ class Emulator(ShepherdIO):
         # Set shepherd mode to virtcap if required
         shepherd_mode = "emulation"
         if virtcap != None:
-            print(virtcap)
             shepherd_mode = "virtcap"
 
         super().__init__(shepherd_mode, 0.0, "artificial")
@@ -164,7 +163,7 @@ class Emulator(ShepherdIO):
 
         if virtcap != None:
             self.send_calibration_settings(calibration_emulation)
-            # self.send_virtcap_settings(virtcap)
+            self.send_virtcap_settings(virtcap)
 
         # Values from recording are binary ADC values. We have to send binary
         # DAC values to the DAC for emulation. To directly convert ADC to DAC

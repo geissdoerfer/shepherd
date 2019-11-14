@@ -10,7 +10,7 @@
 #define SHIFT_VOLT 12
 #define EFFICIENCY_RANGE (1 << 12)
 
-static const VirtCapSettings kBQ25570Settings = 
+static const struct VirtCapSettings kBQ25570Settings = 
 {
   .upper_threshold_voltage = 3500,
   .lower_threshold_voltage = 3200,

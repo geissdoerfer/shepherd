@@ -78,7 +78,7 @@ struct SharedMem {
 	/* ADC calibration settings */
 	struct CalibrationSettings calibration_settings;
 	/* This structure defines all settings of virtcap emulation*/
-	struct VirtCapSettings;
+	struct VirtCapSettings virtcap_settings;
 } __attribute__((packed));
 
 /* Control request message sent from PRU0 to this kernel module */

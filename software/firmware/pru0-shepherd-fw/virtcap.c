@@ -69,14 +69,14 @@ int32_t virtcap_init(const struct VirtCapSettings* s_arg,
   cs.adc_load_voltage_offset = -2,
   #endif
 
-  #if 1
+  #if 0
   dbg[4] = cs.adc_load_current_gain;
   dbg[5] = cs.adc_load_current_offset;
   dbg[6] = cs.adc_load_voltage_gain;
   dbg[7] = cs.adc_load_voltage_offset;
   #else
   dbg[4] = s.discretize;
-  dbg[5] = s.output_cap_uf;
+  dbg[5] = s.capacitance_uf;
   dbg[6] = s.max_cap_voltage;
   dbg[7] = s.min_cap_voltage;
   #endif

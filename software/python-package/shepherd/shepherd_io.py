@@ -20,6 +20,7 @@ import struct
 import mmap
 import sys
 import numpy as np
+import collections
 from pathlib import Path
 from periphery import GPIO
 
@@ -579,6 +580,40 @@ class ShepherdIO(object):
             int(1/calibration_settings["load"]["voltage"]["gain"]),
             int(calibration_settings["load"]["voltage"]["offset"] / calibration_settings["load"]["voltage"]["gain"]),
         )
+
+
+
+    def send_virtcap_settings(self, virtcap_settings: dict):
+        """Sends virtcap settings to PRU core
+
+        For virtcap it is required to have the virtcap settings.
+
+        Args:
+            virtcap_settings (dict): Contains the virtcap settings.
+        """    
+
+        def flatten(L):
+            '''(list) -> list
+            Returns a flattened version of nested list L
+            >>> flatten([1,[2,[3,4]],5])
+            [1, 2, 3, 4, 5]
+            '''
+            # base case: list with one element
+            if len(L) == 1:
+                if type(L[0]) == list:
+                    result = flatten(L[0])
+                else:
+                    result = L
+            elif type(L[0]) == list:
+                result = flatten(L[0]) + flatten(L[1:])
+            else:
+                result = [L[0]] + flatten(L[1:])
+            return result
+
+        values = virtcap_settings.values()
+        values = flatten(list(values))
+
+        sysfs_interface.send_virtcap_settings(values)
 
     def _release_buffer(self, index: int):
         """Returns a buffer to the PRU

@@ -140,6 +140,22 @@ def send_calibration_settings(
         f.write(output)
 
 
+def send_virtcap_settings(settings: list):
+    """Sends the virtcap settings to the PRU core.
+
+    The virtcap algorithm uses these settings to configure emulation.
+
+    """
+
+    s = [str(i) for i in settings] 
+    output = " ".join(s)
+    print(output)
+
+    with open(str(sysfs_path / "virtcap_settings"), "w") as f:
+        logger.debug(f"Sending virtcap settings: {output}")
+        f.write(output)
+
+
 def set_harvesting_voltage(harvesting_voltage: int):
     """Sets the harvesting voltage.
 

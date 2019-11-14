@@ -53,6 +53,13 @@ static ssize_t sysfs_calibration_settings_store(struct kobject *kobj,
 static ssize_t sysfs_calibration_settings_show(struct kobject *kobj,
 				    struct kobj_attribute *attr, char *buf);
 
+static ssize_t sysfs_virtcap_settings_store(struct kobject *kobj,
+						struct kobj_attribute *attr,
+						const char *buf, size_t count);
+
+static ssize_t sysfs_virtcap_settings_show(struct kobject *kobj,
+				    struct kobj_attribute *attr, char *buf);
+
 struct kobj_attr_struct_s {
 	struct kobj_attribute attr;
 	unsigned int val_offset;
@@ -96,6 +103,11 @@ struct kobj_attr_struct_s attr_calibration_settings = {
 		       sysfs_calibration_settings_store),
 	.val_offset = offsetof(struct SharedMem, calibration_settings)
 };
+struct kobj_attr_struct_s attr_virtcap_settings = {
+	.attr = __ATTR(virtcap_settings, 0660, sysfs_virtcap_settings_show,
+		       sysfs_virtcap_settings_store),
+	.val_offset = offsetof(struct SharedMem, virtcap_settings)
+};
 
 struct kobj_attribute attr_sync_error =
 	__ATTR(error, 0660, sysfs_sync_error_show, NULL);
@@ -113,6 +125,7 @@ static struct attribute *pru_attrs[] = {
 	&attr_mode.attr.attr,
 	&attr_harvesting_voltage.attr.attr,
 	&attr_calibration_settings.attr.attr,
+	&attr_virtcap_settings.attr.attr,
 	NULL,
 };
 
@@ -387,16 +400,16 @@ static ssize_t sysfs_virtcap_settings_store(struct kobject *kobj,
 						struct kobj_attribute *attr,
 						const char *buf, size_t count)
 {
-	struct VirtCapSettings virtcap_settings;
 	struct kobj_attr_struct_s *kobj_attr_wrapped;
+	int pos = 0;
+	int i = 0;
 
 	if (pru_comm_get_state() != STATE_IDLE)
 		return -EBUSY;
 
 	kobj_attr_wrapped = container_of(attr, struct kobj_attr_struct_s, attr);
-	int pos = 0;
 
-	for (int i = 0; i < sizeof(virtcap_settings); i += 4)
+	for (i = 0; i < sizeof(struct VirtCapSettings); i += 4)
 	{
 		int read, n;
 		int ret = sscanf(&buf[pos],"%d%n",&read,&n);
@@ -406,6 +419,25 @@ static ssize_t sysfs_virtcap_settings_store(struct kobject *kobj,
 			return -EINVAL;
 		
 		writel(read, pru_shared_mem_io + kobj_attr_wrapped->val_offset + i);	
+	}
+
+	return count;
+}
+
+static ssize_t sysfs_virtcap_settings_show(struct kobject *kobj,
+				    struct kobj_attribute *attr, char *buf)
+{
+	struct kobj_attr_struct_s *kobj_attr_wrapped;
+	int count = 0;
+	int i = 0;
+
+	kobj_attr_wrapped = container_of(attr, struct kobj_attr_struct_s, attr);
+
+
+	for (i = 0; i < sizeof(struct VirtCapSettings); i += 4)
+	{
+		count += sprintf(strlen(buf) + buf,"%d ", 
+			readl(pru_shared_mem_io + kobj_attr_wrapped->val_offset + i));
 	}
 
 	return count;
