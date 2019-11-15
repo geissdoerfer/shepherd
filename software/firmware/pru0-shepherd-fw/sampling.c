@@ -63,6 +63,30 @@ static inline void sample_emulation(struct SampleBuffer *buffer,
 		adc_readwrite(SPI_CS_ADC, MAN_CH_SLCT | (ADC_CH_A_OUT << 10));
 }
 
+static inline void sample_virtcap(struct SampleBuffer *buffer,
+			       unsigned int sample_idx)
+{
+	static int under_sample_voltage_cntr = 0;
+	static int last_voltage_measurement = 0;
+
+	if ((under_sample_voltage_cntr++ % 8) == 0)
+	{
+		/* Read load current and select load voltage for next reading */
+		buffer->values_current[sample_idx] =
+			adc_readwrite(SPI_CS_ADC, MAN_CH_SLCT | (ADC_CH_V_OUT << 10));
+		/* Read load voltage and select load current for next reading */
+		buffer->values_voltage[sample_idx] =
+			adc_readwrite(SPI_CS_ADC, MAN_CH_SLCT | (ADC_CH_A_OUT << 10));
+		last_voltage_measurement = buffer->values_voltage[sample_idx];
+	}
+	else {
+		/* Read load current and select load current for next reading */
+		buffer->values_current[sample_idx] =
+			adc_readwrite(SPI_CS_ADC, MAN_CH_SLCT | (ADC_CH_A_OUT << 10));
+		buffer->values_voltage[sample_idx] = last_voltage_measurement;
+	}
+}
+
 void sample(struct SampleBuffer *current_buffer, unsigned int sample_idx,
 	    enum ShepherdMode mode)
 {
@@ -77,7 +101,7 @@ void sample(struct SampleBuffer *current_buffer, unsigned int sample_idx,
 		sample_emulation(current_buffer, sample_idx);
 		break;
 	case MODE_VIRTCAP:
-		sample_load(current_buffer, sample_idx);
+		sample_virtcap(current_buffer, sample_idx);
 		break;
 	}
 }

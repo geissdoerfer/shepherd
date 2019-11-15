@@ -169,7 +169,7 @@ void event_loop(volatile struct SharedMem *shared_mem,
           input_voltage = current_buffer->values_voltage[sample_idx];
 
           // Sample output current/voltage
-          sample(buffers + buffer_idx, sample_idx++, MODE_LOAD);
+          sample(buffers + buffer_idx, sample_idx++, MODE_VIRTCAP);
           output_current = current_buffer->values_current[sample_idx - 1];
           output_current -= (1 << 17) - 1;  // take away offset
           output_voltage = current_buffer->values_voltage[sample_idx - 1];
@@ -186,7 +186,7 @@ void event_loop(volatile struct SharedMem *shared_mem,
               current_buffer->values_voltage[sample_idx - 1] = 0;
             }
 
-#if 1
+#if 0
             static uint16_t cntr;
             if (cntr++ % 100000 == 0) {
               send_message(MSG_DEP_DBG_PRINT, 888888);
