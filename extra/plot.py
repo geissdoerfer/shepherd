@@ -85,9 +85,9 @@ def extract_hdf(hdf_file: Path, ds_factor: int = 1):
             data[var] = sig_phys
 
         if ds_factor > 1:
-            data["time"] = times[::ds_factor]
+            data["time"] = times[::ds_factor] - times[0]
         else:
-            data["time"] = times
+            data["time"] = times - times[0]
 
     return data
 
@@ -150,13 +150,13 @@ def cli(directory, filename, sampling_rate, analyse, do_plot):
             )
             axes[1].plot(
                 data[hostname]["time"],
-                data[hostname]["current"] * 1000,
+                data[hostname]["current"] * 1e6,
                 label=hostname,
             )
 
 
     axes[0].set_ylabel("voltage [V]")
-    axes[1].set_ylabel("current [mA]")
+    axes[1].set_ylabel(r"current [$\mu$A]")
     axes[0].legend()
     axes[1].legend()
     axes[1].set_xlabel("time [s]")

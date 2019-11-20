@@ -1,7 +1,0 @@
-[Unit]
-Requires=phc2sys.service
-After=phc2sys.service
-ConditionPathExists=/dev/ptp0
-
-[Service]
-ExecStart=/usr/sbin/ptp4l -m -s -i eth0 -p /dev/ptp0

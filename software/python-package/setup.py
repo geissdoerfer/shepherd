@@ -4,7 +4,7 @@ requirements = [
     "click",
     "click-config-file",
     "numpy",
-    "python-periphery",
+    "python-periphery==1.1.2",
     "scipy",
     "zerorpc",
     "invoke",
@@ -13,7 +13,7 @@ requirements = [
 
 setup(
     name="shepherd",
-    version="0.1.0",
+    version="0.1.1",
     description=("Synchronized Energy Harvesting" "Emulator and Recorder"),
     packages=["shepherd"],
     classifiers=[
@@ -28,12 +28,7 @@ setup(
     ],
     install_requires=requirements,
     setup_requires=["pytest-runner"],
-    tests_require=[
-        "pytest>=3.9",
-        "pyfakefs",
-        "pytest-timeout",
-        "pytest-click",
-    ],
+    tests_require=["pytest>=3.9", "pyfakefs", "pytest-timeout", "pytest-click"],
     author="Kai Geissdoerfer",
     author_email="kai dot geissdoerfer at tu-dresden dot de",
     entry_points={"console_scripts": ["shepherd-sheep=shepherd.cli:cli"]},

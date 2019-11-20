@@ -14,15 +14,23 @@
     daemon_reload: yes
   tags: conf
 
+- name: Create overlay directories
+  file:
+    path: '{{ item }}'
+    state: directory
+  with_items:
+   - /etc/systemd/system/phc2sys.service.d/
+   - /etc/systemd/system/ptp4l.service.d/
+  tags: conf
+
 - name: Deploy unit files
   template:
-    src: '{{ item }}'
-    dest: '/etc/systemd/system/'
+    src: '{{ item.src }}'
+    dest: '{{ item.dest }}'
     mode: 0644
   with_items:
-   - ptp4l.service
-   - ptp4l.path
-   - phc2sys.service
+   - { src: 'phc2sys_mands.conf', dest: '/etc/systemd/system/phc2sys.service.d/phc2sys_mands.conf' }
+   - { src: 'ptp_restart.conf', dest: '/etc/systemd/system/ptp4l.service.d/phc2sys.conf' }
   tags: conf
 
 - name: Enable services
