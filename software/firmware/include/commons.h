@@ -143,4 +143,10 @@ struct CtrlRepMsg {
 	uint64_t next_timestamp_ns;
 } __attribute__((packed));
 
+struct ADCReading {
+	int32_t current;
+	int32_t voltage;
+};
+
+
 #endif /* __COMMONS_H_ */

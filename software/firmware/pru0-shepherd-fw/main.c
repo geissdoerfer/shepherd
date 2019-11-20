@@ -132,11 +132,17 @@ void event_loop(volatile struct SharedMem *shared_mem,
 
   int32_t input_current;
   int32_t input_voltage;
-  int32_t output_current;
-  int32_t output_voltage;
+
+  struct ADCReading output_reading;
+  output_reading.voltage = 0;
+  output_reading.current = (1 << 17);
 
   int32_t dbg[8];
   memset(dbg, 0, sizeof(dbg));
+
+  int32_t new_message = 0;
+
+  enum ShepherdMode mode = (enum ShepherdMode)shared_mem->shepherd_mode;
 
   while (1) {
     /* Check if a sample was triggered by PRU1 */
@@ -153,14 +159,24 @@ void event_loop(volatile struct SharedMem *shared_mem,
         continue;
       }
 
-#define VIRTCAP 1
+      struct DEPMsg msg_in;
+      enum ShepherdMode mode = (enum ShepherdMode)shared_mem->shepherd_mode;
+      enum ShepherdState state = (enum ShepherdState)shared_mem->shepherd_state;
+
+      // _GPIO_ON(DEBUG_P1);
+      if (rpmsg_get((void *)&msg_in) != sizeof(struct DEPMsg)) {
+        new_message = 0;
+      } else {
+        new_message = 1;
+      }
+      // _GPIO_OFF(DEBUG_P1);
 
       /* The actual sampling takes place here */
       if (buffer_idx != NO_BUFFER) {
-        // _GPIO_ON(USR_LED1);
-#if (VIRTCAP == 1)
-        // _GPIO_ON(USR_LED1);
-        if (shared_mem->shepherd_mode == MODE_VIRTCAP) {
+        _GPIO_ON(USR_LED1);
+
+        if (mode == MODE_VIRTCAP) {
+          // if (true) {
           struct SampleBuffer *current_buffer = buffers + buffer_idx;
 
           /* Get input current/voltage from shared memory buffer */
@@ -169,22 +185,32 @@ void event_loop(volatile struct SharedMem *shared_mem,
           input_voltage = current_buffer->values_voltage[sample_idx];
 
           // Sample output current/voltage
-          sample(buffers + buffer_idx, sample_idx++, MODE_VIRTCAP);
-          output_current = current_buffer->values_current[sample_idx - 1];
-          output_current -= (1 << 17) - 1;  // take away offset
-          output_voltage = current_buffer->values_voltage[sample_idx - 1];
+          if (new_message) {
+            /* busy handling message, use old reading*/
+            current_buffer->values_current[sample_idx] = output_reading.current;
+            current_buffer->values_voltage[sample_idx] = output_reading.voltage;
+            sample_idx++;
+          } else {
+            _GPIO_ON(DEBUG_P1);
+            output_reading = sample_virtcap(buffers + buffer_idx, sample_idx++);
+            _GPIO_OFF(DEBUG_P1);
+            output_reading.current -= (1 << 17) - 1;
+          }
 
+          _GPIO_ON(DEBUG_P0);
           // Execute virtcap algorithm
-          if (int_source != SIG_BLOCK_END) {
-            int returncs = virtcap_update(output_current, output_voltage,
-                                          input_current, input_voltage, dbg);
+          // if (int_source != SIG_BLOCK_END) {
+          int returncs =
+              virtcap_update(output_reading.current, output_reading.voltage,
+                             input_current, input_voltage, dbg);
+          _GPIO_OFF(DEBUG_P0);
 
-            // If output is off, force buffer voltage to zero.
-            // Else it will go to max 2.6V, because voltage sense is put before
-            // output switch.
-            if (!virtcap_output_state) {
-              current_buffer->values_voltage[sample_idx - 1] = 0;
-            }
+          // If output is off, force buffer voltage to zero.
+          // Else it will go to max 2.6V, because voltage sense is put before
+          // output switch.
+          if (!virtcap_output_state) {
+            current_buffer->values_voltage[sample_idx - 1] = 0;
+          }
 
 #if 0
             static uint16_t cntr;
@@ -193,30 +219,24 @@ void event_loop(volatile struct SharedMem *shared_mem,
 
               dbg[3] = returncs;
               dbg[4] = output_current;
-              dbg[5] = output_voltage;
+              dbg[5] = output_voltage;1
               dbg[6] = input_current;
               dbg[7] = input_voltage;
               print_dbg(dbg);
             }
 #endif
-          }
+          // }
         } else {
           if (shared_mem->shepherd_mode == MODE_EMULATION) {
-            _GPIO_ON(DEBUG_P1);
           }
           sample(buffers + buffer_idx, sample_idx++,
                  (enum ShepherdMode)shared_mem->shepherd_mode);
         }
-        // _GPIO_OFF(USR_LED1);
-#else
-        _GPIO_ON(USR_LED1);
-        sample(buffers + buffer_idx, sample_idx++,
-               (enum ShepherdMode)shared_mem->shepherd_mode);
         _GPIO_OFF(USR_LED1);
-#endif
       }
 
       if (int_source == SIG_BLOCK_END) {
+        _GPIO_ON(DEBUG_P1);
         /* Did the Linux kernel module ask for reset? */
         if (shared_mem->shepherd_state == STATE_RESET) {
           return;
@@ -229,22 +249,54 @@ void event_loop(volatile struct SharedMem *shared_mem,
                                         buffer_idx, sample_idx);
 
         sample_idx = 0;
+        _GPIO_OFF(DEBUG_P1);
       }
       /* We only handle rpmsg comms if we're not at the last sample */
       else {
-        handle_rpmsg(free_buffers, (enum ShepherdMode)shared_mem->shepherd_mode,
-                     (enum ShepherdState)shared_mem->shepherd_state);
+        if (!new_message) {
+          goto end;
+        }
+
+        if ((mode == MODE_DEBUG) && (state == STATE_RUNNING)) {
+          unsigned int res;
+          switch (msg_in.msg_type) {
+            case MSG_DEP_DBG_ADC:
+              res = sample_dbg_adc(msg_in.value);
+              send_message(MSG_DEP_DBG_ADC, res);
+              goto end;
+
+            case MSG_DEP_DBG_DAC:
+              sample_dbg_dac(msg_in.value);
+              goto end;
+
+            default:
+              send_message(MSG_DEP_ERR_INVLDCMD, msg_in.msg_type);
+              goto end;
+          }
+        } else {
+          if (msg_in.msg_type == MSG_DEP_BUF_FROM_HOST) {
+            ring_put(free_buffers, (char)msg_in.value);
+            goto end;
+          } else {
+            send_message(MSG_DEP_ERR_INVLDCMD, msg_in.msg_type);
+            goto end;
+          }
+        }
       }
-      // _GPIO_OFF(USR_LED1);
+    end:
+    continue;
+      // _GPIO_OFF(DEBUG_P0);
     }
+    // _GPIO_OFF(USR_LED1);
   }
 }
 
 void set_output(uint8_t value) {
   virtcap_output_state = value;
 
-  // send_message(MSG_DEP_DBG_PRINT, value);
+  // send_message(MSG_DEP_DBG_PRINT, msg_in_cntr);
 
+#if 1
   if (value) {
     _GPIO_ON(DEBUG_P1);
     _GPIO_ON(USR_LED1);
@@ -252,6 +304,7 @@ void set_output(uint8_t value) {
     _GPIO_OFF(DEBUG_P1);
     _GPIO_OFF(USR_LED1);
   }
+#endif
 }
 
 void main(void) {
@@ -268,10 +321,6 @@ void main(void) {
   CT_INTC.EISR_bit.EN_SET_IDX = PRU_PRU_EVT_BLOCK_END;
 
   rpmsg_init("rpmsg-pru");
-
-  _GPIO_OFF(USR_LED1);
-  _GPIO_OFF(DEBUG_P0);
-  _GPIO_OFF(DEBUG_P1);
 
   /*
    * The dynamically allocated shared DDR RAM holds all the buffers that
@@ -304,6 +353,7 @@ void main(void) {
   /* Jump to this label, whenever user requests 'stop' */
   while (true) {
     _GPIO_OFF(USR_LED1);
+    _GPIO_OFF(DEBUG_P0);
     _GPIO_OFF(DEBUG_P1);
 
     virtcap_init(

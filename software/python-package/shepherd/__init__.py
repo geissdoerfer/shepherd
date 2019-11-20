@@ -206,6 +206,7 @@ class Emulator(ShepherdIO):
             self.set_ldo_voltage(False)
 
         if self.mode == "virtcap":
+            print("setting ldo here")
             self.set_ldo_voltage(2.55)  # TODO remove, hack to enable output
 
         # Disconnect harvester to avoid leakage in or out of the harvester

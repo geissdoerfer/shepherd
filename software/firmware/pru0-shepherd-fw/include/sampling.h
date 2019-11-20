@@ -8,5 +8,7 @@ void sample(struct SampleBuffer *current_buffer, unsigned int sample_idx,
 	    enum ShepherdMode mode);
 unsigned int sample_dbg_adc(unsigned int channel_no);
 void sample_dbg_dac(unsigned int value);
+struct ADCReading sample_virtcap(struct SampleBuffer *buffer,
+                                  unsigned int sample_idx);
 
 #endif /* __SAMPLING_H_ */
