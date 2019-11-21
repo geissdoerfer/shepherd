@@ -159,21 +159,23 @@ void event_loop(volatile struct SharedMem *shared_mem,
         continue;
       }
 
+      new_message = 0;
       struct DEPMsg msg_in;
       enum ShepherdMode mode = (enum ShepherdMode)shared_mem->shepherd_mode;
       enum ShepherdState state = (enum ShepherdState)shared_mem->shepherd_state;
 
       // _GPIO_ON(DEBUG_P1);
-      if (rpmsg_get((void *)&msg_in) != sizeof(struct DEPMsg)) {
-        new_message = 0;
-      } else {
-        new_message = 1;
+      if (int_source != SIG_BLOCK_END) {
+        if (rpmsg_get((void *)&msg_in) != sizeof(struct DEPMsg)) {
+        } else {
+          new_message = 1;
+        }
       }
       // _GPIO_OFF(DEBUG_P1);
 
       /* The actual sampling takes place here */
       if (buffer_idx != NO_BUFFER) {
-        _GPIO_ON(USR_LED1);
+        // _GPIO_ON(USR_LED1);
 
         if (mode == MODE_VIRTCAP) {
           // if (true) {
@@ -191,19 +193,18 @@ void event_loop(volatile struct SharedMem *shared_mem,
             current_buffer->values_voltage[sample_idx] = output_reading.voltage;
             sample_idx++;
           } else {
-            _GPIO_ON(DEBUG_P1);
+            // _GPIO_ON(DEBUG_P1);
             output_reading = sample_virtcap(buffers + buffer_idx, sample_idx++);
-            _GPIO_OFF(DEBUG_P1);
+            // _GPIO_OFF(DEBUG_P1);
             output_reading.current -= (1 << 17) - 1;
           }
 
-          _GPIO_ON(DEBUG_P0);
+          // _GPIO_ON(DEBUG_P0);
           // Execute virtcap algorithm
-          // if (int_source != SIG_BLOCK_END) {
           int returncs =
               virtcap_update(output_reading.current, output_reading.voltage,
                              input_current, input_voltage, dbg);
-          _GPIO_OFF(DEBUG_P0);
+          // _GPIO_OFF(DEBUG_P0);
 
           // If output is off, force buffer voltage to zero.
           // Else it will go to max 2.6V, because voltage sense is put before
@@ -218,25 +219,22 @@ void event_loop(volatile struct SharedMem *shared_mem,
               send_message(MSG_DEP_DBG_PRINT, 888888);
 
               dbg[3] = returncs;
-              dbg[4] = output_current;
-              dbg[5] = output_voltage;1
+              dbg[4] = output_reading.current;
+              dbg[5] = output_reading.voltage;
               dbg[6] = input_current;
               dbg[7] = input_voltage;
               print_dbg(dbg);
             }
 #endif
-          // }
         } else {
-          if (shared_mem->shepherd_mode == MODE_EMULATION) {
-          }
           sample(buffers + buffer_idx, sample_idx++,
                  (enum ShepherdMode)shared_mem->shepherd_mode);
         }
-        _GPIO_OFF(USR_LED1);
+        // _GPIO_OFF(USR_LED1);
       }
 
       if (int_source == SIG_BLOCK_END) {
-        _GPIO_ON(DEBUG_P1);
+        // _GPIO_ON(DEBUG_P1);
         /* Did the Linux kernel module ask for reset? */
         if (shared_mem->shepherd_state == STATE_RESET) {
           return;
@@ -249,7 +247,7 @@ void event_loop(volatile struct SharedMem *shared_mem,
                                         buffer_idx, sample_idx);
 
         sample_idx = 0;
-        _GPIO_OFF(DEBUG_P1);
+        // _GPIO_OFF(DEBUG_P1);
       }
       /* We only handle rpmsg comms if we're not at the last sample */
       else {
@@ -341,11 +339,13 @@ void main(void) {
   shared_mem->n_buffers = RING_SIZE;
   shared_mem->samples_per_buffer = SAMPLES_PER_BUFFER;
   shared_mem->buffer_period_ns = BUFFER_PERIOD_NS;
+  
+  shared_mem->calibration_settings.adc_load_current_gain = (int32_t)(2.0 * 50.25 / (0.625 * 4.096) * ((1 << 17) - 1)),
+  shared_mem->calibration_settings.adc_load_current_offset = -(1 << 17),
+  shared_mem->calibration_settings.adc_load_voltage_gain = (int32_t)(1 / (1.25 * 4.096) * ((1 << 18) - 1)),
+  shared_mem->calibration_settings.adc_load_voltage_offset = 0,
 
-  shared_mem->calibration_settings.adc_load_current_gain = 0;
-  shared_mem->calibration_settings.adc_load_current_offset = 0;
-  shared_mem->calibration_settings.adc_load_voltage_gain = 0;
-  shared_mem->calibration_settings.adc_load_voltage_offset = 0;
+  shared_mem->virtcap_settings = kBQ25570Settings;
 
   shared_mem->harvesting_voltage = 0;
   shared_mem->shepherd_mode = MODE_HARVESTING;

@@ -1,0 +1,24 @@
+virtcap:
+  upper_threshold_voltage: 3500
+  lower_threshold_voltage: 3200
+  sample_period_us: 10
+  capacitance_uf: 1000 
+  kMaxCapVoltage: 4200
+  kMinCapVoltage: 0 
+  kInitCapVoltage: 3200
+  kDcoutputVoltage: 2300
+  kLeakageCurrent: 9
+  kDiscretize: 5695
+  kOutputCap_uf: 10
+  kLookupInputEfficiency: [
+    [2621,3276,3440,3522,3522,3522,3522,3563,3604],
+    [3624,3686,3727,3768,3768,3768,3788,3788,3788],
+    [3788,3788,3788,3788,3788,3809,3809,3788,3727],
+    [3706,3706,3645,3604,3481,3481,3481,3481,3481]
+  ]
+  kLookupOutputEfficiency: [
+    [4995,4818,4790,4762,4735,4735,4708,4708,4681],
+    [4681,4681,4681,4654,4654,4654,4654,4654,4602],
+    [4551,4551,4602,4708,4708,4708,4708,4654,4654],
+    [4602,4654,4681,4654,4602,4628,4628,4602,4602]
+  ]

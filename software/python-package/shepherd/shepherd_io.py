@@ -581,8 +581,6 @@ class ShepherdIO(object):
             int(calibration_settings["load"]["voltage"]["offset"] / calibration_settings["load"]["voltage"]["gain"]),
         )
 
-
-
     def send_virtcap_settings(self, virtcap_settings: dict):
         """Sends virtcap settings to PRU core
 
@@ -593,12 +591,6 @@ class ShepherdIO(object):
         """    
 
         def flatten(L):
-            '''(list) -> list
-            Returns a flattened version of nested list L
-            >>> flatten([1,[2,[3,4]],5])
-            [1, 2, 3, 4, 5]
-            '''
-            # base case: list with one element
             if len(L) == 1:
                 if type(L[0]) == list:
                     result = flatten(L[0])
