@@ -12,11 +12,11 @@ This allows to do a test sweep over various capacitor sizes,
 without having to hand replace them by hand.
 VirtCap is configured by means of yml-file.
 
-Example usage, assuming `virtcap_settings.yml` is stored at `/opt/shepherd/`.
+Example usage:
 
 .. code-block:: bash
 
-    shepherd-sheep emulate --config /opt/shepherd/virtcap_settings.yml /var/shepherd/recordings/rec.0.h5
+    sepherd-sheep emulate --config virtcap_settings.yml /var/shepherd/recordings/rec.0.h
 
 Settings
 --------
@@ -50,31 +50,31 @@ This is an example of a virtcap-settings file which emulates a BQ25570:
       ]
 
 
-.. csv-table:: Explanation VirtCap Settings
-   :header: "item", "Explanation"
-   :widths: 20, 60
+:upper_threshold_voltage: Defines the upper threshold capacitor voltage (in millivolts)
+:lower_threshold_voltage: Defines the lower threshold capacitor voltage (in millivolts)
+:sample_period_us: Defines the sample period of the algorithm, should be left unchanged
+:capacitance_uf: Size of capacitor which is emulated (in microfarad)
+:max_cap_voltage: Capacitor voltage will never reach above this voltage (in millivolts)
+:min_cap_voltage: Capacitor voltage will never fall below this voltage (in millivolts)
+:init_cap_voltage: Initial capacitor voltage (in millivolts)
+:dc_output_voltage: Output voltage when output is on (in millivolts). Note that for now, VirtCap can only emulate a configurable fixed output voltage
+:leakage_current: Static capacitor leakage current (in micro amperes)
+:discretize: Period at which the upper and lower threshold voltages are checked (defined is steps of 10us). The BQ255xx defines a period of ~64ms in its datasheet. Leave at 1 if you want to check the threshold continuous
+:output_cap_uf: Simulates an output capacitor which will cause an instant voltage drop in storage capacitor voltage when output turns on.
+:lookup_input_efficiency: 
+    Defines the input efficiency of the DC/DC converter as function of input current on a logarithmic scale.
+    
+    | First row defines input efficiency for 0.01--0.09mA.
+    | Second row defines input efficiency for 0.1--0.9mA.
+    | Third row defines input efficiency for 1--9mA.
+    | Fourth row defines input efficiency for 10--90mA.
+:lookup_output_efficiency: 
+    Defines the output efficiency of the DC/DC converter as function of output current on a logarithmic scale.
 
-   "upper_threshold_voltage", "Defines the upper threshold capacitor voltage (mv)"
-   "lower_threshold_voltage", "Defines the lower threshold capacitor voltage (mv)"
-   "sample_period_us", "Defines the sample period of the algorithm, should be left unchanged"
-   "capacitance_uf", "Size of capacitor which is emulated (uf)"
-   "max_cap_voltage", "Capacitor voltage will never reach above this voltage (mv)"
-   "min_cap_voltage", "Capacitor voltage will never fall below this voltage (mv)"
-   "init_cap_voltage", "Initial capacitor voltage (mv)"
-   "dc_output_voltage", "Output voltage when output is on (mv). Note that for now, VirtCap can only emulate a configurable fixed output voltage"
-   "leakage_current", "Static capacitor leakage current (ua)"
-   "discretize", "Period at which the upper and lower threshold voltages are checked (defined is steps of 10us). The BQ255xx defines a period of ~64ms in its datasheet. Leave at 1 if you want to check the threshold continuous"
-   "output_cap_uf", "Simulates an output capacitor which will cause an instant voltage drop in storage capacitor voltage when output turns on."
-   "lookup_input_efficiency", "Defines the input efficiency of the DC/DC converter as function of input current on a logarithmic scale.
-   First row defines input efficiency for 0.01--0.09mA.
-   Second row defines input efficiency for 0.1--0.9mA.
-   Third row defines input efficiency for 1--9mA.
-   Fourth row defines input efficiency for 10--90mA."
-   "lookup_output_efficiency", "Defines the output efficiency of the DC/DC converter as function of output current on a logarithmic scale.
-   First row defines output efficiency for 0.01--0.09mA.
-   Second row defines output efficiency for 0.1--0.9mA.
-   Third row defines output efficiency for 1--9mA.
-   Fourth row defines output efficiency for 10--90mA."
+    | First row defines output efficiency for 0.01--0.09mA.
+    | Second row defines output efficiency for 0.1--0.9mA.
+    | Third row defines output efficiency for 1--9mA.
+    | Fourth row defines output efficiency for 10--90mA.
 
 Recording
 ---------
