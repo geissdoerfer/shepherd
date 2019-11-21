@@ -80,7 +80,3 @@ def dac_to_current(value: int):
     v_gnd_ref_h = R_CS_REF_H * i_gnd_ref
     # current through resistor on high side of output path
     return v_gnd_ref_h / R_CS_OUT
-
-if __name__ == "__main__":
-  print(f"current_to_adc(1): {current_to_adc(1)}")
-  print(f"current_to_adc(0): {current_to_adc(0)}")

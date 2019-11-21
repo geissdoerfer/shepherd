@@ -127,7 +127,7 @@ def cli(directory, filename, sampling_rate, analyse, do_plot):
             raise click.FileError(str(hdf_file), hint="File not found")
         data = extract_hdf(hdf_file, ds_factor=ds_factor)
         axes[0].plot(data["time"], data["voltage"])
-        axes[1].plot(data["time"], data["current"] * 1000)
+        axes[1].plot(data["time"], data["current"] * 1e6)
 
         if analyse:
           analyse_results(data)
