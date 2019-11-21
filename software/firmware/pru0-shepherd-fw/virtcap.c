@@ -30,7 +30,7 @@ struct CalibrationSettings cs = {
 
 #define FIXED_SETTINGS 0
 #define FIXED_CALIBRATION 0
-#define FIXED_INPUT 1
+#define FIXED_INPUT 0
 #define FIXED_EFFICIENCY 0
 
 int32_t virtcap_init(const struct VirtCapSettings* s_arg,

@@ -142,7 +142,6 @@ class Emulator(ShepherdIO):
         virtcap: dict = None,
     ):
 
-
         # Set shepherd mode to virtcap if required
         shepherd_mode = "emulation"
         if virtcap != None:
@@ -162,26 +161,17 @@ class Emulator(ShepherdIO):
             )
 
         if virtcap != None:
+            print("before sending virtcap")
+            print(virtcap)
             self.send_calibration_settings(calibration_emulation)
             self.send_virtcap_settings(virtcap)
 
-        # Values from recording are binary ADC values. We have to send binary
-        # DAC values to the DAC for emulation. To directly convert ADC to DAC
-        # values, we precalculate the 'transformation coefficients' based on
-        # calibration data from the recorder and the emulator.
         self.transform_coeffs = {"voltage": dict(), "current": dict()}
-        for channel in ["voltage", "current"]:
-            self.transform_coeffs[channel]["gain"] = (
-                calibration_recording["harvesting"][channel]["gain"]
-                * calibration_emulation["emulation"][channel]["gain"]
-            )
-            self.transform_coeffs[channel]["offset"] = (
-                calibration_emulation["emulation"][channel]["gain"]
-                * calibration_recording["harvesting"][channel]["offset"]
-                + calibration_emulation["emulation"][channel]["offset"]
-            )
-
-        if shepherd_mode == "virtcap":
+        if virtcap != None:
+            # Values from recording are have their own calibration settings.
+            # Values in the virtcap emulation use the emulation calibration 
+            # settings. Therefore we need to convert the recorded values to use 
+            # the same calibration settings as emulation.
             for channel in ["voltage", "current"]:
                 self.transform_coeffs[channel]["gain"] = (
                     calibration_recording["harvesting"][channel]["gain"]
@@ -191,9 +181,23 @@ class Emulator(ShepherdIO):
                     calibration_recording["harvesting"][channel]["offset"]
                      - calibration_emulation["load"][channel]["offset"]
                 ) / calibration_emulation["load"][channel]["gain"]
+        else:
+            # Values from recording are binary ADC values. We have to send binary
+            # DAC values to the DAC for emulation. To directly convert ADC to DAC
+            # values, we precalculate the 'transformation coefficients' based on
+            # calibration data from the recorder and the emulator.
+            for channel in ["voltage", "current"]:
+                self.transform_coeffs[channel]["gain"] = (
+                    calibration_recording["harvesting"][channel]["gain"]
+                    * calibration_emulation["emulation"][channel]["gain"]
+                )
+                self.transform_coeffs[channel]["offset"] = (
+                    calibration_emulation["emulation"][channel]["gain"]
+                    * calibration_recording["harvesting"][channel]["offset"]
+                    + calibration_emulation["emulation"][channel]["offset"]
+                )
 
         self._initial_buffers = initial_buffers
-
         self._calibration_emulation = calibration_emulation
 
     def __enter__(self):

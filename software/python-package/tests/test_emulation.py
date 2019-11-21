@@ -3,6 +3,7 @@ from pathlib import Path
 import numpy as np
 import h5py
 import time
+import yaml
 
 from shepherd.shepherd_io import DataBuffer
 
@@ -17,6 +18,14 @@ from shepherd import ShepherdIOException
 def random_data(len):
     return np.random.randint(0, high=2 ** 18, size=len, dtype="u4")
 
+@pytest.fixture
+def virtcap_settings_yml():
+    here = Path(__file__).absolute()
+    name = "virtcap_settings.yml"
+    file_path = here.parent / name
+    with open(file_path, "r") as config_data:
+        full_config = yaml.safe_load(config_data)
+    return full_config["virtcap"]
 
 @pytest.fixture
 def data_h5(tmp_path):
@@ -40,7 +49,6 @@ def log_writer(tmp_path):
     ) as lw:
         yield lw
 
-
 @pytest.fixture()
 def log_reader(data_h5):
     with LogReader(data_h5, 10000) as lr:
@@ -53,6 +61,20 @@ def emulator(request, shepherd_up, log_reader):
         calibration_recording=log_reader.get_calibration_data(),
         calibration_emulation=CalibrationData.from_default(),
         initial_buffers=log_reader.read_buffers(end=64),
+    )
+    request.addfinalizer(emu.__del__)
+    emu.__enter__()
+    request.addfinalizer(emu.__exit__)
+    return emu
+
+
+@pytest.fixture()
+def virtcap_emulator(request, shepherd_up, log_reader, virtcap_settings_yml):
+    emu = Emulator(
+        calibration_recording=log_reader.get_calibration_data(),
+        calibration_emulation=CalibrationData.from_default(),
+        initial_buffers=log_reader.read_buffers(end=64),
+        virtcap=virtcap_settings_yml
     )
     request.addfinalizer(emu.__del__)
     emu.__enter__()
@@ -76,6 +98,24 @@ def test_emulation(log_writer, log_reader, emulator):
 
     with pytest.raises(ShepherdIOException):
         idx, load_buf = emulator.get_buffer(timeout=1)
+
+
+@pytest.mark.hardware
+def test_virtcap_emulation(log_writer, log_reader, virtcap_emulator):
+
+    virtcap_emulator.start(wait_blocking=False)
+    virtcap_emulator.wait_for_start(15)
+    for hrvst_buf in log_reader.read_buffers(start=64):
+        idx, load_buf = virtcap_emulator.get_buffer(timeout=1)
+        log_writer.write_buffer(load_buf)
+        virtcap_emulator.put_buffer(idx, hrvst_buf)
+
+    for _ in range(64):
+        idx, load_buf = virtcap_emulator.get_buffer(timeout=1)
+        log_writer.write_buffer(load_buf)
+
+    with pytest.raises(ShepherdIOException):
+        idx, load_buf = virtcap_emulator.get_buffer(timeout=1)
 
 
 @pytest.mark.hardware
