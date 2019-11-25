@@ -139,9 +139,7 @@ def run(command, parameters, verbose):
     "--length", "-l", type=float, help="Duration of recording in seconds"
 )
 @click.option("--force", "-f", is_flag=True, help="Overwrite existing file")
-@click.option(
-    "--no-calib", is_flag=True, help="Use default calibration values"
-)
+@click.option("--no-calib", is_flag=True, help="Use default calibration values")
 @click.option(
     "--voltage", type=float, help="Set fixed reference voltage for harvesting"
 )
@@ -206,9 +204,7 @@ def record(
     "--length", "-l", type=float, help="Duration of recording in seconds"
 )
 @click.option("--force", "-f", is_flag=True, help="Overwrite existing file")
-@click.option(
-    "--no-calib", is_flag=True, help="Use default calibration values"
-)
+@click.option("--no-calib", is_flag=True, help="Use default calibration values")
 @click.option(
     "--load",
     type=click.Choice(["artificial", "node"]),
@@ -231,7 +227,15 @@ def record(
 )
 @click_config_file.configuration_option(provider=yamlprovider, implicit=False)
 def emulate(
-    input, output, length, force, no_calib, load, ldo_voltage, start_time, virtcap,
+    input,
+    output,
+    length,
+    force,
+    no_calib,
+    load,
+    ldo_voltage,
+    start_time,
+    virtcap,
 ):
     if output is None:
         pl_store = None
@@ -243,7 +247,15 @@ def emulate(
             pl_store = Path("/var/shepherd/recordings") / output
 
     run_emulate(
-        input, pl_store, length, force, no_calib, load, ldo_voltage, start_time, virtcap
+        input,
+        pl_store,
+        length,
+        force,
+        no_calib,
+        load,
+        ldo_voltage,
+        start_time,
+        virtcap,
     )
 
 

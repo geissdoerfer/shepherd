@@ -161,7 +161,7 @@ def send_virtcap_settings(settings: list):
 
     s = [str(i) for i in settings] 
     output = " ".join(s)
-    print(output)
+    logger.debug(f"Writing virtcap to sysfs_interface: {output}")
 
     with open(str(sysfs_path / "virtcap_settings"), "w") as f:
         f.write(output)

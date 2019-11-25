@@ -4,14 +4,13 @@
 #include "commons.h"
 #include "lookup_table.h"
 
-#define TRUE  1
+#define TRUE 1
 #define FALSE 0
 
 #define SHIFT_VOLT 12
 #define EFFICIENCY_RANGE (1 << 12)
 
-static const struct VirtCapSettings kBQ25570Settings = 
-{
+static const struct VirtCapSettings kBQ25570Settings = {
   .upper_threshold_voltage = 3500,
   .lower_threshold_voltage = 3200,
   .sample_period_us = 10,   
@@ -39,8 +38,11 @@ static const struct VirtCapSettings kBQ25570Settings =
 
 typedef void (*virtcap_nofp_callback_func_t)(uint8_t);
 
-int32_t virtcap_init(const struct VirtCapSettings* settings_arg, virtcap_nofp_callback_func_t callback_arg, const struct CalibrationSettings* calib, int32_t dbg[]);
-int32_t virtcap_update(int32_t current_measured, int32_t voltage_measured, int32_t input_current, int32_t input_voltage, int32_t dbg[]);
-int32_t voltage_mv_to_logic (int32_t voltage);
-int32_t current_ua_to_logic (int32_t current);
-int32_t current_ma_to_logic (int32_t current);
+void virtcap_init(const struct VirtCapSettings* settings_arg,
+                     virtcap_nofp_callback_func_t callback_arg,
+                     const struct CalibrationSettings* calib);
+void virtcap_update(int32_t current_measured, int32_t voltage_measured,
+                       int32_t input_current, int32_t input_voltage);
+int32_t voltage_mv_to_logic(int32_t voltage);
+int32_t current_ua_to_logic(int32_t current);
+int32_t current_ma_to_logic(int32_t current);

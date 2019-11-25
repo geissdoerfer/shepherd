@@ -39,13 +39,6 @@ static void send_message(unsigned int msg_id, unsigned int value) {
   rpmsg_putraw((void *)&msg_out, sizeof(struct DEPMsg));
 }
 
-void print_dbg(int32_t dbg[]) {
-  int i = 0;
-  for (i = 0; i < 8; i++) {
-    send_message(MSG_DEP_DBG_PRINT, dbg[i]);
-  }
-}
-
 unsigned int handle_block_end(volatile struct SharedMem *shared_mem,
                               struct RingBuffer *free_buffers,
                               struct SampleBuffer *buffers,
@@ -137,9 +130,6 @@ void event_loop(volatile struct SharedMem *shared_mem,
   output_reading.voltage = 0;
   output_reading.current = (1 << 17);
 
-  int32_t dbg[8];
-  memset(dbg, 0, sizeof(dbg));
-
   int32_t new_message = 0;
 
   enum ShepherdMode mode = (enum ShepherdMode)shared_mem->shepherd_mode;
@@ -164,18 +154,15 @@ void event_loop(volatile struct SharedMem *shared_mem,
       enum ShepherdMode mode = (enum ShepherdMode)shared_mem->shepherd_mode;
       enum ShepherdState state = (enum ShepherdState)shared_mem->shepherd_state;
 
-      // _GPIO_ON(DEBUG_P1);
       if (int_source != SIG_BLOCK_END) {
         if (rpmsg_get((void *)&msg_in) != sizeof(struct DEPMsg)) {
         } else {
           new_message = 1;
         }
       }
-      // _GPIO_OFF(DEBUG_P1);
 
       /* The actual sampling takes place here */
       if (buffer_idx != NO_BUFFER) {
-        // _GPIO_ON(USR_LED1);
 
         if (mode == MODE_VIRTCAP) {
           // if (true) {
@@ -193,18 +180,14 @@ void event_loop(volatile struct SharedMem *shared_mem,
             current_buffer->values_voltage[sample_idx] = output_reading.voltage;
             sample_idx++;
           } else {
-            // _GPIO_ON(DEBUG_P1);
             output_reading = sample_virtcap(buffers + buffer_idx, sample_idx++);
-            // _GPIO_OFF(DEBUG_P1);
             output_reading.current -= (1 << 17) - 1;
           }
 
-          // _GPIO_ON(DEBUG_P0);
           // Execute virtcap algorithm
           int returncs =
               virtcap_update(output_reading.current, output_reading.voltage,
-                             input_current, input_voltage, dbg);
-          // _GPIO_OFF(DEBUG_P0);
+                             input_current, input_voltage);
 
           // If output is off, force buffer voltage to zero.
           // Else it will go to max 2.6V, because voltage sense is put before
@@ -212,29 +195,13 @@ void event_loop(volatile struct SharedMem *shared_mem,
           if (!virtcap_output_state) {
             current_buffer->values_voltage[sample_idx - 1] = 0;
           }
-
-#if 0
-            static uint16_t cntr;
-            if (cntr++ % 100000 == 0) {
-              send_message(MSG_DEP_DBG_PRINT, 888888);
-
-              dbg[3] = returncs;
-              dbg[4] = output_reading.current;
-              dbg[5] = output_reading.voltage;
-              dbg[6] = input_current;
-              dbg[7] = input_voltage;
-              print_dbg(dbg);
-            }
-#endif
         } else {
           sample(buffers + buffer_idx, sample_idx++,
                  (enum ShepherdMode)shared_mem->shepherd_mode);
         }
-        // _GPIO_OFF(USR_LED1);
       }
 
       if (int_source == SIG_BLOCK_END) {
-        // _GPIO_ON(DEBUG_P1);
         /* Did the Linux kernel module ask for reset? */
         if (shared_mem->shepherd_state == STATE_RESET) {
           return;
@@ -247,7 +214,6 @@ void event_loop(volatile struct SharedMem *shared_mem,
                                         buffer_idx, sample_idx);
 
         sample_idx = 0;
-        // _GPIO_OFF(DEBUG_P1);
       }
       /* We only handle rpmsg comms if we're not at the last sample */
       else {
@@ -283,18 +249,13 @@ void event_loop(volatile struct SharedMem *shared_mem,
       }
     end:
     continue;
-      // _GPIO_OFF(DEBUG_P0);
     }
-    // _GPIO_OFF(USR_LED1);
   }
 }
 
 void set_output(uint8_t value) {
   virtcap_output_state = value;
 
-  // send_message(MSG_DEP_DBG_PRINT, msg_in_cntr);
-
-#if 1
   if (value) {
     _GPIO_ON(DEBUG_P1);
     _GPIO_ON(USR_LED1);
@@ -302,11 +263,9 @@ void set_output(uint8_t value) {
     _GPIO_OFF(DEBUG_P1);
     _GPIO_OFF(USR_LED1);
   }
-#endif
 }
 
 void main(void) {
-  int32_t dbg[8];
 
   /* Allow OCP master port access by the PRU so the PRU can read external
    * memories */
@@ -359,10 +318,7 @@ void main(void) {
     virtcap_init(
         (const struct VirtCapSettings *)&shared_mem->virtcap_settings,
         set_output,
-        (const struct CalibrationSettings *)&shared_mem->calibration_settings,
-        dbg);
-    send_message(MSG_DEP_DBG_PRINT, 777777);
-    print_dbg(dbg);
+        (const struct CalibrationSettings *)&shared_mem->calibration_settings);
 
     init_ring(&free_buffers);
     sampling_init((enum ShepherdMode)shared_mem->shepherd_mode,

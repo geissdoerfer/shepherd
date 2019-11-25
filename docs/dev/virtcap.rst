@@ -12,11 +12,12 @@ With regular emulation, the shared buffers are filled `dac values`.
 During VirtCap emulation, the shared buffers are filled with actual
 recorded `adc current and voltage values`. Because the emulation and recording
 can be done on different devices. The recorded `adc values` are compensated
-to use the same calibration settings as the emulation calibration settings.
+to use the same calibration settings as the emulation calibration settings. 
+This is done in `__init__.py`.
 
 Besides the recorded `adc current and voltage values`, more information needs
-to be passed down to the pru0 core. Two new structs have been added to the 
-`sysfs_interface`.
+to be passed down to the pru0 core. Two new structs have been added to the
+`sysfs_interface shared memory`.
 
 .. code-block:: c
 

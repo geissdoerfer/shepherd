@@ -22,10 +22,17 @@ from pathlib import Path
 import telnetlib
 import yaml
 import logging
+import click_config_file
 
 consoleHandler = logging.StreamHandler()
 logger = logging.getLogger("shepherd-herd")
 logger.addHandler(consoleHandler)
+
+def yamlprovider(file_path, cmd_name):
+    logger.info(f"reading config from {file_path}")
+    with open(file_path, "r") as config_data:
+        full_config = yaml.safe_load(config_data)
+    return full_config
 
 """Starts shepherd service on the group of hosts.
 
@@ -345,9 +352,7 @@ def reset(ctx):
     "--length", "-l", type=float, help="Duration of recording in seconds"
 )
 @click.option("--force", "-f", is_flag=True, help="Overwrite existing file")
-@click.option(
-    "--no-calib", is_flag=True, help="Use default calibration values"
-)
+@click.option("--no-calib", is_flag=True, help="Use default calibration values")
 @click.option(
     "--harvesting-voltage",
     type=float,
@@ -413,9 +418,7 @@ def record(
     "--length", "-l", type=float, help="Duration of recording in seconds"
 )
 @click.option("--force", "-f", is_flag=True, help="Overwrite existing file")
-@click.option(
-    "--no-calib", is_flag=True, help="Use default calibration values"
-)
+@click.option("--no-calib", is_flag=True, help="Use default calibration values")
 @click.option(
     "--load",
     type=click.Choice(["artificial", "node"]),
@@ -429,8 +432,15 @@ def record(
     default=2.0,
     help="Pre-charge capacitor before starting recording",
 )
+@click.option(
+    "--virtcap",
+    help="Use virtcap, it can emulate any energy harvesting power supply chain by the given virtcap model parameters",
+)
+@click_config_file.configuration_option(provider=yamlprovider, implicit=False)
 @click.pass_context
-def emulate(ctx, input, output, length, force, no_calib, load, ldo_voltage):
+def emulate(
+    ctx, input, output, length, force, no_calib, load, ldo_voltage, virtcap
+):
 
     fp_input = Path(input)
     if not fp_input.is_absolute():
@@ -443,6 +453,7 @@ def emulate(ctx, input, output, length, force, no_calib, load, ldo_voltage):
         "no_calib": no_calib,
         "ldo_voltage": ldo_voltage,
         "load": load,
+        "virtcap": virtcap
     }
 
     if output is not None:
