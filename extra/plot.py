@@ -36,7 +36,8 @@ def extract_hdf(hdf_file: Path, ds_factor: int = 1):
 @click.option("--directory", "-d", type=click.Path(exists=True))
 @click.option("--filename", "-f", type=click.Path(), default="rec.h5")
 @click.option("--sampling-rate", "-s", type=int, default=1000)
-def cli(directory, filename, sampling_rate):
+@click.option("--limit", "-l", type=str)
+def cli(directory, filename, sampling_rate, limit):
 
     ds_factor = int(100000 / sampling_rate)
     f, axes = plt.subplots(2, 1, sharex=True)
@@ -53,7 +54,15 @@ def cli(directory, filename, sampling_rate):
         data = dict()
         pl_dir = Path(directory)
 
+        if limit:
+            active_nodes = limit.split(",")
+        else:
+            active_nodes = [child.stem for child in list(pl_dir.iterdir())]
+
         for child in pl_dir.iterdir():
+            if not child.stem in active_nodes:
+                continue
+
             hdf_file = child / filename
             if not hdf_file.exists():
                 raise click.FileError(str(hdf_file), hint="File not found")
