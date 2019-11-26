@@ -163,7 +163,6 @@ void event_loop(volatile struct SharedMem *shared_mem,
 
       /* The actual sampling takes place here */
       if (buffer_idx != NO_BUFFER) {
-
         if (mode == MODE_VIRTCAP) {
           // if (true) {
           struct SampleBuffer *current_buffer = buffers + buffer_idx;
@@ -185,9 +184,8 @@ void event_loop(volatile struct SharedMem *shared_mem,
           }
 
           // Execute virtcap algorithm
-          int returncs =
-              virtcap_update(output_reading.current, output_reading.voltage,
-                             input_current, input_voltage);
+          virtcap_update(output_reading.current, output_reading.voltage,
+                         input_current, input_voltage);
 
           // If output is off, force buffer voltage to zero.
           // Else it will go to max 2.6V, because voltage sense is put before
@@ -248,7 +246,7 @@ void event_loop(volatile struct SharedMem *shared_mem,
         }
       }
     end:
-    continue;
+      continue;
     }
   }
 }
@@ -266,7 +264,6 @@ void set_output(uint8_t value) {
 }
 
 void main(void) {
-
   /* Allow OCP master port access by the PRU so the PRU can read external
    * memories */
   CT_CFG.SYSCFG_bit.STANDBY_INIT = 0;
@@ -298,10 +295,12 @@ void main(void) {
   shared_mem->n_buffers = RING_SIZE;
   shared_mem->samples_per_buffer = SAMPLES_PER_BUFFER;
   shared_mem->buffer_period_ns = BUFFER_PERIOD_NS;
-  
-  shared_mem->calibration_settings.adc_load_current_gain = (int32_t)(2.0 * 50.25 / (0.625 * 4.096) * ((1 << 17) - 1)),
+
+  shared_mem->calibration_settings.adc_load_current_gain =
+      (int32_t)(2.0 * 50.25 / (0.625 * 4.096) * ((1 << 17) - 1)),
   shared_mem->calibration_settings.adc_load_current_offset = -(1 << 17),
-  shared_mem->calibration_settings.adc_load_voltage_gain = (int32_t)(1 / (1.25 * 4.096) * ((1 << 18) - 1)),
+  shared_mem->calibration_settings.adc_load_voltage_gain =
+      (int32_t)(1 / (1.25 * 4.096) * ((1 << 18) - 1)),
   shared_mem->calibration_settings.adc_load_voltage_offset = 0,
 
   shared_mem->virtcap_settings = kBQ25570Settings;

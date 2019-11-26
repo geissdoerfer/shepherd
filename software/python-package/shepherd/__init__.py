@@ -146,8 +146,11 @@ class Emulator(ShepherdIO):
         shepherd_mode = "emulation"
         if virtcap != None:
             shepherd_mode = "virtcap"
+            ldo_voltage = virtcap["dc_output_voltage"] / 1000
+            diode_forward_voltage = 0.3
+            ldo_voltage = ldo_voltage + diode_forward_voltage
 
-        super().__init__(shepherd_mode, 0.0, "artificial")
+        super().__init__(shepherd_mode, ldo_voltage, "artificial")
 
         if calibration_emulation is None:
             calibration_emulation = CalibrationData.from_default()
@@ -202,14 +205,14 @@ class Emulator(ShepherdIO):
     def __enter__(self):
         super().__enter__()
 
-        if self.ldo_voltage > 0.0:
+        if self.mode == "virtcap":
+            print(self.ldo_voltage)
+            self.set_ldo_voltage(2.55)
+        elif self.ldo_voltage > 0.0:
             logger.debug(f"Precharging capacitor to {self.ldo_voltage}V")
             self.set_ldo_voltage(self.ldo_voltage)
             time.sleep(1)
             self.set_ldo_voltage(False)
-
-        if self.mode == "virtcap":
-            self.set_ldo_voltage(2.55)  # TODO remove, hack to enable output
 
         # Disconnect harvester to avoid leakage in or out of the harvester
         self.set_harvester(False)
