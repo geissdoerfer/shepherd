@@ -82,7 +82,7 @@ def start_shepherd(
         "verbose": verbose,
         "parameters": parameters,
     }
-    config_yml = yaml.dump(config_dict, default_flow_style=False)
+    config_yml = yaml.dump(config_dict, default_flow_style=False, sort_keys=False)
 
     for cnx in group:
         res = cnx.sudo("systemctl status shepherd", hide=True, warn=True)
