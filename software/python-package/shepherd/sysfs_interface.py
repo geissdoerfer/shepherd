@@ -32,7 +32,6 @@ attribs = {
     "buffer_period_ns": {"path": "buffer_period_ns", "type": int},
     "samples_per_buffer": {"path": "samples_per_buffer", "type": int},
     "harvesting_voltage": {"path": "harvesting_voltage", "type": int},
-    # "calibration_settings": {"path": "calibration_settings", "type": int},
     "mem_address": {"path": "memory/address", "type": int},
     "mem_size": {"path": "memory/size", "type": int},
 }

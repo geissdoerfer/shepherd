@@ -525,7 +525,7 @@ def emulate(
                     )
                     log_writer.write_exception(err_rec)
 
-                idx, load_buf = emu.get_buffer(timeout=1)  # was raise
+                raise
 
             if output is not None:
                 log_writer.write_buffer(load_buf)
@@ -546,5 +546,5 @@ def emulate(
                 if e.id == commons.MSG_DEP_ERR_NOFREEBUF:
                     break
                 else:
-                    idx, load_buf = emu.get_buffer(timeout=1)  # was raise
+                    raise
 

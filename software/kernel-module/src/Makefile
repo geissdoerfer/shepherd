@@ -21,4 +21,4 @@ clean:
 
 install: all
 	@echo 'Installing kernel module'
-	@sudo cp $(TARGET).ko /lib/modules/$(KVERSION)/updates/dkms
+	@sudo cp $(TARGET).ko /lib/modules/$(KVERSION)/extra/
