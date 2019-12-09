@@ -68,6 +68,9 @@
     delete: yes
     owner: no
     group: no
+    rsync_opts:
+      - "--exclude=.eggs"
+      - "--exclude=__pycache__"
   tags:
     - source-code
     - python
