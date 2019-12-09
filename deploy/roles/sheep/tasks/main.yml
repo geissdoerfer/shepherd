@@ -51,12 +51,15 @@
     - device-tree
     - python
 
-- name: Create path for shepherd
+- name: Create paths for shepherd
   file:
-    path: '{{ shepherd_install_path }}'
+    path: '{{ item }}'
     state: directory
     owner: '{{ ansible_user }}'
     group: '{{ ansible_user }}'
+  with_items:
+   - '{{ shepherd_install_path }}'
+   - '{{ shepherd_data_path }}'
   tags:
     - source-code
     - python
