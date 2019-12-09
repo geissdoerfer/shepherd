@@ -35,8 +35,14 @@ enum SyncState {
 	REPLY_PENDING
 };
 
-void fault_handler(char *err_msg)
+int fault_handler(char *err_msg)
 {
+	/* If shepherd is not running, we can recover from the fault */
+	if (shared_mem->shepherd_state != STATE_RUNNING) {
+		printf(err_msg);
+		return 0;
+	}
+
 	while (true) {
 		printf(err_msg);
 		__delay_cycles(2000000000);
@@ -50,10 +56,10 @@ static inline int check_control_reply(struct CtrlRepMsg *ctrl_rep)
 
 	if (n == sizeof(struct CtrlRepMsg)) {
 		if (ctrl_rep->identifier != MSG_SYNC_CTRL_REP)
-			fault_handler("Wrong RPMSG ID");
+			return fault_handler("Wrong RPMSG ID");
 
 		if (rpmsg_get((void *)ctrl_rep) > 0)
-			fault_handler("Extra pending messages");
+			return fault_handler("Extra pending messages");
 		return 0;
 	}
 	return -1;
@@ -122,7 +128,7 @@ static inline int check_gpio(volatile struct SharedMem *shared_mem,
  * The firmware for synchronization/sample timing is based on a simple
  * event loop. There are three events: 1) Interrupt from Linux kernel module
  * 2) Local IEP timer wrapped 3) Local IEP timer compare for sampling
- * 
+ *
  * Event 1:
  * The kernel module periodically timestamps its own clock and immediately
  * triggers an interrupt to PRU1. On reception of that interrupt we have
@@ -135,11 +141,11 @@ static inline int check_gpio(volatile struct SharedMem *shared_mem,
  * time as Event 2, i.e. our local clock should wrap at exactly the same time
  * as the Linux host clock. However, due to phase shifts and kernel timer
  * jitter, the two events typically happen with a small delay and in arbitrary
- * order. However, we would 
- * 
- * Event 2: 
- * 
- * Event 3: 
+ * order. However, we would
+ *
+ * Event 2:
+ *
+ * Event 3:
  * This is the main sample trigger that is used to trigger the actual sampling
  * on PRU0 by raising an interrupt. After every sample, we have to forward
  * the compare value, taking into account the current sampling period
@@ -149,12 +155,12 @@ static inline int check_gpio(volatile struct SharedMem *shared_mem,
  * Event 3
  */
 
-void event_loop(volatile struct SharedMem *shared_mem)
+int event_loop(volatile struct SharedMem *shared_mem)
 {
 	unsigned int sample_counter;
 	uint64_t current_timestamp_ns;
 	uint32_t last_sample_ticks;
-	/* 
+	/*
      * Buffer for storing the control reply from Linux kernel module
      * needs to be large enough to hold the largest possible RPMSG
      */
@@ -217,7 +223,8 @@ void event_loop(volatile struct SharedMem *shared_mem)
 			else if (sync_state == IDLE)
 				sync_state = WAIT_IEP_WRAP;
 			else
-				fault_handler("Wrong state at host interrupt");
+				return fault_handler(
+					"Wrong state at host interrupt");
 		}
 		/* Timer compare 0 handle [Event 2] */
 		if (iep_check_evt_cmp(IEP_CMP0) == 0) {
@@ -240,7 +247,8 @@ void event_loop(volatile struct SharedMem *shared_mem)
 			else if (sync_state == IDLE)
 				sync_state = WAIT_HOST_INT;
 			else
-				fault_handler("Wrong state at timer wrap");
+				return fault_handler(
+					"Wrong state at timer wrap");
 
 			/* With wrap, we'll use next timestamp as base for GPIO timestamps */
 			current_timestamp_ns = shared_mem->next_timestamp_ns;
@@ -312,12 +320,6 @@ void main(void)
 	/* Allow OCP master port access by the PRU so the PRU can read external memories */
 	CT_CFG.SYSCFG_bit.STANDBY_INIT = 0;
 
-	/* Make sure the mutex is clear */
-	simple_mutex_exit(&shared_mem->gpio_edges_mutex);
-
-	iep_init();
-	iep_reset();
-
 	_GPIO_OFF(DEBUG_P0);
 	_GPIO_OFF(DEBUG_P1);
 
@@ -327,5 +329,14 @@ void main(void)
 	/* Enable 'timestamp' interrupt from ARM host */
 	CT_INTC.EISR_bit.EN_SET_IDX = HOST_PRU_EVT_TIMESTAMP;
 
+reset:
+	printf("starting synch routine..");
+	/* Make sure the mutex is clear */
+	simple_mutex_exit(&shared_mem->gpio_edges_mutex);
+
+	iep_init();
+	iep_reset();
+
 	event_loop(shared_mem);
+	goto reset;
 }
