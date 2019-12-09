@@ -21,10 +21,10 @@
 /* Used to signal an invalid buffer index */
 #define NO_BUFFER 0xFFFFFFFF
 
+static struct RingBuffer free_buffers;
+
 enum int_source_e { SIG_SAMPLE, SIG_BLOCK_END } int_source;
 
-struct RingBuffer free_buffers;
-struct SampleBuffer *buffers;
 volatile struct SharedMem *shared_mem =
 	(volatile struct SharedMem *)PRU_SHARED_MEM_STRUCT_OFFSET;
 
@@ -38,7 +38,7 @@ static void send_message(unsigned int msg_id, unsigned int value)
 }
 
 unsigned int handle_block_end(volatile struct SharedMem *shared_mem,
-			      struct RingBuffer *free_buffers,
+			      struct RingBuffer *free_buffers_ptr,
 			      struct SampleBuffer *buffers,
 			      unsigned int current_buffer_idx,
 			      unsigned int sample_idx)
@@ -60,7 +60,7 @@ unsigned int handle_block_end(volatile struct SharedMem *shared_mem,
 	}
 
 	/* Fetch new buffer from ring */
-	if (ring_get(free_buffers, &tmp_idx) == 0) {
+	if (ring_get(free_buffers_ptr, &tmp_idx) == 0) {
 		next_buffer_idx = (unsigned int)tmp_idx;
 		next_buffer = buffers + next_buffer_idx;
 		next_buffer->timestamp_ns = shared_mem->next_timestamp_ns;
@@ -76,7 +76,7 @@ unsigned int handle_block_end(volatile struct SharedMem *shared_mem,
 	return next_buffer_idx;
 }
 
-int handle_rpmsg(struct RingBuffer *free_buffers, enum ShepherdMode mode,
+int handle_rpmsg(struct RingBuffer *free_buffers_ptr, enum ShepherdMode mode,
 		 enum ShepherdState state)
 {
 	struct DEPMsg msg_in;
@@ -110,7 +110,7 @@ int handle_rpmsg(struct RingBuffer *free_buffers, enum ShepherdMode mode,
 		}
 	} else {
 		if (msg_in.msg_type == MSG_DEP_BUF_FROM_HOST) {
-			ring_put(free_buffers, (char)msg_in.value);
+			ring_put(free_buffers_ptr, (char)msg_in.value);
 			return 0;
 		} else {
 			send_message(MSG_DEP_ERR_INVLDCMD, msg_in.msg_type);
@@ -120,7 +120,8 @@ int handle_rpmsg(struct RingBuffer *free_buffers, enum ShepherdMode mode,
 }
 
 void event_loop(volatile struct SharedMem *shared_mem,
-		struct RingBuffer *free_buffers, struct SampleBuffer *buffers)
+		struct RingBuffer *free_buffers_ptr,
+		struct SampleBuffer *buffers)
 {
 	unsigned int sample_idx = 0;
 	unsigned int buffer_idx = NO_BUFFER;
@@ -157,7 +158,7 @@ void event_loop(volatile struct SharedMem *shared_mem,
 				     STATE_RUNNING) &&
 				    (shared_mem->shepherd_mode != MODE_DEBUG))
 					buffer_idx = handle_block_end(
-						shared_mem, free_buffers,
+						shared_mem, free_buffers_ptr,
 						buffers, buffer_idx,
 						sample_idx);
 
@@ -166,7 +167,7 @@ void event_loop(volatile struct SharedMem *shared_mem,
 			}
 			/* We only handle rpmsg comms if we're not at the last sample */
 			else {
-				handle_rpmsg(free_buffers,
+				handle_rpmsg(free_buffers_ptr,
 					     (enum ShepherdMode)
 						     shared_mem->shepherd_mode,
 					     (enum ShepherdState)shared_mem
@@ -178,6 +179,15 @@ void event_loop(volatile struct SharedMem *shared_mem,
 
 void main(void)
 {
+	/*
+	 * The dynamically allocated shared DDR RAM holds all the buffers that
+	 * are used to transfer the actual data between us and the Linux host.
+	 * This memory is requested from remoteproc via a carveour resource request
+	 * in our resourcetable
+	 */
+	struct SampleBuffer *buffers =
+		(struct SampleBuffer *)resourceTable.shared_mem.pa;
+
 	/* Allow OCP master port access by the PRU so the PRU can read external memories */
 	CT_CFG.SYSCFG_bit.STANDBY_INIT = 0;
 
@@ -191,15 +201,6 @@ void main(void)
 
 	_GPIO_OFF(USR_LED1);
 	_GPIO_OFF(DEBUG_P0);
-	_GPIO_OFF(DEBUG_P1);
-
-	/*
-	 * The dynamically allocated shared DDR RAM holds all the buffers that
-	 * are used to transfer the actual data between us and the Linux host.
-	 * This memory is requested from remoteproc via a carveour resource request
-	 * in our resourcetable
-	 */
-	buffers = (struct SampleBuffer *)resourceTable.shared_mem.pa;
 
 	/*
 	 * The shared mem is dynamically allocated and we have to inform user space
