@@ -122,3 +122,4 @@ The following people have contributed to *shepherd*:
  - [Kai Geissdoerfer](https://www.researchgate.net/profile/Kai_Geissdoerfer)
  - [Mikolaj Chwalisz](https://www.tkn.tu-berlin.de/team/chwalisz/)
  - [Marco Zimmerling](https://wwwpub.zih.tu-dresden.de/~mzimmerl/)
+ - [Justus Paulick](https://github.com/kugelbit)
