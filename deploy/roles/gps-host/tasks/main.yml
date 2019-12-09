@@ -1,5 +1,5 @@
 ---
-#packages
+packages
 - name: Get kernel version
   command: uname --kernel-release
   register: kernelrelease
@@ -51,6 +51,8 @@
   with_items:
    - { line: 'disable_uboot_overlay_video=1', regexp: '#?disable_uboot_overlay_video=1' }
    - { line: 'disable_uboot_overlay_adc=1', regexp: '#?disable_uboot_overlay_adc=1' }
+   - { line: 'disable_uboot_overlay_audio=1', regexp: '#?disable_uboot_overlay_audio=1' }
+   - { line: 'disable_uboot_overlay_wireless=1', regexp: '#?disable_uboot_overlay_wireless=1' }
    - { line: '#enable_uboot_cape_universal=1', regexp: '#?enable_uboot_cape_universal=1' }
 
 - name: Set enabled capes

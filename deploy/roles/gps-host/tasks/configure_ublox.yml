@@ -1,11 +1,11 @@
 ---
-- name: install required packages
-  apt:
-    name: '{{ item }}'
-    state: present
-  with_items:
-    - python
-    - python-serial
+# - name: install required packages
+#   apt:
+#     name: '{{ item }}'
+#     state: present
+#   with_items:
+#     - python
+#     - python-serial
 
 - name: Stop services
   systemd:
@@ -18,8 +18,8 @@
 #install tool for ublox config
 - name: Copy program for config
   synchronize:
-    src: files/u-blox-config/
-    dest: /opt/u-blox-config/
+    src: files/ubx-packet-exchange/
+    dest: /opt/ubx-packet-exchange/
     rsync_opts:
       - "--no-motd"
       - "--exclude=.git"
@@ -27,8 +27,8 @@
   tags: config
 
 
-- name: disable sbas; enable gps and galileo; set stationary mode
-  command: python /opt/u-blox-config/ubloxmsg_exchange.py /opt/u-blox-config/config_files/config_time /dev/ttyO2
+- name: disable sbas; enable gps and galileo
+  command: python /opt/ubx-packet-exchange/ubloxmsg_exchange.py /opt/ubx-packet-exchange/config_files/config_time /dev/ttyO2
 
 
 - name: Enable services
