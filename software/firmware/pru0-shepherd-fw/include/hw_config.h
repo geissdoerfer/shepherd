@@ -10,8 +10,7 @@
 #define SPI_MOSI P9_30
 #define SPI_MISO P9_27
 
-#define DEBUG_P0 P9_29
-#define DEBUG_P1 P8_11
+#define DEBUG_P0 P8_11
 
 #define USR_LED1 P8_12
 

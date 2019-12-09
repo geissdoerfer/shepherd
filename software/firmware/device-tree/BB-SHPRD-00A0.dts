@@ -10,7 +10,7 @@
 
    /* This overlay uses the following resources */
    exclusive-use =
-        "P8.11", /* DEBUG PIN1 PRU0 */
+        "P8.11", /* DEBUG PIN0 PRU0 */
         "P8.12", /* LED1 PRU0 */
         "P8.13", /* ENABLE HARVESTER */
         "P8.28", /* ADC RST/PDN */
@@ -26,12 +26,12 @@
         "P8.46", /* TARGET GPIO1 */
         "P9.11", /* ENABLE MPPT# */
         "P9.12", /* ENABLE V ANALOG */
-        "P9.15", /* SELECT LOAD*/
+        "P9.15", /* SELECT LOAD HOST */
         "P9.16", /* ENABLE V FIXED*/
         "P9.25", /* SPI CS ADC */
         "P9.27", /* SPI MISO */
         "P9.28", /* SPI SCLK */
-        "P9.29", /* DEBUG PIN0 PRU0 */
+        "P9.29", /* SELECT LOAD PRU */
         "P9.30", /* SPI MOSI */
         "P9.31", /* SPI CS DAC */
         "P9.41", /* SWDIO */
@@ -68,7 +68,7 @@
             0x1ac 0x05	/* P9_25, pr1_pru0_pru_r30_7 */
             0x1a4 0x26	/* P9_27, pr1_pru0_pru_r31_5 */
             0x19c 0x05	/* P9_28, pr1_pru0_pru_r30_3 */
-            0x194 0x05	/* P9_29, pr1_pru0_pru_r30_1 */
+            0x194 0x2E	/* P9_29, pr1_pru0_pru_r31_1 */
             0x198 0x05	/* P9_30, pr1_pru0_pru_r30_2 */
             0x190 0x05	/* P9_31, pr1_pru0_pru_r30_0 */
             0x1a8 0x27	/* P9_41B, gpio3[20] */
