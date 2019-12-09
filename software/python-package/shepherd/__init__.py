@@ -299,6 +299,7 @@ def record(
     load: str = "artificial",
     ldo_voltage: float = None,
     start_time: float = None,
+    warn_only: bool = False,
 ):
     """Starts recording.
 
@@ -319,6 +320,8 @@ def record(
         ldo_voltage (bool): True to pre-charge capacitor before starting
             emulation
         start_time (float): Desired start time of emulation in unix epoch time
+        warn_only (bool): Set true to continue recording after recoverable
+            error
     """
     if no_calib:
         calib = CalibrationData.from_default()
@@ -382,8 +385,8 @@ def record(
                     int(time.time() * 1e9), str(e), e.value
                 )
                 log_writer.write_exception(err_rec)
-
-                raise
+                if not warn_only:
+                    raise
 
             log_writer.write_buffer(buf)
             recorder.release_buffer(idx)
@@ -398,6 +401,7 @@ def emulate(
     load: str = "artificial",
     ldo_voltage: float = None,
     start_time: float = None,
+    warn_only: bool = False,
 ):
     """Starts emulation.
 
@@ -416,6 +420,8 @@ def emulate(
         ldo_voltage (float): Pre-charge capacitor to this voltage before
             starting emulation
         start_time (float): Desired start time of emulation in unix epoch time
+        warn_only (bool): Set true to continue emulation after recoverable
+            error
     """
 
     if no_calib:
@@ -486,7 +492,8 @@ def emulate(
                     )
                     log_writer.write_exception(err_rec)
 
-                raise
+                if not warn_only:
+                    raise
 
             if output is not None:
                 log_writer.write_buffer(load_buf)
@@ -507,4 +514,5 @@ def emulate(
                 if e.id == commons.MSG_DEP_ERR_NOFREEBUF:
                     break
                 else:
-                    raise
+                    if not warn_only:
+                        raise

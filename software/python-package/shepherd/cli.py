@@ -138,9 +138,7 @@ def run(command, parameters, verbose):
     "--length", "-l", type=float, help="Duration of recording in seconds"
 )
 @click.option("--force", "-f", is_flag=True, help="Overwrite existing file")
-@click.option(
-    "--no-calib", is_flag=True, help="Use default calibration values"
-)
+@click.option("--no-calib", is_flag=True, help="Use default calibration values")
 @click.option(
     "--voltage", type=float, help="Set fixed reference voltage for harvesting"
 )
@@ -163,6 +161,9 @@ def run(command, parameters, verbose):
     type=float,
     help="Desired start time in unix epoch time",
 )
+@click.option(
+    "--warn-only/--no-warn-only", default=True, help="Warn only on errors"
+)
 def record(
     output,
     mode,
@@ -173,6 +174,7 @@ def record(
     load,
     ldo_voltage,
     start_time,
+    warn_only,
 ):
     pl_store = Path(output)
     if pl_store.is_dir():
@@ -188,6 +190,7 @@ def record(
         load,
         ldo_voltage,
         start_time,
+        warn_only,
     )
 
 
@@ -205,9 +208,7 @@ def record(
     "--length", "-l", type=float, help="Duration of recording in seconds"
 )
 @click.option("--force", "-f", is_flag=True, help="Overwrite existing file")
-@click.option(
-    "--no-calib", is_flag=True, help="Use default calibration values"
-)
+@click.option("--no-calib", is_flag=True, help="Use default calibration values")
 @click.option(
     "--load",
     type=click.Choice(["artificial", "node"]),
@@ -224,8 +225,19 @@ def record(
 @click.option(
     "--start-time", type=float, help="Desired start time in unix epoch time"
 )
+@click.option(
+    "--warn-only/--no-warn-only", default=True, help="Warn only on errors"
+)
 def emulate(
-    input, output, length, force, no_calib, load, ldo_voltage, start_time
+    input,
+    output,
+    length,
+    force,
+    no_calib,
+    load,
+    ldo_voltage,
+    start_time,
+    warn_only,
 ):
     if output is None:
         pl_store = None
@@ -237,7 +249,15 @@ def emulate(
             pl_store = Path("/var/shepherd/recordings") / output
 
     run_emulate(
-        input, pl_store, length, force, no_calib, load, ldo_voltage, start_time
+        input,
+        pl_store,
+        length,
+        force,
+        no_calib,
+        load,
+        ldo_voltage,
+        start_time,
+        warn_only,
     )
 
 
