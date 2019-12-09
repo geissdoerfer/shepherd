@@ -1,5 +1,4 @@
 ---
-packages
 - name: Get kernel version
   command: uname --kernel-release
   register: kernelrelease
