@@ -55,12 +55,6 @@
       line: '%sudo ALL=(ALL) NOPASSWD: ALL'
       validate: 'visudo -cf %s'
 
-  - name: Update all packages to the latest version
-    apt:
-      upgrade: dist
-      update_cache: yes
-    when: upgrade|default(false)|bool == true
-
   - name: Check if we have hostkeys locally
     local_action: 'stat path={{ playbook_dir }}/keys/{{ inventory_hostname }}'
     register: stat_keys
@@ -88,6 +82,9 @@
         - ssh_host_rsa_key
     when: stat_keys.stat.exists == True
 
+  - name: Grow root partition to drive size
+    command: /opt/scripts/tools/grow_partition.sh
+
   - name: restart device
     shell: sleep 2 && shutdown -r now "Ansible restart"
     async: 1
@@ -99,3 +96,9 @@
       delay: 15
       timeout: 300
     become: no
+
+  - name: Update all packages to the latest version
+    apt:
+      upgrade: dist
+      update_cache: yes
+    when: upgrade|default(false)|bool == true
