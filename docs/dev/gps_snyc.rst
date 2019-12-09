@@ -52,7 +52,7 @@ Deploy
 ----------------
 
 Please use the ansible gps-host role.
-``ansible-playbook -i hosts deploy.yml``
+``ansible-playbook deploy.yml``
 
 Useful commands
 ----------------
@@ -92,6 +92,5 @@ Pitfalls
 - The are lot of possible configuration options for the u-blox chip (see  SAM-M8Q Receiver Description)
   maby the optimal configuration is currently not reached. For more research in this direction use the u-blox u-center software.
 - The currently used u-blox chip does not support the u-blox time mode. This mode can increase the timing accuracy (see u-blox M8 Receiver Description).   
-- TODO: Determine Synchronisation Error
-
-
+- There was a simple Measurement to determine the accuracy of the GPS-Timesnyc. 
+    The Maximum Timesync-jitter observed between two Nodes was 14 us. 
