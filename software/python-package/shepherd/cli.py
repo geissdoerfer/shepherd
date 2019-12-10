@@ -93,7 +93,7 @@ def targetpower(on, voltage):
     "--command", default="record", type=click.Choice(["record", "emulate"])
 )
 @click.option("--parameters", default=dict())
-@click.option("-v", "--verbose", count=True)
+@click.option("-v", "--verbose", type=int)
 @click_config_file.configuration_option(provider=yamlprovider)
 def run(command, parameters, verbose):
 
