@@ -42,5 +42,4 @@
   with_items:
    - { name: phc2sys.service, enabled: yes }
    - { name: ptp4l.service, enabled: no }
-   - { name: ptp4l.path, enabled: yes }
   tags: conf
