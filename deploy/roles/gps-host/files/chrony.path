@@ -1,0 +1,9 @@
+
+[Unit]
+Description= Triggers chrony service when PPS device appears
+
+[Path]
+PathExists=/dev/pps0
+
+[Install]
+WantedBy=multi-user.target

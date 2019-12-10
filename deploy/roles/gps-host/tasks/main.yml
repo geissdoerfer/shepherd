@@ -1,0 +1,112 @@
+---
+- name: Get kernel version
+  command: uname --kernel-release
+  register: kernelrelease
+  changed_when: False
+
+
+- name: install required packages
+  apt:
+    name: '{{ item }}'
+    state: present
+  with_items:
+    - gpsd
+    - gpsd-clients
+    - chrony
+    - pps-tools
+    - 'linux-headers-{{ kernelrelease.stdout.strip() }}'
+
+
+#config 
+- name: configure gpsd
+  template:
+    src: '{{ item }}'
+    dest: '/etc/default/'
+    mode: 0644
+  with_items:
+   - gpsd
+  tags: conf
+
+- name: configure chrony
+  template:
+    src: '{{ item }}'
+    dest: '/etc/chrony/'
+    mode: 0644
+  with_items:
+   - chrony.conf
+  tags: conf
+
+#change uEnv.txt
+- set_fact:
+    uEnv: '/boot/uEnv.txt'
+    capes_enabled: ['DD-GPS-00A0']
+
+- name: Disable factory enabled capes
+  lineinfile:
+    dest: '{{ uEnv }}'
+    regexp: '{{ item.regexp }}'
+    line: '{{ item.line }}'
+    state: present
+  with_items:
+   - { line: 'disable_uboot_overlay_video=1', regexp: '#?disable_uboot_overlay_video=1' }
+   - { line: 'disable_uboot_overlay_adc=1', regexp: '#?disable_uboot_overlay_adc=1' }
+   - { line: 'disable_uboot_overlay_audio=1', regexp: '#?disable_uboot_overlay_audio=1' }
+   - { line: 'disable_uboot_overlay_wireless=1', regexp: '#?disable_uboot_overlay_wireless=1' }
+   - { line: '#enable_uboot_cape_universal=1', regexp: '#?enable_uboot_cape_universal=1' }
+
+- name: Set enabled capes
+  lineinfile:
+    dest: '{{ uEnv }}'
+    regexp: '#?uboot_overlay_addr1=\/lib\/firmware\/(<file8>|{{ item }}).dtbo'
+    line: 'uboot_overlay_addr1=/lib/firmware/{{ item }}.dtbo'
+    state: present
+  with_items: "{{ capes_enabled }}"
+
+#install pps-gm-timer
+- name: Copy pps-gmtimer code
+  synchronize:
+    src: files/pps-gmtimer/
+    dest: /opt/pps-gmtimer/
+    rsync_opts:
+      - "--no-motd"
+      - "--exclude=.git"
+      - "--exclude=.vscode"
+  tags: kernel
+
+- name: Build and install GPS-PPS dtbo and kernel module
+  make:
+    chdir: /opt/pps-gmtimer/
+    target: install
+  tags: kernel
+
+- name: Set pps-gmtimer to autostart
+  lineinfile:
+    dest: '/etc/modules'
+    regexp: 'p?ps-gmtimer'
+    line: 'pps-gmtimer'
+    state: present
+
+- name: make system find kernel-modul
+  command: depmod -ae
+
+- include_tasks: systemd.yml
+  tags:
+   - conf
+   - systemd
+
+- name: restart device
+  shell: sleep 2 && shutdown -r now "Ansible restart"
+  async: 1
+  poll: 0
+  ignore_errors: true
+
+
+- name: waiting to come back
+  wait_for_connection:
+    delay: 15
+    timeout: 300
+  become: no
+
+- include_tasks: configure_ublox.yml
+  tags:
+   - conf

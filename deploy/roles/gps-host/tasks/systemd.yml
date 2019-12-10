@@ -1,0 +1,40 @@
+---
+- name: Prepare paths for service override
+  file:
+    path: '/etc/systemd/system/{{ item }}.service.d'
+    state: directory
+    recurse: yes
+  with_items:
+   - gpsd
+   - chrony
+  tags: conf
+
+- name: Override service configs
+  copy:
+    src: '{{ item }}.override.conf'
+    dest: '/etc/systemd/system/{{ item }}.service.d/override.conf'
+  with_items:
+   - chrony
+  tags: conf
+
+
+# services not started at boot, but after respective file exists
+- name: Add service path activation
+  copy:
+    src: '{{ item }}.path'
+    dest: '/etc/systemd/system/{{ item }}.path'
+  with_items:
+   - chrony
+  tags: conf
+
+- name: Enable services
+  systemd:
+    name: '{{ item.name }}'
+    state: restarted
+    enabled: '{{ item.enabled }}'
+    daemon_reload: yes
+  with_items:
+   - { name: chrony, enabled: no }
+   - { name: chrony.path, enabled: yes }
+   - { name: gpsd, enabled: yes}
+  tags: conf
