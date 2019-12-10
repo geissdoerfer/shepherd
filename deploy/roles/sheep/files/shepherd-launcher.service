@@ -1,0 +1,6 @@
+[Unit]
+Description=shepherd launcher
+
+[Service]
+ExecStart=/usr/local/bin/shepherd-sheep -vv launcher
+Restart=on-failure

@@ -35,6 +35,7 @@ from shepherd import CapeData
 from shepherd import ShepherdDebug
 from shepherd.shepherd_io import gpio_pin_nums
 from shepherd.const_reg import VariableLDO
+from shepherd.launcher import Launcher
 
 consoleHandler = logging.StreamHandler()
 logger = logging.getLogger("shepherd")
@@ -406,6 +407,14 @@ def rpc(port):
     shepherd_io.start()
     logger.debug("Started shepherd debug interface")
     server.run()
+
+
+@cli.command(short_help="Start shepherd launcher")
+@click.option("--led", "-l", type=int, default=89)
+@click.option("--button", "-b", type=int, default=9)
+def launcher(led, button):
+    with Launcher(button, led) as lnch:
+        lnch.run()
 
 
 if __name__ == "__main__":
