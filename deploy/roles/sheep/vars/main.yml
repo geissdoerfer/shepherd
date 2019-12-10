@@ -1,3 +1,4 @@
 ---
 shepherd_install_path: /opt/shepherd
 shepherd_data_path: /var/shepherd/recordings
+shepherd_config_path: /etc/shepherd

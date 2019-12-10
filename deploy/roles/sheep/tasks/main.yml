@@ -60,6 +60,7 @@
   with_items:
    - '{{ shepherd_install_path }}'
    - '{{ shepherd_data_path }}'
+   - '{{ shepherd_config_path }}'
   tags:
     - source-code
     - python
