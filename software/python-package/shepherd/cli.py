@@ -177,12 +177,9 @@ def record(
     start_time,
     warn_only,
 ):
-    pl_store = Path(output)
-    if pl_store.is_dir():
-        pl_store = pl_store / "rec.h5"
 
     run_record(
-        pl_store,
+        Path(output),
         mode,
         length,
         force,
@@ -244,10 +241,6 @@ def emulate(
         pl_store = None
     else:
         pl_store = Path(output)
-        if pl_store.is_dir():
-            pl_store = pl_store / "rec.h5"
-        else:
-            pl_store = Path("/var/shepherd/recordings") / output
 
     run_emulate(
         input,

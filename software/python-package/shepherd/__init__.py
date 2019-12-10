@@ -323,6 +323,14 @@ def record(
         warn_only (bool): Set true to continue recording after recoverable
             error
     """
+
+    if not output.is_absolute():
+        raise ValueError("Output must be absolute path")
+    if output.is_dir():
+        store_path = output / "rec.h5"
+    else:
+        store_path = output
+
     if no_calib:
         calib = CalibrationData.from_default()
     else:
@@ -342,7 +350,7 @@ def record(
         ldo_voltage=ldo_voltage,
     )
     log_writer = LogWriter(
-        store_path=output, calibration_data=calib, mode=mode, force=force
+        store_path=store_path, calibration_data=calib, mode=mode, force=force
     )
     with ExitStack() as stack:
 
@@ -437,8 +445,15 @@ def emulate(
                 calib = CalibrationData.from_default()
 
     if output is not None:
+        if not output.is_absolute():
+            raise ValueError("Output must be absolute path")
+        if output.is_dir():
+            store_path = output / "rec.h5"
+        else:
+            store_path = output
+
         log_writer = LogWriter(
-            store_path=output, force=force, mode="load", calibration_data=calib
+            store_path=store_path, force=force, mode="load", calibration_data=calib
         )
 
     log_reader = LogReader(input, 10_000)
