@@ -4,3 +4,6 @@ Description=shepherd launcher
 [Service]
 ExecStart=/usr/local/bin/shepherd-sheep -vv launcher
 Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
