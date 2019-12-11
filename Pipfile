@@ -18,6 +18,12 @@ sphinx-click = "*"
 sphinx-rtd-theme = "*"
 matplotlib = "*"
 pandas = "*"
+keithley2600b = "*"
+numpy = "*"
+scipy = "*"
+scikit-learn = "*"
+fabric = "*"
+pyyaml = "*"
 
 [pipenv]
 allow_prereleases = true
