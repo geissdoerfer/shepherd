@@ -122,7 +122,6 @@ int sync_loop(struct CtrlRepMsg *ctrl_rep, struct CtrlReqMsg *ctrl_req)
 	int64_t ns_iep_to_wrap;
 	int32_t clock_corr;
 	uint64_t ns_per_tick;
-	int32_t clock_corr_max;
 
 	/*
      * Based on the previous IEP timer period and the nominal timer period
@@ -149,17 +148,9 @@ int sync_loop(struct CtrlRepMsg *ctrl_rep, struct CtrlReqMsg *ctrl_req)
 
 	/* This is the actual PI controller equation */
 	clock_corr =
-		div_s64(sync_data->err, 32) + div_s64(sync_data->err_sum, 512);
+		div_s64(sync_data->err, 32) + div_s64(sync_data->err_sum, 128);
 
-	/* Clamp maximum correction to 10% of previous timer period */
-	clock_corr_max = (int32_t)ctrl_req->old_period / 100;
-	if (clock_corr > clock_corr_max)
-		ctrl_rep->clock_corr = clock_corr_max;
-	else if (clock_corr < -clock_corr_max)
-		ctrl_rep->clock_corr = -clock_corr_max;
-	else
-		ctrl_rep->clock_corr = clock_corr;
-
+	ctrl_rep->clock_corr = clock_corr;
 	ctrl_rep->next_timestamp_ns = next_timestamp_ns;
 	ctrl_rep->identifier = MSG_SYNC_CTRL_REP;
 

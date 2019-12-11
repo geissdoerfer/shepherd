@@ -46,6 +46,6 @@ struct sync_data_s {
 	int32_t clock_corr;
 };
 
-extern struct sync_data_s * sync_data;
+extern struct sync_data_s *sync_data;
 
 #endif /* __SYNC_CTRL_H_ */

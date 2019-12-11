@@ -288,18 +288,34 @@ int event_loop(volatile struct SharedMem *shared_mem)
 			/* If we are waiting for a reply from Linux kernel module */
 			if (sync_state == REPLY_PENDING) {
 				if (check_control_reply(ctrl_rep) == 0) {
+					unsigned int block_period;
 					/* The new timer period is the base period plus the correction calculated by the controller */
-					unsigned int block_period =
-						TIMER_BASE_PERIOD +
-						ctrl_rep->clock_corr;
+					if (ctrl_rep->clock_corr >
+					    TIMER_BASE_PERIOD / 10) {
+						block_period =
+							TIMER_BASE_PERIOD +
+							TIMER_BASE_PERIOD / 10;
+					} else if (ctrl_rep->clock_corr <
+						   -TIMER_BASE_PERIOD / 10) {
+						block_period =
+							TIMER_BASE_PERIOD -
+							TIMER_BASE_PERIOD / 10;
+					} else {
+						block_period =
+							TIMER_BASE_PERIOD +
+							ctrl_rep->clock_corr;
+					}
+
 					sample_period = (block_period -
 							 CT_IEP.TMR_CMP1) /
 							(SAMPLES_PER_BUFFER -
 							 sample_counter);
+
 					n_comp = (block_period -
 						  CT_IEP.TMR_CMP1) %
 						 (SAMPLES_PER_BUFFER -
 						  sample_counter);
+
 					CT_IEP.TMR_CMP0 = block_period;
 					sync_state = IDLE;
 					shared_mem->next_timestamp_ns =

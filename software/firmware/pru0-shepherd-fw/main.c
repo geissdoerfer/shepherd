@@ -180,6 +180,22 @@ void event_loop(volatile struct SharedMem *shared_mem,
 void main(void)
 {
 	/*
+	 * The shared mem is dynamically allocated and we have to inform user space
+	 * about the address and size via sysfs, which exposes parts of the
+	 * shared_mem structure.
+	 * Do this initialization early! The kernel module relies on it.
+	 */
+	shared_mem->mem_base_addr = resourceTable.shared_mem.pa;
+	shared_mem->mem_size = resourceTable.shared_mem.len;
+
+	shared_mem->n_buffers = RING_SIZE;
+	shared_mem->samples_per_buffer = SAMPLES_PER_BUFFER;
+	shared_mem->buffer_period_ns = BUFFER_PERIOD_NS;
+
+	shared_mem->harvesting_voltage = 0;
+	shared_mem->shepherd_mode = MODE_HARVESTING;
+
+	/*
 	 * The dynamically allocated shared DDR RAM holds all the buffers that
 	 * are used to transfer the actual data between us and the Linux host.
 	 * This memory is requested from remoteproc via a carveour resource request
@@ -201,21 +217,6 @@ void main(void)
 
 	_GPIO_OFF(USR_LED1);
 	_GPIO_OFF(DEBUG_P0);
-
-	/*
-	 * The shared mem is dynamically allocated and we have to inform user space
-	 * about the address and size via sysfs, which exposes parts of the
-	 * shared_mem structure
-	 */
-	shared_mem->mem_base_addr = resourceTable.shared_mem.pa;
-	shared_mem->mem_size = resourceTable.shared_mem.len;
-
-	shared_mem->n_buffers = RING_SIZE;
-	shared_mem->samples_per_buffer = SAMPLES_PER_BUFFER;
-	shared_mem->buffer_period_ns = BUFFER_PERIOD_NS;
-
-	shared_mem->harvesting_voltage = 0;
-	shared_mem->shepherd_mode = MODE_HARVESTING;
 
 /* Jump to this label, whenever user requests 'stop' */
 reset:

@@ -157,6 +157,7 @@ static int shepherd_drv_probe(struct platform_device *pdev)
 	}
 	printk(KERN_INFO "shprd: PRUs started!");
 
+	/* Allow some time for the PRUs to initialize. This is critical! */
 	msleep(500);
 	/* Initialize shared memory and PRU interrupt controller */
 	pru_comm_init();

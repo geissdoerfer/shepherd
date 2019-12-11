@@ -43,7 +43,7 @@ struct SharedMem {
 	uint32_t buffer_period_ns;
 } __attribute__((packed));
 
-/* Control request message sent from PRU0 to this kernel module */
+/* Control request message sent from PRU1 to this kernel module */
 struct CtrlReqMsg {
 	/* This is used to identify message type at receiver */
 	char identifier;
@@ -53,7 +53,7 @@ struct CtrlReqMsg {
 	uint32_t old_period;
 } __attribute__((packed));
 
-/* Control reply message sent from this kernel module to PRU0 after running the control loop */
+/* Control reply message sent from this kernel module to PRU1 after running the control loop */
 struct CtrlRepMsg {
 	char identifier;
 	int32_t clock_corr;
