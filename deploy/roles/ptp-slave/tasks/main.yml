@@ -24,8 +24,8 @@
   tags: conf
 
 - name: Deploy unit files
-  template:
-    src: '{{ item.src }}'
+  copy:
+    src: '{{ role_path }}/../../../software/ptp/{{ item.src }}'
     dest: '{{ item.dest }}'
     mode: 0644
   with_items:

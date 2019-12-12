@@ -3,4 +3,6 @@
 	dh $@
 
 override_dh_installsystemd:
-	dh_installsystemd --no-enable --no-start shepherd.service
+	dh_installsystemd --no-enable --no-start --name shepherd
+	dh_installsystemd --no-enable --no-start --name shepherd-rpc
+	dh_installsystemd --no-enable --no-start --name shepherd-launcher

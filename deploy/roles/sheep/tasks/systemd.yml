@@ -1,11 +1,11 @@
 ---
 - name: Add systemd unit
-  template:
-    src: 'files/{{ item }}.service'
-    dest: /etc/systemd/system/
+  copy:
+    src: '{{ role_path }}/../../../software/meta-package/debian/shepherd.{{ item }}.service'
+    dest: '/etc/systemd/system/{{ item }}.service'
+    remote_src: yes
   with_items:
    - shepherd
-   - shepherd-gui
    - shepherd-rpc
    - shepherd-launcher
   tags:
@@ -20,7 +20,6 @@
     daemon_reload: yes
   with_items:
    - shepherd
-   - shepherd-gui
    - shepherd-rpc
    - shepherd-launcher
   tags:
