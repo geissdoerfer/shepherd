@@ -1264,9 +1264,9 @@ DIN A4, landscape with location and doc. field</description>
 <label x="73.66" y="147.32" size="1.778" layer="95" rot="R90" xref="yes"/>
 </segment>
 <segment>
-<pinref part="P1" gate="G$2" pin="P$9"/>
-<wire x1="231.14" y1="134.62" x2="236.22" y2="134.62" width="0.1524" layer="91"/>
-<label x="236.22" y="134.62" size="1.778" layer="95" xref="yes"/>
+<pinref part="P1" gate="G$2" pin="P$8"/>
+<wire x1="195.58" y1="129.54" x2="190.5" y2="129.54" width="0.1524" layer="91"/>
+<label x="190.5" y="129.54" size="1.778" layer="95" rot="R180" xref="yes"/>
 </segment>
 </net>
 <net name="SAFEBOOT_N" class="0">
@@ -1276,9 +1276,9 @@ DIN A4, landscape with location and doc. field</description>
 <label x="73.66" y="99.06" size="1.778" layer="95" rot="R270" xref="yes"/>
 </segment>
 <segment>
-<pinref part="P1" gate="G$2" pin="P$8"/>
-<wire x1="195.58" y1="129.54" x2="190.5" y2="129.54" width="0.1524" layer="91"/>
-<label x="190.5" y="129.54" size="1.778" layer="95" rot="R180" xref="yes"/>
+<pinref part="P1" gate="G$2" pin="P$9"/>
+<wire x1="231.14" y1="134.62" x2="236.22" y2="134.62" width="0.1524" layer="91"/>
+<label x="236.22" y="134.62" size="1.778" layer="95" xref="yes"/>
 </segment>
 </net>
 <net name="N$1" class="0">
