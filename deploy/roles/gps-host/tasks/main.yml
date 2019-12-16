@@ -4,27 +4,16 @@
   register: kernelrelease
   changed_when: False
 
-
 - name: install required packages
   apt:
-    name: '{{ item }}'
+    name: ['gpsd', 'gpsd-clients', 'chrony', 'pps-tools', 'python3-pip', 'linux-headers-{{ kernelrelease.stdout.strip() }}']
     state: present
-  with_items:
-    - gpsd
-    - gpsd-clients
-    - chrony
-    - pps-tools
-    - 'linux-headers-{{ kernelrelease.stdout.strip() }}'
 
-
-#config 
 - name: configure gpsd
   template:
-    src: '{{ item }}'
+    src: 'gpsd'
     dest: '/etc/default/'
     mode: 0644
-  with_items:
-   - gpsd
   tags: conf
 
 - name: configure chrony
@@ -36,7 +25,6 @@
    - chrony.conf
   tags: conf
 
-#change uEnv.txt
 - set_fact:
     uEnv: '/boot/uEnv.txt'
     capes_enabled: ['DD-GPS-00A0']
@@ -62,7 +50,6 @@
     state: present
   with_items: "{{ capes_enabled }}"
 
-#install pps-gm-timer
 - name: Copy pps-gmtimer code
   synchronize:
     src: files/pps-gmtimer/
@@ -79,15 +66,20 @@
     target: install
   tags: kernel
 
-- name: Set pps-gmtimer to autostart
-  lineinfile:
-    dest: '/etc/modules'
-    regexp: 'p?ps-gmtimer'
-    line: 'pps-gmtimer'
-    state: present
 
 - name: make system find kernel-modul
   command: depmod -ae
+
+- name: Install ubx-serial
+  pip:
+    name: ubxserial
+    state: present
+    executable: pip3
+
+- name: Copy ublox config file
+  copy:
+    src: ublox_config.ubx
+    dest: /etc/shepherd/
 
 - include_tasks: systemd.yml
   tags:
@@ -107,6 +99,3 @@
     timeout: 300
   become: no
 
-- include_tasks: configure_ublox.yml
-  tags:
-   - conf

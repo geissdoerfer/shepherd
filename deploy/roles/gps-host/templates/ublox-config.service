@@ -1,0 +1,9 @@
+[Unit]
+Description=Upload config file to ublox GPS
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/ubx-serial -vvv -p {{ ublox_tty_dev }} -c /etc/shepherd/ublox_config.ubx
+
+[Install]
+WantedBy=multi-user.target

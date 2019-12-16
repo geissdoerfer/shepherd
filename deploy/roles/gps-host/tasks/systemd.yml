@@ -14,27 +14,32 @@
     src: '{{ item }}.override.conf'
     dest: '/etc/systemd/system/{{ item }}.service.d/override.conf'
   with_items:
-   - chrony
+    - chrony
+    - gpsd
   tags: conf
 
+- name: Add config systemd service
+  template:
+    src: 'ublox-config.service'
+    dest: '/etc/systemd/system/'
+  tags: conf
 
 # services not started at boot, but after respective file exists
 - name: Add service path activation
   copy:
-    src: '{{ item }}.path'
-    dest: '/etc/systemd/system/{{ item }}.path'
-  with_items:
-   - chrony
+    src: 'chrony.path'
+    dest: '/etc/systemd/system/chrony.path'
   tags: conf
 
 - name: Enable services
   systemd:
     name: '{{ item.name }}'
-    state: restarted
+    state: '{{ item.state }}'
     enabled: '{{ item.enabled }}'
     daemon_reload: yes
   with_items:
-   - { name: chrony, enabled: no }
-   - { name: chrony.path, enabled: yes }
-   - { name: gpsd, enabled: yes}
+   - { name: gpsd.service, enabled: yes, state: restarted }
+   - { name: chrony.service, enabled: no, state: restarted }
+   - { name: chrony.path, enabled: yes, state: restarted }
+   - { name: ublox-config.service, enabled: yes, state: stopped }
   tags: conf
