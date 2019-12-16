@@ -88,6 +88,15 @@
     - install
     - python
 
+- name: Link to shepherd-sheep for compatibility with deb package
+  file:
+    src: /usr/local/bin/shepherd-sheep
+    dest: /usr/bin/shepherd-sheep
+    state: link
+  tags:
+    - install
+    - python
+
 - include_tasks: build.yml
   tags:
     - install
