@@ -27,28 +27,18 @@ consoleHandler = logging.StreamHandler()
 logger = logging.getLogger("shepherd-herd")
 logger.addHandler(consoleHandler)
 
-"""Starts shepherd service on the group of hosts.
 
-Finds a consensus point in time in the future, rolls out a configuration file
-according to the given command and parameters and starts the shepherd systemd
-service.
+def find_consensus_time(group):
+    """Finds a start time in the future when all nodes should start service
 
-Args:
-    group (fabric.Group): Group of fabric hosts on which to start shepherd.
-    command (str): What shepherd is supposed to do. One of 'recording' or 'emulation'.
-    parameters (dict): Parameters for shepherd-sheep
-    verbose (int): Verbosity for shepherd-sheep
-"""
+    In order to run synchronously, all nodes should start at the same time.
+    This is achieved by querying all nodes to check any large time offset,
+    agreeing on a common time in the future and waiting for that time on each
+    node.
 
-
-def start_shepherd(
-    group: Group,
-    command: str,
-    parameters: dict,
-    hostnames: dict,
-    verbose: int = 0,
-):
-
+    Args:
+        group (fabric.Group): Group of fabric hosts on which to start shepherd.
+    """
     # Get the current time on each target node
     ts_nows = np.empty(len(group))
     for i, cnx in enumerate(group):
@@ -66,10 +56,28 @@ def start_shepherd(
 
         # We need to estimate a future point in time such that all nodes are ready
         ts_start = ts_max + 20 + 2 * len(group)
+    return ts_start
 
-    logger.debug(f"Scheduling start of shepherd at {ts_start}")
 
-    parameters["start_time"] = float(ts_start)
+def configure_shepherd(
+    group: Group,
+    command: str,
+    parameters: dict,
+    hostnames: dict,
+    verbose: int = 0,
+):
+    """Configures shepherd service on the group of hosts.
+
+    Rolls out a configuration file according to the given command and parameters
+    service.
+
+    Args:
+        group (fabric.Group): Group of fabric hosts on which to start shepherd.
+        command (str): What shepherd is supposed to do. One of 'recording' or 'emulation'.
+        parameters (dict): Parameters for shepherd-sheep
+        hostnames (dict): Dictionary of hostnames corresponding to fabric hosts
+        verbose (int): Verbosity for shepherd-sheep
+    """
     config_dict = {
         "command": command,
         "verbose": verbose,
@@ -85,6 +93,20 @@ def start_shepherd(
         cnx.put(StringIO(config_yml), "/tmp/config.yml")
         cnx.sudo("mv /tmp/config.yml /etc/shepherd/config.yml")
 
+
+def start_shepherd(
+    group: Group, hostnames: dict,
+):
+    """Starts shepherd service on the group of hosts.
+
+    Args:
+        group (fabric.Group): Group of fabric hosts on which to start shepherd.
+        hostnames (dict): Dictionary of hostnames corresponding to fabric hosts
+    """
+    for cnx in group:
+        res = cnx.sudo("systemctl status shepherd", hide=True, warn=True)
+        if res.exited != 3:
+            raise Exception(f"shepherd not inactive on {hostnames[cnx.host]}")
         res = cnx.sudo("systemctl start shepherd", hide=True, warn=True)
 
 
@@ -345,9 +367,7 @@ def reset(ctx):
     "--length", "-l", type=float, help="Duration of recording in seconds"
 )
 @click.option("--force", "-f", is_flag=True, help="Overwrite existing file")
-@click.option(
-    "--no-calib", is_flag=True, help="Use default calibration values"
-)
+@click.option("--no-calib", is_flag=True, help="Use default calibration values")
 @click.option(
     "--harvesting-voltage",
     type=float,
@@ -366,6 +386,11 @@ def reset(ctx):
     default=2.1,
     help="Sets voltage of variable LDO",
 )
+@click.option(
+    "--start/--no-start",
+    default=True,
+    help="Start shepherd after uploading config",
+)
 @click.pass_context
 def record(
     ctx,
@@ -377,6 +402,7 @@ def record(
     harvesting_voltage,
     load,
     ldo_voltage,
+    start,
 ):
     fp_output = Path(output)
     if not fp_output.is_absolute():
@@ -392,13 +418,17 @@ def record(
         "load": load,
         "ldo_voltage": ldo_voltage,
     }
-    start_shepherd(
+    configure_shepherd(
         ctx.obj["fab group"],
         "record",
         parameter_dict,
         ctx.obj["hostnames"],
         ctx.obj["verbose"],
     )
+    if start:
+        ts_start = find_consensus_time(ctx.obj["fab group"])
+        logger.debug(f"Scheduling start of shepherd at {ts_start}")
+        start_shepherd(ctx.obj["fab group"], ctx.obj["hostnames"])
 
 
 @cli.command(short_help="Emulates IV data read from INPUT hdf5 file")
@@ -413,9 +443,7 @@ def record(
     "--length", "-l", type=float, help="Duration of recording in seconds"
 )
 @click.option("--force", "-f", is_flag=True, help="Overwrite existing file")
-@click.option(
-    "--no-calib", is_flag=True, help="Use default calibration values"
-)
+@click.option("--no-calib", is_flag=True, help="Use default calibration values")
 @click.option(
     "--load",
     type=click.Choice(["artificial", "node"]),
@@ -429,8 +457,15 @@ def record(
     default=2.0,
     help="Pre-charge capacitor before starting recording",
 )
+@click.option(
+    "--start/--no-start",
+    default=True,
+    help="Start shepherd after uploading config",
+)
 @click.pass_context
-def emulate(ctx, input, output, length, force, no_calib, load, ldo_voltage):
+def emulate(
+    ctx, input, output, length, force, no_calib, load, ldo_voltage, start
+):
 
     fp_input = Path(input)
     if not fp_input.is_absolute():
@@ -452,13 +487,17 @@ def emulate(ctx, input, output, length, force, no_calib, load, ldo_voltage):
 
         parameter_dict["output"] = str(fp_output)
 
-    start_shepherd(
+    configure_shepherd(
         ctx.obj["fab group"],
         "emulate",
         parameter_dict,
         ctx.obj["hostnames"],
         ctx.obj["verbose"],
     )
+    if start:
+        ts_start = find_consensus_time(ctx.obj["fab group"])
+        logger.debug(f"Scheduling start of shepherd at {ts_start}")
+        start_shepherd(ctx.obj["fab group"], ctx.obj["hostnames"])
 
 
 @cli.command(short_help="Stops any recording/emulation")
