@@ -1,0 +1,9 @@
+"BILL OF MATERIAL WITH BETA STOCK, GROUPED BY VALUES, AS OF 09.10.2015",,,,,,,,,,,,,,,,,,
+Part,Value,Device,Package,Description,Description2,Qty,Place_YES/NO,Povided_by_customer_YES/NO,Distributor,Ordernumber,Weblink,Remarks_customer,Unit_price,Total_price,REMARKS_BETA,OPTION1,OPTION2,OPTION3
+C1,22u,C_SMD1210,CAPC3225X280, , ,1,YES,NO,Digi-Key,399-7451-1-ND‎,https://www.digikey.com/product-detail/en/C1210C226M4RACTU/399-7451-1-ND/3317485/?itemSeq=312440191, , , , , , , 
+"C2, C3",0.1u,C_SMD0805,CAPC2012X145, , ,2,YES,NO,Beta,2644422P,http://uk.rs-online.com/web/search/searchBrowseAction.html?method=searchProducts&searchTerm=2644422P&x=26&y=20, , , , , , , 
+IC1,SAM-M8Q,SAM-M8Q,SAM-M8Q,u-blox SAM GNSS antenna module, ,1,YES,NO,Digi-Key,672-1054-1-ND‎,https://www.digikey.com/product-detail/en/SAM-M8Q-0-10/672-1054-1-ND/7393573/?itemSeq=312440192, , , , , , , 
+"P8, P9", ,PINHD-2X11,2X11,PIN HEADER, ,2,YES,NO,Digi-Key,3M156386-22-ND,https://www.digikey.de/products/en?keywords=%20929836-01-11-RK%20, , , , , , , 
+PPS,598-8130-107FLED_0805,598-8130-107FLED_0805,LEDC2012X75, , ,1,YES,NO,Digi-Key,350-2040-1-ND‎,https://www.digikey.com/product-detail/en/5988130107F/350-2040-1-ND/1291344/?itemSeq=312440189, , , , , , , 
+R1,130R,R_SMD0805,RESC2012X65, , ,1,YES,NO,Beta,6980003,http://de.rs-online.com/web/search/searchBrowseAction.html?method=searchProducts&searchTerm=6980003&x=25&y=13, , , , , , , 
+T1,SI2374DSSOT23-VSHAY,SI2374DSSOT23-VSHAY,SOT95P237X112-3, , ,1,YES,NO,Digi-Key,SI2374DS-T1-GE3CT-ND‎,https://www.digikey.com/product-detail/en/SI2374DS-T1-GE3/SI2374DS-T1-GE3CT-ND/6595036/?itemSeq=312440193, , , , , , , 
