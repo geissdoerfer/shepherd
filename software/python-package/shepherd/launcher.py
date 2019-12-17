@@ -34,7 +34,7 @@ class Launcher(object):
     def __init__(
         self,
         pin_button: int = 9,
-        pin_led: int = 89,
+        pin_led: int = 81,
         service_name: str = "shepherd",
     ):
         self.pin_button = pin_button
