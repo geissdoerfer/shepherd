@@ -1,9 +1,8 @@
 ---
 - name: Add systemd unit
   copy:
-    src: '{{ role_path }}/../../../software/meta-package/debian/shepherd.{{ item }}.service'
+    src: '{{ repo_dir.stdout }}/software/meta-package/debian/shepherd.{{ item }}.service'
     dest: '/etc/systemd/system/{{ item }}.service'
-    remote_src: yes
   with_items:
    - shepherd
    - shepherd-rpc
@@ -14,14 +13,14 @@
 
 - name: Register systemd services
   systemd:
-    name: '{{ item }}'
+    name: '{{ item.name }}'
     state: stopped
-    enabled: no
+    enabled: '{{ item.enabled }}'
     daemon_reload: yes
   with_items:
-   - shepherd
-   - shepherd-rpc
-   - shepherd-launcher
+   - { name: shepherd, enabled: no}
+   - { name: shepherd-rpc, enabled: no}
+   - { name: shepherd-launcher, enabled: yes}
   tags:
     - install
     - systemd
