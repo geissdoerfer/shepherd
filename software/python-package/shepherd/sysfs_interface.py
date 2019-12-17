@@ -133,7 +133,7 @@ def set_harvesting_voltage(harvesting_voltage: int):
     """
     if get_state() != "idle":
         raise SysfsInterfaceException(
-            f"Cannot set voltage when shepherd is { get_state() }"
+            f"Cannot set voltage when shepherd state is { get_state() }"
         )
     mode = get_mode()
     if mode != "harvesting":

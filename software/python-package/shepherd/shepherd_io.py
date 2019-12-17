@@ -216,7 +216,7 @@ class SharedMem(object):
         # Jump over header and all sampled data
         self.mapped_mem.seek(gpio_struct_offset)
         # Read the number of gpio events in the buffer
-        n_gpio_events, = struct.unpack("=L", self.mapped_mem.read(4))
+        (n_gpio_events,) = struct.unpack("=L", self.mapped_mem.read(4))
         if n_gpio_events > 0:
             logger.info(f"Buffer contains {n_gpio_events} gpio events")
 
@@ -352,6 +352,8 @@ class ShepherdIO(object):
         except Exception:
             self._cleanup()
             raise
+
+        sysfs_interface.wait_for_state("idle", 3)
         return self
 
     def __exit__(self, *args):
@@ -384,9 +386,7 @@ class ShepherdIO(object):
             except BlockingIOError:
                 time.sleep(0.1)
                 continue
-        raise ShepherdIOException(
-            "Timeout waiting for message", ID_ERR_TIMEOUT
-        )
+        raise ShepherdIOException("Timeout waiting for message", ID_ERR_TIMEOUT)
 
     def _flush_msgs(self):
         """Flushes rpmsg channel by reading all available bytes."""

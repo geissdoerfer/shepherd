@@ -98,9 +98,9 @@ class CalibrationData(object):
                 getattr(calibration_default, f"dac_to_{ channel }")(1.0)
                 - offset
             )
-            calib_dict["emulation"][channel]["offset"] = -float(
-                offset
-            ) / float(gain)
+            calib_dict["emulation"][channel]["offset"] = -float(offset) / float(
+                gain
+            )
             calib_dict["emulation"][channel]["gain"] = 1.0 / float(gain)
 
         return cls(calib_dict)

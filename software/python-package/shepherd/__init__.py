@@ -28,6 +28,7 @@ from shepherd.calibration import CalibrationData
 from shepherd.shepherd_io import ShepherdIOException
 from shepherd.shepherd_io import ShepherdIO
 from shepherd import commons
+from shepherd import sysfs_interface
 
 # Set default logging handler to avoid "No handler found" warnings.
 logging.getLogger(__name__).addHandler(NullHandler())
@@ -466,7 +467,10 @@ def emulate(
             store_path = output
 
         log_writer = LogWriter(
-            store_path=store_path, force=force, mode="load", calibration_data=calib
+            store_path=store_path,
+            force=force,
+            mode="load",
+            calibration_data=calib,
         )
 
     log_reader = LogReader(input, 10_000)
