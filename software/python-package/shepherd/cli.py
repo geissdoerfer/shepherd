@@ -157,6 +157,12 @@ def run(command, parameters, verbose):
     help="Set voltage of variable LDO regulator",
 )
 @click.option(
+    "--ldo-mode",
+    type=click.Choice(["pre-charge", "continuous"]),
+    default="pre-charge",
+    help="Select if LDO should just pre-charge capacitor or run continuously",
+)
+@click.option(
     "--start-time",
     "-s",
     type=float,
@@ -174,6 +180,7 @@ def record(
     voltage,
     load,
     ldo_voltage,
+    ldo_mode,
     start_time,
     warn_only,
 ):
@@ -187,6 +194,7 @@ def record(
         voltage,
         load,
         ldo_voltage,
+        ldo_mode,
         start_time,
         warn_only,
     )

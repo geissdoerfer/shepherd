@@ -270,21 +270,17 @@ class ShepherdIO(object):
 
         return new_class
 
-    def __init__(
-        self, mode: str, ldo_voltage: float = None, load: str = "artificial"
-    ):
+    def __init__(self, mode: str, load: str = "artificial"):
         """Initializes relevant variables.
 
         Args:
             mode (str): Shepherd mode, one of 'harvesting', 'load', 'emulation'
-            ldo_voltage (float): Sets voltage of fixed voltage regulator
             load (str): Which load to use, one of 'artificial', 'node'
         """
 
         self.rpmsg_fd = None
         self.mode = mode
         self.gpios = dict()
-        self.ldo_voltage = ldo_voltage
         self.load = load
         self.shared_mem = None
 

@@ -387,6 +387,12 @@ def reset(ctx):
     help="Sets voltage of variable LDO",
 )
 @click.option(
+    "--ldo-mode",
+    type=click.Choice(["pre-charge", "continuous"]),
+    default="pre-charge",
+    help="Select if LDO should just pre-charge capacitor or run continuously",
+)
+@click.option(
     "--start/--no-start",
     default=True,
     help="Start shepherd after uploading config",
@@ -402,6 +408,7 @@ def record(
     harvesting_voltage,
     load,
     ldo_voltage,
+    ldo_mode,
     start,
 ):
     fp_output = Path(output)
@@ -417,6 +424,7 @@ def record(
         "harvesting_voltage": harvesting_voltage,
         "load": load,
         "ldo_voltage": ldo_voltage,
+        "ldo_mode": ldo_mode
     }
     configure_shepherd(
         ctx.obj["fab group"],

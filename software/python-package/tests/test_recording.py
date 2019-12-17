@@ -69,6 +69,7 @@ def test_record_fn(tmp_path, shepherd_up):
         harvesting_voltage=None,
         load="artificial",
         ldo_voltage=2.5,
+        ldo_mode="continuous",
         start_time=start_time,
     )
 

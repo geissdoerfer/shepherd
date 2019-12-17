@@ -51,7 +51,8 @@ class Recorder(ShepherdIO):
             converter input.
         ldo_voltage (float): Pre-charge capacitor to this voltage before
             starting recording.
-
+        ldo_mode (str): Selects if LDO should just pre-charge capacitor or run
+            continuously.
     """
 
     def __init__(
@@ -60,16 +61,20 @@ class Recorder(ShepherdIO):
         load: str = "artificial",
         harvesting_voltage: float = None,
         ldo_voltage: float = None,
+        ldo_mode: str = "pre-charge",
     ):
+        super().__init__(mode, load)
+
         if ldo_voltage is None:
             if mode == "load":
-                ldo_voltage = 3.0
+                self.ldo_voltage = 3.0
             else:
-                ldo_voltage = 0.0
-
-        super().__init__(mode, ldo_voltage, load)
+                self.ldo_voltage = 0.0
+        else:
+            self.ldo_voltage = ldo_voltage
 
         self.harvesting_voltage = harvesting_voltage
+        self.ldo_mode = ldo_mode
 
     def __enter__(self):
         super().__enter__()
@@ -87,10 +92,12 @@ class Recorder(ShepherdIO):
         elif self.mode == "harvesting":
             self.set_harvester(True)
             if self.ldo_voltage > 0.0:
-                logger.debug(f"Precharging capacitor to {self.ldo_voltage}V")
+                logger.debug(f"Setting LDO to {self.ldo_voltage}V")
                 self.set_ldo_voltage(self.ldo_voltage)
-                time.sleep(1)
-                self.set_ldo_voltage(False)
+                if self.ldo_mode == "pre-charge":
+                    time.sleep(1)
+                    self.set_ldo_voltage(False)
+                    logger.debug("Disabling LDO")
 
         # Give the PRU empty buffers to begin with
         for i in range(self.n_buffers):
@@ -139,7 +146,9 @@ class Emulator(ShepherdIO):
         load: str = "node",
         ldo_voltage: float = 0.0,
     ):
-        super().__init__("emulation", ldo_voltage, load)
+        super().__init__("emulation", load)
+
+        self.ldo_voltage = ldo_voltage
 
         if calibration_emulation is None:
             calibration_emulation = CalibrationData.from_default()
@@ -298,6 +307,7 @@ def record(
     harvesting_voltage: float = None,
     load: str = "artificial",
     ldo_voltage: float = None,
+    ldo_mode: str = "pre-charge",
     start_time: float = None,
     warn_only: bool = False,
 ):
@@ -319,6 +329,8 @@ def record(
             node
         ldo_voltage (bool): True to pre-charge capacitor before starting
             emulation
+        ldo_mode (str): Selects if LDO should just pre-charge capacitor or run
+            continuously.
         start_time (float): Desired start time of emulation in unix epoch time
         warn_only (bool): Set true to continue recording after recoverable
             error
@@ -348,6 +360,7 @@ def record(
         load=load,
         harvesting_voltage=harvesting_voltage,
         ldo_voltage=ldo_voltage,
+        ldo_mode=ldo_mode,
     )
     log_writer = LogWriter(
         store_path=store_path, calibration_data=calib, mode=mode, force=force
