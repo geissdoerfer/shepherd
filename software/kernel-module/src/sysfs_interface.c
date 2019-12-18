@@ -46,6 +46,20 @@ static ssize_t sysfs_harvesting_voltage_store(struct kobject *kobj,
 					      struct kobj_attribute *attr,
 					      const char *buf, size_t count);
 
+static ssize_t sysfs_calibration_settings_store(struct kobject *kobj,
+						struct kobj_attribute *attr,
+						const char *buf, size_t count);
+
+static ssize_t sysfs_calibration_settings_show(struct kobject *kobj,
+				    struct kobj_attribute *attr, char *buf);
+
+static ssize_t sysfs_virtcap_settings_store(struct kobject *kobj,
+						struct kobj_attribute *attr,
+						const char *buf, size_t count);
+
+static ssize_t sysfs_virtcap_settings_show(struct kobject *kobj,
+				    struct kobj_attribute *attr, char *buf);
+
 struct kobj_attr_struct_s {
 	struct kobj_attribute attr;
 	unsigned int val_offset;
@@ -84,6 +98,16 @@ struct kobj_attr_struct_s attr_harvesting_voltage = {
 		       sysfs_harvesting_voltage_store),
 	.val_offset = offsetof(struct SharedMem, harvesting_voltage)
 };
+struct kobj_attr_struct_s attr_calibration_settings = {
+	.attr = __ATTR(calibration_settings, 0660, sysfs_calibration_settings_show,
+		       sysfs_calibration_settings_store),
+	.val_offset = offsetof(struct SharedMem, calibration_settings)
+};
+struct kobj_attr_struct_s attr_virtcap_settings = {
+	.attr = __ATTR(virtcap_settings, 0660, sysfs_virtcap_settings_show,
+		       sysfs_virtcap_settings_store),
+	.val_offset = offsetof(struct SharedMem, virtcap_settings)
+};
 
 struct kobj_attribute attr_sync_error =
 	__ATTR(error, 0660, sysfs_sync_error_show, NULL);
@@ -95,9 +119,14 @@ struct kobj_attribute attr_sync_error_sum =
 	__ATTR(error_sum, 0660, sysfs_sync_error_sum_show, NULL);
 
 static struct attribute *pru_attrs[] = {
-	&attr_n_buffers.attr.attr,	  &attr_samples_per_buffer.attr.attr,
-	&attr_buffer_period_ns.attr.attr,   &attr_mode.attr.attr,
-	&attr_harvesting_voltage.attr.attr, NULL,
+	&attr_n_buffers.attr.attr,
+	&attr_samples_per_buffer.attr.attr,
+	&attr_buffer_period_ns.attr.attr,
+	&attr_mode.attr.attr,
+	&attr_harvesting_voltage.attr.attr,
+	&attr_calibration_settings.attr.attr,
+	&attr_virtcap_settings.attr.attr,
+	NULL,
 };
 
 static struct attribute_group attr_group = {
@@ -233,6 +262,8 @@ static ssize_t sysfs_mode_show(struct kobject *kobj,
 		return sprintf(buf, "load");
 	case MODE_EMULATION:
 		return sprintf(buf, "emulation");
+	case MODE_VIRTCAP:
+		return sprintf(buf, "virtcap");
 	case MODE_DEBUG:
 		return sprintf(buf, "debug");
 	default:
@@ -270,6 +301,11 @@ static ssize_t sysfs_mode_store(struct kobject *kobj,
 			return -EINVAL;
 
 		mode = MODE_EMULATION;
+	} else if (strncmp(buf, "virtcap", 7) == 0) {
+		if ((count < 7) || (count > 8))
+			return -EINVAL;
+
+		mode = MODE_VIRTCAP;
 	} else if (strncmp(buf, "debug", 5) == 0) {
 		if ((count < 5) || (count > 6))
 			return -EINVAL;
@@ -306,6 +342,105 @@ static ssize_t sysfs_harvesting_voltage_store(struct kobject *kobj,
 	}
 
 	return -EINVAL;
+}
+
+static ssize_t sysfs_calibration_settings_store(struct kobject *kobj,
+						struct kobj_attribute *attr,
+						const char *buf, size_t count)
+{
+	struct CalibrationSettings tmp;
+	struct kobj_attr_struct_s *kobj_attr_wrapped;
+
+	if (pru_comm_get_state() != STATE_IDLE)
+		return -EBUSY;
+
+	kobj_attr_wrapped = container_of(attr, struct kobj_attr_struct_s, attr);
+
+	if (sscanf(buf,"%d %d %d %d", &tmp.adc_load_current_gain,
+		   &tmp.adc_load_current_offset, &tmp.adc_load_voltage_gain,
+		   &tmp.adc_load_voltage_offset) == 4) {
+		printk(KERN_INFO
+		       "shprd: Setting current calibration settings. Current gain: %d, current offset: %d\n",
+		       tmp.adc_load_current_gain, tmp.adc_load_current_offset);
+
+		printk(KERN_INFO
+		       "shprd: Setting voltage calibration settings. Voltage gain: %d, voltage offset: %d\n",
+		       tmp.adc_load_voltage_gain, tmp.adc_load_voltage_offset);
+
+		writel(tmp.adc_load_current_gain,
+		       pru_shared_mem_io + kobj_attr_wrapped->val_offset);
+		writel(tmp.adc_load_current_offset,
+		       pru_shared_mem_io + kobj_attr_wrapped->val_offset + 4);
+		writel(tmp.adc_load_voltage_gain,
+		       pru_shared_mem_io + kobj_attr_wrapped->val_offset + 8);
+		writel(tmp.adc_load_voltage_offset,
+		       pru_shared_mem_io + kobj_attr_wrapped->val_offset + 12);
+
+		return count;
+	}
+
+	return -EINVAL;
+}
+
+static ssize_t sysfs_calibration_settings_show(struct kobject *kobj,
+				    struct kobj_attribute *attr, char *buf)
+{
+	struct kobj_attr_struct_s *kobj_attr_wrapped;
+
+	kobj_attr_wrapped = container_of(attr, struct kobj_attr_struct_s, attr);
+	return sprintf(
+		buf, "%d %d %d %d",
+		readl(pru_shared_mem_io + kobj_attr_wrapped->val_offset),
+		readl(pru_shared_mem_io + kobj_attr_wrapped->val_offset + 4),
+		readl(pru_shared_mem_io + kobj_attr_wrapped->val_offset + 8),
+		readl(pru_shared_mem_io + kobj_attr_wrapped->val_offset + 12));
+}
+
+static ssize_t sysfs_virtcap_settings_store(struct kobject *kobj,
+						struct kobj_attribute *attr,
+						const char *buf, size_t count)
+{
+	struct kobj_attr_struct_s *kobj_attr_wrapped;
+	int pos = 0;
+	int i = 0;
+
+	if (pru_comm_get_state() != STATE_IDLE)
+		return -EBUSY;
+
+	kobj_attr_wrapped = container_of(attr, struct kobj_attr_struct_s, attr);
+
+	for (i = 0; i < sizeof(struct VirtCapSettings); i += 4)
+	{
+		int read, n;
+		int ret = sscanf(&buf[pos],"%d%n",&read,&n);
+    pos += n;
+
+		if (ret != 1)
+			return -EINVAL;
+		
+		writel(read, pru_shared_mem_io + kobj_attr_wrapped->val_offset + i);	
+	}
+
+	return count;
+}
+
+static ssize_t sysfs_virtcap_settings_show(struct kobject *kobj,
+				    struct kobj_attribute *attr, char *buf)
+{
+	struct kobj_attr_struct_s *kobj_attr_wrapped;
+	int count = 0;
+	int i = 0;
+
+	kobj_attr_wrapped = container_of(attr, struct kobj_attr_struct_s, attr);
+
+
+	for (i = 0; i < sizeof(struct VirtCapSettings); i += 4)
+	{
+		count += sprintf(strlen(buf) + buf,"%d ", 
+			readl(pru_shared_mem_io + kobj_attr_wrapped->val_offset + i));
+	}
+
+	return count;
 }
 
 int sysfs_interface_init(void)

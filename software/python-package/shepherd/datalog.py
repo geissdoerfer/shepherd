@@ -167,9 +167,7 @@ class LogWriter(object):
             dtype=h5py.special_dtype(vlen=str),
             maxshape=(None,),
         )
-        self.log_grp.create_dataset(
-            "value", (0,), dtype="u4", maxshape=(None,)
-        )
+        self.log_grp.create_dataset("value", (0,), dtype="u4", maxshape=(None,))
 
         # Create group for gpio data
         self.gpio_grp = self._h5file.create_group("gpio")
@@ -215,9 +213,7 @@ class LogWriter(object):
 
         for variable in ["voltage", "current"]:
             self.data_grp[variable].resize((new_length,))
-            self.data_grp[variable][current_length:] = getattr(
-                buffer, variable
-            )
+            self.data_grp[variable][current_length:] = getattr(buffer, variable)
 
         if len(buffer.gpio_edges) > 0:
             gpio_current_length = self.gpio_grp["time"].shape[0]

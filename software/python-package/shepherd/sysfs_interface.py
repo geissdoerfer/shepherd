@@ -14,6 +14,7 @@ provided by the shepherd kernel module
 import sys
 import logging
 import time
+import struct
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
@@ -110,14 +111,72 @@ def set_mode(mode: str):
     Args:
         mode (str): Target mode. Must be one of harvesting, load, emulation
     """
-    if mode not in ["harvesting", "load", "emulation", "debug"]:
+    if mode not in ["harvesting", "load", "emulation", "virtcap", "debug"]:
         raise SysfsInterfaceException("invalid value for mode")
     if get_state() != "idle":
         raise SysfsInterfaceException(
             f"Cannot set mode when shepherd is { get_state() }"
         )
+
+    logger.debug(f"mode: {mode}")
     with open(str(sysfs_path / "mode"), "w") as f:
         f.write(mode)
+
+
+def send_calibration_settings(
+    current_gain: int, current_offset: int, voltage_gain: int, voltage_offset
+):
+    """Sends the calibration settings to the PRU core.
+
+    The virtcap algorithm uses adc measurements of load current.
+
+    """
+    with open(str(sysfs_path / "calibration_settings"), "w") as f:
+        output = (
+            f"{current_gain} {current_offset} {voltage_gain} {voltage_offset}"
+        )
+        logger.debug(f"Sending calibration settings: {output}")
+        f.write(output)
+
+
+def get_calibration_settings():
+    """Retreive the calibration settings to the PRU core.
+
+    The virtcap algorithm uses adc measurements of load current.
+
+    """
+    with open(str(sysfs_path / "calibration_settings"), "r") as f:
+        settings = f.read().rstrip()
+
+    int_settings = [int(x) for x in settings.split()]
+    return (int_settings[0], int_settings[1], int_settings[2], int_settings[3])
+
+
+def send_virtcap_settings(settings: list):
+    """Sends the virtcap settings to the PRU core.
+
+    The virtcap algorithm uses these settings to configure emulation.
+
+    """
+
+    s = [str(i) for i in settings]
+    output = " ".join(s)
+    logger.debug(f"Writing virtcap to sysfs_interface: {output}")
+
+    with open(str(sysfs_path / "virtcap_settings"), "w") as f:
+        f.write(output)
+
+
+def get_virtcap_settings():
+    """Retreive the virtcap settings to the PRU core.
+
+    The virtcap algorithm uses these settings to configure emulation.
+
+    """
+    with open(str(sysfs_path / "virtcap_settings"), "r") as f:
+        settings = f.read().rstrip()
+
+    return settings
 
 
 def set_harvesting_voltage(harvesting_voltage: int):

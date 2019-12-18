@@ -22,10 +22,18 @@ from pathlib import Path
 import telnetlib
 import yaml
 import logging
+import click_config_file
 
 consoleHandler = logging.StreamHandler()
 logger = logging.getLogger("shepherd-herd")
 logger.addHandler(consoleHandler)
+
+
+def yamlprovider(file_path, cmd_name):
+    logger.info(f"reading config from {file_path}")
+    with open(file_path, "r") as config_data:
+        full_config = yaml.safe_load(config_data)
+    return full_config
 
 
 def find_consensus_time(group):
@@ -83,7 +91,9 @@ def configure_shepherd(
         "verbose": verbose,
         "parameters": parameters,
     }
-    config_yml = yaml.dump(config_dict, default_flow_style=False)
+    config_yml = yaml.dump(
+        config_dict, default_flow_style=False, sort_keys=False
+    )
 
     for cnx in group:
         res = cnx.sudo("systemctl status shepherd", hide=True, warn=True)
@@ -424,7 +434,7 @@ def record(
         "harvesting_voltage": harvesting_voltage,
         "load": load,
         "ldo_voltage": ldo_voltage,
-        "ldo_mode": ldo_mode
+        "ldo_mode": ldo_mode,
     }
     configure_shepherd(
         ctx.obj["fab group"],
@@ -466,13 +476,27 @@ def record(
     help="Pre-charge capacitor before starting recording",
 )
 @click.option(
+    "--virtcap",
+    help="Use virtcap to emulate any energy harvesting power supply chain",
+)
+@click_config_file.configuration_option(provider=yamlprovider, implicit=False)
+@click.option(
     "--start/--no-start",
     default=True,
     help="Start shepherd after uploading config",
 )
 @click.pass_context
 def emulate(
-    ctx, input, output, length, force, no_calib, load, ldo_voltage, start
+    ctx,
+    input,
+    output,
+    length,
+    force,
+    no_calib,
+    load,
+    ldo_voltage,
+    virtcap,
+    start,
 ):
 
     fp_input = Path(input)
@@ -486,6 +510,7 @@ def emulate(
         "no_calib": no_calib,
         "ldo_voltage": ldo_voltage,
         "load": load,
+        "virtcap": virtcap,
     }
 
     if output is not None:

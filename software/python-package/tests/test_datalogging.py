@@ -120,9 +120,7 @@ def test_exception_logging(tmp_path, data_buffer, calibration_data):
         writer.write_buffer(data_buffer)
 
         ts = int(time.time() * 1000)
-        writer.write_exception(
-            ExceptionRecord(ts, "there was an exception", 0)
-        )
+        writer.write_exception(ExceptionRecord(ts, "there was an exception", 0))
         writer.write_exception(
             ExceptionRecord(ts + 1, "there was another exception", 1)
         )

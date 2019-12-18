@@ -27,6 +27,7 @@ User Guide
    user/data_format
    user/api
    user/performance
+   user/virtcap
 
 Developer Guide
 ---------------------

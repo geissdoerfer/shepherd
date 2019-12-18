@@ -8,3 +8,5 @@ The shepherd kernel module provides a user interface that exposes relevant param
 - `buffer_period_ns`: Time period of one 'buffer'. Defines the sampling rate togethere with `samples_per_buffer`
 - `memory/address`: Physical address of the shared memory area that contains all `n_buffers` data buffers used to exchange data
 - `memory/size`: Size of the shared memory area in bytes
+- `calibration_settings`: Load calibration settings. They are used in the virtcap algorithm.
+- `virtcap_settings`: Settings which configure the virtcap algorithm. 

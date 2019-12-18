@@ -20,6 +20,7 @@ import struct
 import mmap
 import sys
 import numpy as np
+import collections
 from pathlib import Path
 from periphery import GPIO
 
@@ -27,6 +28,7 @@ from shepherd import sysfs_interface
 from shepherd import commons
 from shepherd import calibration_default
 from shepherd import const_reg
+from shepherd.calibration import CalibrationData
 
 logger = logging.getLogger(__name__)
 
@@ -274,7 +276,7 @@ class ShepherdIO(object):
         """Initializes relevant variables.
 
         Args:
-            mode (str): Shepherd mode, one of 'harvesting', 'load', 'emulation'
+            mode (str): Shepherd mode, one of 'harvesting', 'load', 'emulation', 'virtcap'
             load (str): Which load to use, one of 'artificial', 'node'
         """
 
@@ -368,7 +370,7 @@ class ShepherdIO(object):
                 message types part of the data exchange protocol
             value (int): Actual content of the message
         """
-        msg = struct.pack("=II", msg_type, value)
+        msg = struct.pack("=ii", msg_type, value)
         os.write(self.rpmsg_fd, msg)
 
     def _get_msg(self, timeout: float = 0.5):
@@ -382,7 +384,7 @@ class ShepherdIO(object):
         while time.time() < ts_end:
             try:
                 rep = os.read(self.rpmsg_fd, 8)
-                return struct.unpack("=II", rep)
+                return struct.unpack("=ii", rep)
             except BlockingIOError:
                 time.sleep(0.1)
                 continue
@@ -560,6 +562,55 @@ class ShepherdIO(object):
         dac_value = calibration_default.voltage_to_dac(voltage)
         sysfs_interface.set_harvesting_voltage(dac_value)
 
+    def send_calibration_settings(self, calibration_settings: CalibrationData):
+        """Sends calibration settings to PRU core
+
+        For virtcap it is required to have the calibration settings.
+
+        Args:
+            calibration_settings (CalibrationData): Contains the device's
+            calibration settings.
+        """
+
+        sysfs_interface.send_calibration_settings(
+            int(1 / calibration_settings["load"]["current"]["gain"]),
+            int(
+                calibration_settings["load"]["current"]["offset"]
+                / calibration_settings["load"]["current"]["gain"]
+            ),
+            int(1 / calibration_settings["load"]["voltage"]["gain"]),
+            int(
+                calibration_settings["load"]["voltage"]["offset"]
+                / calibration_settings["load"]["voltage"]["gain"]
+            ),
+        )
+
+    def send_virtcap_settings(self, virtcap_settings: dict):
+        """Sends virtcap settings to PRU core
+
+        For virtcap it is required to have the virtcap settings.
+
+        Args:
+            virtcap_settings (dict): Contains the virtcap settings.
+        """
+
+        def flatten(L):
+            if len(L) == 1:
+                if type(L[0]) == list:
+                    result = flatten(L[0])
+                else:
+                    result = L
+            elif type(L[0]) == list:
+                result = flatten(L[0]) + flatten(L[1:])
+            else:
+                result = [L[0]] + flatten(L[1:])
+            return result
+
+        values = virtcap_settings.values()
+        values = flatten(list(values))
+
+        sysfs_interface.send_virtcap_settings(values)
+
     def _release_buffer(self, index: int):
         """Returns a buffer to the PRU
 
@@ -591,32 +642,39 @@ class ShepherdIO(object):
                 specified timeout
 
         """
-        msg_type, value = self._get_msg(timeout)
+        while True:
+            msg_type, value = self._get_msg(timeout)
 
-        if msg_type == commons.MSG_DEP_BUF_FROM_PRU:
-            logger.debug(f"Retrieving buffer { value } from shared memory")
-            buf = self.shared_mem.read_buffer(value)
-            return value, buf
+            if msg_type == commons.MSG_DEP_DBG_PRINT:
+                logger.info(f"Received print: {value}")
+                continue
 
-        elif msg_type == commons.MSG_DEP_ERR_INCMPLT:
-            raise ShepherdIOException(
-                "Got incomplete buffer", commons.MSG_DEP_ERR_INCMPLT, value
-            )
+            elif msg_type == commons.MSG_DEP_BUF_FROM_PRU:
+                logger.debug(f"Retrieving buffer { value } from shared memory")
+                buf = self.shared_mem.read_buffer(value)
+                return value, buf
 
-        elif msg_type == commons.MSG_DEP_ERR_INVLDCMD:
-            raise ShepherdIOException(
-                "PRU received invalid command",
-                commons.MSG_DEP_ERR_INVLDCMD,
-                value,
-            )
-        elif msg_type == commons.MSG_DEP_ERR_NOFREEBUF:
-            raise ShepherdIOException(
-                "PRU ran out of buffers", commons.MSG_DEP_ERR_NOFREEBUF, value
-            )
-        else:
-            raise ShepherdIOException(
-                (
-                    f"Expected msg type { commons.MSG_DEP_BUF_FROM_PRU } "
-                    f"got { msg_type }[{ value }]"
+            elif msg_type == commons.MSG_DEP_ERR_INCMPLT:
+                raise ShepherdIOException(
+                    "Got incomplete buffer", commons.MSG_DEP_ERR_INCMPLT, value
                 )
-            )
+
+            elif msg_type == commons.MSG_DEP_ERR_INVLDCMD:
+                raise ShepherdIOException(
+                    "PRU received invalid command",
+                    commons.MSG_DEP_ERR_INVLDCMD,
+                    value,
+                )
+            elif msg_type == commons.MSG_DEP_ERR_NOFREEBUF:
+                raise ShepherdIOException(
+                    "PRU ran out of buffers",
+                    commons.MSG_DEP_ERR_NOFREEBUF,
+                    value,
+                )
+            else:
+                raise ShepherdIOException(
+                    (
+                        f"Expected msg type { commons.MSG_DEP_BUF_FROM_PRU } "
+                        f"got { msg_type }[{ value }]"
+                    )
+                )

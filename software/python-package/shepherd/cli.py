@@ -93,8 +93,8 @@ def targetpower(on, voltage):
     "--command", default="record", type=click.Choice(["record", "emulate"])
 )
 @click.option("--parameters", default=dict())
-@click.option("-v", "--verbose", type=int)
-@click_config_file.configuration_option(provider=yamlprovider)
+@click.option("-v", "--verbose", count=True)
+@click_config_file.configuration_option(provider=yamlprovider, implicit=False)
 def run(command, parameters, verbose):
 
     if verbose is not None:
@@ -232,8 +232,13 @@ def record(
     "--start-time", type=float, help="Desired start time in unix epoch time"
 )
 @click.option(
+    "--virtcap",
+    help="Use virtcap, it can emulate any energy harvesting power supply chain by the given virtcap model parameters",
+)
+@click.option(
     "--warn-only/--no-warn-only", default=True, help="Warn only on errors"
 )
+@click_config_file.configuration_option(provider=yamlprovider, implicit=False)
 def emulate(
     input,
     output,
@@ -243,6 +248,7 @@ def emulate(
     load,
     ldo_voltage,
     start_time,
+    virtcap,
     warn_only,
 ):
     if output is None:
@@ -259,6 +265,7 @@ def emulate(
         load,
         ldo_voltage,
         start_time,
+        virtcap,
         warn_only,
     )
 
@@ -348,6 +355,7 @@ def write(infofile, version, serial_number, calibfile, no_calib):
     help="If provided, calibration data is dumped to this file",
 )
 def read(infofile, calibfile):
+
     with EEPROM() as eeprom:
         cape_data = eeprom.read_cape_data()
         calib = eeprom.read_calibration()

@@ -137,6 +137,7 @@ class Emulator(ShepherdIO):
             Should be one of 'artificial' or 'node'.
         ldo_voltage (float): Pre-charge the capacitor to this voltage before
             starting recording.
+        virtcap (dict): Settings which define the behavior of virtcap emulation
     """
 
     def __init__(
@@ -146,10 +147,17 @@ class Emulator(ShepherdIO):
         calibration_emulation: CalibrationData = None,
         load: str = "node",
         ldo_voltage: float = 0.0,
+        virtcap: dict = None,
     ):
-        super().__init__("emulation", load)
 
-        self.ldo_voltage = ldo_voltage
+        if virtcap is None:
+            shepherd_mode = "emulation"
+            self.ldo_voltage = ldo_voltage
+        else:
+            shepherd_mode = "virtcap"
+            self.ldo_voltage = virtcap["dc_output_voltage"] / 1000
+
+        super().__init__(shepherd_mode, "artificial")
 
         if calibration_emulation is None:
             calibration_emulation = CalibrationData.from_default()
@@ -161,28 +169,53 @@ class Emulator(ShepherdIO):
             logger.warning(
                 "No recording calibration data provided - using defaults"
             )
-        # Values from recording are binary ADC values. We have to send binary
-        # DAC values to the DAC for emulation. To directly convert ADC to DAC
-        # values, we precalculate the 'transformation coefficients' based on
-        # calibration data from the recorder and the emulator
+
+        if virtcap != None:
+            logger.info("Starting virtcap")
+            self.send_calibration_settings(calibration_emulation)
+            self.send_virtcap_settings(virtcap)
+
         self.transform_coeffs = {"voltage": dict(), "current": dict()}
-        for channel in ["voltage", "current"]:
-            self.transform_coeffs[channel]["gain"] = (
-                calibration_recording["harvesting"][channel]["gain"]
-                * calibration_emulation["emulation"][channel]["gain"]
-            )
-            self.transform_coeffs[channel]["offset"] = (
-                calibration_emulation["emulation"][channel]["gain"]
-                * calibration_recording["harvesting"][channel]["offset"]
-                + calibration_emulation["emulation"][channel]["offset"]
-            )
+        if virtcap != None:
+            # Values from recording are have their own calibration settings.
+            # Values in the virtcap emulation use the emulation calibration
+            # settings. Therefore we need to convert the recorded values to use
+            # the same calibration settings as emulation.
+            for channel in ["voltage", "current"]:
+                self.transform_coeffs[channel]["gain"] = (
+                    calibration_recording["harvesting"][channel]["gain"]
+                    / calibration_emulation["load"][channel]["gain"]
+                )
+                self.transform_coeffs[channel]["offset"] = (
+                    calibration_recording["harvesting"][channel]["offset"]
+                    - calibration_emulation["load"][channel]["offset"]
+                ) / calibration_emulation["load"][channel]["gain"]
+        else:
+            # Values from recording are binary ADC values. We have to send binary
+            # DAC values to the DAC for emulation. To directly convert ADC to DAC
+            # values, we precalculate the 'transformation coefficients' based on
+            # calibration data from the recorder and the emulator.
+            for channel in ["voltage", "current"]:
+                self.transform_coeffs[channel]["gain"] = (
+                    calibration_recording["harvesting"][channel]["gain"]
+                    * calibration_emulation["emulation"][channel]["gain"]
+                )
+                self.transform_coeffs[channel]["offset"] = (
+                    calibration_emulation["emulation"][channel]["gain"]
+                    * calibration_recording["harvesting"][channel]["offset"]
+                    + calibration_emulation["emulation"][channel]["offset"]
+                )
 
         self._initial_buffers = initial_buffers
+        self._calibration_emulation = calibration_emulation
 
     def __enter__(self):
         super().__enter__()
 
-        if self.ldo_voltage > 0.0:
+        if self.mode == "virtcap":
+            print(self.ldo_voltage)
+            self.set_ldo_voltage(2.55)
+        elif self.ldo_voltage > 0.0:
             logger.debug(f"Precharging capacitor to {self.ldo_voltage}V")
             self.set_ldo_voltage(self.ldo_voltage)
             time.sleep(1)
@@ -424,6 +457,7 @@ def emulate(
     ldo_voltage: float = None,
     start_time: float = None,
     warn_only: bool = False,
+    virtcap: dict = None,
 ):
     """Starts emulation.
 
@@ -444,6 +478,7 @@ def emulate(
         start_time (float): Desired start time of emulation in unix epoch time
         warn_only (bool): Set true to continue emulation after recoverable
             error
+        virtcap (dict): Settings which define the behavior of virtcap emulation
     """
 
     if no_calib:
@@ -487,6 +522,7 @@ def emulate(
             initial_buffers=log_reader.read_buffers(end=64),
             ldo_voltage=ldo_voltage,
             load=load,
+            virtcap=virtcap,
         )
         stack.enter_context(emu)
 

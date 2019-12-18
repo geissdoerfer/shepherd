@@ -68,9 +68,7 @@ def pytest_collection_modifyitems(config, items):
                 item.add_marker(skip_real)
         if "fake_hardware" in item.keywords and not config.getoption("--fake"):
             item.add_marker(skip_fake)
-        if "eeprom_wp" in item.keywords and not config.getoption(
-            "--eeprom-wp"
-        ):
+        if "eeprom_wp" in item.keywords and not config.getoption("--eeprom-wp"):
             item.add_marker(skip_eeprom_wp)
 
 
