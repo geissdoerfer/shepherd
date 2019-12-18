@@ -74,6 +74,9 @@ static inline void sample_virtcap(struct SampleBuffer *buffer,
 	static int last_voltage_measurement = 0;
 	static int last_current_measurement = 0;
 
+	int32_t input_current;
+	int32_t input_voltage;
+
 	/* Get input current/voltage from shared memory buffer */
 	input_current = buffer->values_current[sample_idx] - ((1 << 17) - 1);
 	input_voltage = buffer->values_voltage[sample_idx];
@@ -110,12 +113,18 @@ static inline void sample_virtcap(struct SampleBuffer *buffer,
 		buffer->values_voltage[sample_idx] = last_voltage_measurement;
 	}
 
-	// Execute virtcap algorithm
+	/* Execute virtcap algorithm */
 	virtcap_update(buffer->values_current[sample_idx] - ((1 << 17) - 1),
 		       buffer->values_voltage[sample_idx], input_current,
 		       input_voltage);
 
-	return read;
+	/*
+	 * If output is off, force buffer voltage to zero.
+	 * Else it will go to max 2.6V, because voltage sense is put before
+	 * output switch.
+	 */
+	if (!virtcap_get_output())
+		buffer->values_voltage[sample_idx] = 0;
 }
 
 void sample(struct SampleBuffer *current_buffer, unsigned int sample_idx,

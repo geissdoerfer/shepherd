@@ -127,15 +127,6 @@ void event_loop(volatile struct SharedMem *shared_mem,
 	unsigned int sample_idx = 0;
 	unsigned int buffer_idx = NO_BUFFER;
 
-	/* Virtcap state variables */
-	int32_t input_current;
-	int32_t input_voltage;
-	struct ADCReading output_reading;
-	output_reading.voltage = 0;
-	output_reading.current = (1 << 17);
-
-	int32_t new_message = 0;
-
 	enum ShepherdMode shepherd_mode =
 		(enum ShepherdMode)shared_mem->shepherd_mode;
 
@@ -179,11 +170,11 @@ void event_loop(volatile struct SharedMem *shared_mem,
 			}
 			/* We only handle rpmsg comms if we're not at the last sample */
 			else {
-				handle_rpmsg(
-					free_buffers_ptr, (enum ShepherdMode),
-					shared_mem->shepherd_mode,
-					(enum ShepherdState)
-						shared_mem->shepherd_state);
+				handle_rpmsg(free_buffers_ptr,
+					     (enum ShepherdMode)
+						     shared_mem->shepherd_mode,
+					     (enum ShepherdState)shared_mem
+						     ->shepherd_state);
 			}
 		}
 	}
@@ -191,31 +182,12 @@ void event_loop(volatile struct SharedMem *shared_mem,
 
 void main(void)
 {
-	/* Allow OCP master port access by the PRU so the PRU can read external
-   * memories */
-	CT_CFG.SYSCFG_bit.STANDBY_INIT = 0;
-
-	simple_mutex_exit(&shared_mem->gpio_edges_mutex);
-
-	/* Enable interrupts from PRU1 */
-	CT_INTC.EISR_bit.EN_SET_IDX = PRU_PRU_EVT_SAMPLE;
-	CT_INTC.EISR_bit.EN_SET_IDX = PRU_PRU_EVT_BLOCK_END;
-
-	rpmsg_init("rpmsg-pru");
-
 	/*
-   * The dynamically allocated shared DDR RAM holds all the buffers that
-   * are used to transfer the actual data between us and the Linux host.
-   * This memory is requested from remoteproc via a carveour resource request
-   * in our resourcetable
-   */
-	buffers = (struct SampleBuffer *)resourceTable.shared_mem.pa;
-
-	/*
-   * The shared mem is dynamically allocated and we have to inform user space
-   * about the address and size via sysfs, which exposes parts of the
-   * shared_mem structure
-   */
+	 * The shared mem is dynamically allocated and we have to inform user space
+	 * about the address and size via sysfs, which exposes parts of the
+	 * shared_mem structure.
+	 * Do this initialization early! The kernel module relies on it.
+	 */
 	shared_mem->mem_base_addr = resourceTable.shared_mem.pa;
 	shared_mem->mem_size = resourceTable.shared_mem.len;
 
@@ -226,17 +198,37 @@ void main(void)
 	shared_mem->harvesting_voltage = 0;
 	shared_mem->shepherd_mode = MODE_HARVESTING;
 
-	/* Jump to this label, whenever user requests 'stop' */
+	/*
+	 * The dynamically allocated shared DDR RAM holds all the buffers that
+	 * are used to transfer the actual data between us and the Linux host.
+	 * This memory is requested from remoteproc via a carveour resource request
+	 * in our resourcetable
+	 */
+	struct SampleBuffer *buffers =
+		(struct SampleBuffer *)resourceTable.shared_mem.pa;
+
+	/* Allow OCP master port access by the PRU so the PRU can read external memories */
+	CT_CFG.SYSCFG_bit.STANDBY_INIT = 0;
+
+	simple_mutex_exit(&shared_mem->gpio_edges_mutex);
+
+	/* Enable interrupts from PRU1 */
+	CT_INTC.EISR_bit.EN_SET_IDX = PRU_PRU_EVT_SAMPLE;
+	CT_INTC.EISR_bit.EN_SET_IDX = PRU_PRU_EVT_BLOCK_END;
+
+	rpmsg_init("rpmsg-pru");
+
+	_GPIO_OFF(USR_LED1);
+	_GPIO_OFF(DEBUG_P0);
+
 	while (true) {
 		_GPIO_OFF(USR_LED1);
-		_GPIO_OFF(DEBUG_P0);
-		_GPIO_OFF(DEBUG_P1);
 
-		virtcap_init((const struct VirtCapSettings *)&shared_mem
-				     ->virtcap_settings,
-			     set_output,
-			     (const struct CalibrationSettings *)&shared_mem
-				     ->calibration_settings);
+		if (shared_mem->shepherd_mode == MODE_VIRTCAP)
+			virtcap_init((struct VirtCapSettings *)&shared_mem
+					     ->virtcap_settings,
+				     (struct CalibrationSettings *)&shared_mem
+					     ->calibration_settings);
 
 		init_ring(&free_buffers);
 		sampling_init((enum ShepherdMode)shared_mem->shepherd_mode,

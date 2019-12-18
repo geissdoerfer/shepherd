@@ -39,7 +39,7 @@ static int32_t scale_index_t3;
 static int32_t scale_index_t4;
 
 // Output state of virtcap
-uint8_t virtcap_output_state = FALSE;
+static bool VIRTCAP_OUT_PIN_state = false;
 
 // Derived constants
 static int32_t harvest_multiplier;
@@ -49,14 +49,15 @@ static int32_t avg_cap_voltage;
 
 // Working vars
 static int32_t cap_voltage;
-static uint8_t is_outputting;
+static bool is_outputting;
 static int32_t discretize_cntr;
 
 uint32_t SquareRootRounded(uint32_t a_nInput);
+static void virtcap_set_output(bool value);
 
 // Global vars to access in update function
 struct VirtCapSettings s;
-virtcap_nofp_callback_func_t callback;
+
 struct CalibrationSettings cs = {
 	.adc_load_current_gain =
 		(int32_t)(2.0 * 50.25 / (0.625 * 4.096) * ((1 << 17) - 1)),
@@ -67,12 +68,12 @@ struct CalibrationSettings cs = {
 };
 
 void virtcap_init(struct VirtCapSettings *s_arg,
-		  virtcap_nofp_callback_func_t callback_arg,
 		  struct CalibrationSettings *calib)
 {
 	s = *s_arg;
-	callback = callback_arg;
 	cs = *calib;
+
+	_GPIO_OFF(VIRTCAP_OUT_PIN);
 
 	calib->adc_load_current_gain =
 		(int32_t)(2.0 * 50.25 / (0.625 * 4.096) * ((1 << 17) - 1)),
@@ -102,7 +103,7 @@ void virtcap_init(struct VirtCapSettings *s_arg,
 
 	// Initialize vars
 	cap_voltage = s.init_cap_voltage;
-	is_outputting = FALSE;
+	is_outputting = false;
 	discretize_cntr = 0;
 
 	// Calculate harvest multiplier
@@ -162,13 +163,13 @@ void virtcap_update(int32_t output_current, int32_t output_voltage,
 		// determine whether we should be in a new state
 		if (is_outputting &&
 		    (new_cap_voltage < s.lower_threshold_voltage)) {
-			is_outputting = FALSE; // we fall under our threshold
-			callback(FALSE);
+			is_outputting = false; // we fall under our threshold
+			virtcap_set_output(false);
 		} else if (!is_outputting &&
 			   (new_cap_voltage > s.upper_threshold_voltage)) {
 			is_outputting =
-				TRUE; // we have enough voltage to switch on again
-			callback(TRUE);
+				true; // we have enough voltage to switch on again
+			virtcap_set_output(true);
 			new_cap_voltage = (new_cap_voltage >> 10) *
 					  outputcap_scale_factor;
 		}
@@ -267,13 +268,18 @@ int32_t lookup(int32_t table[][9], int32_t current)
 	}
 }
 
-void set_output(uint8_t value)
+static void virtcap_set_output(bool value)
 {
-	virtcap_output_state = value;
+	VIRTCAP_OUT_PIN_state = value;
 
 	if (value) {
-		_GPIO_ON(DEBUG_P1);
+		_GPIO_ON(VIRTCAP_OUT_PIN);
 	} else {
-		_GPIO_OFF(DEBUG_P1);
+		_GPIO_OFF(VIRTCAP_OUT_PIN);
 	}
+}
+
+bool virtcap_get_output()
+{
+	return VIRTCAP_OUT_PIN_state;
 }

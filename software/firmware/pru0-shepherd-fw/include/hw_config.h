@@ -14,4 +14,6 @@
 
 #define USR_LED1 P8_12
 
+#define VIRTCAP_OUT_PIN P9_29
+
 #endif /* __HW_CONFIG_H_ */
