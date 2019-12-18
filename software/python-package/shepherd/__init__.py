@@ -456,8 +456,8 @@ def emulate(
     load: str = "artificial",
     ldo_voltage: float = None,
     start_time: float = None,
-    warn_only: bool = False,
     virtcap: dict = None,
+    warn_only: bool = False,
 ):
     """Starts emulation.
 
@@ -476,9 +476,9 @@ def emulate(
         ldo_voltage (float): Pre-charge capacitor to this voltage before
             starting emulation
         start_time (float): Desired start time of emulation in unix epoch time
+        virtcap (dict): Settings which define the behavior of virtcap emulation
         warn_only (bool): Set true to continue emulation after recoverable
             error
-        virtcap (dict): Settings which define the behavior of virtcap emulation
     """
 
     if no_calib:
