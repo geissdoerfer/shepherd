@@ -27,16 +27,15 @@ static struct RingBuffer free_buffers;
 enum int_source_e { SIG_SAMPLE, SIG_BLOCK_END } int_source;
 
 volatile struct SharedMem *shared_mem =
-    (volatile struct SharedMem *)PRU_SHARED_MEM_STRUCT_OFFSET;
+	(volatile struct SharedMem *)PRU_SHARED_MEM_STRUCT_OFFSET;
 
-uint8_t virtcap_output_state = FALSE;  // Output state of virtcap
+static void send_message(unsigned int msg_id, unsigned int value)
+{
+	struct DEPMsg msg_out;
 
-static void send_message(unsigned int msg_id, unsigned int value) {
-  struct DEPMsg msg_out;
-
-  msg_out.msg_type = msg_id;
-  msg_out.value = value;
-  rpmsg_putraw((void *)&msg_out, sizeof(struct DEPMsg));
+	msg_out.msg_type = msg_id;
+	msg_out.value = value;
+	rpmsg_putraw((void *)&msg_out, sizeof(struct DEPMsg));
 }
 
 unsigned int handle_block_end(volatile struct SharedMem *shared_mem,
@@ -128,16 +127,17 @@ void event_loop(volatile struct SharedMem *shared_mem,
 	unsigned int sample_idx = 0;
 	unsigned int buffer_idx = NO_BUFFER;
 
-  /* Virtcap state variables */
-  int32_t input_current;
-  int32_t input_voltage;
-  struct ADCReading output_reading;
-  output_reading.voltage = 0;
-  output_reading.current = (1 << 17);
+	/* Virtcap state variables */
+	int32_t input_current;
+	int32_t input_voltage;
+	struct ADCReading output_reading;
+	output_reading.voltage = 0;
+	output_reading.current = (1 << 17);
 
-  int32_t new_message = 0;
+	int32_t new_message = 0;
 
-  enum ShepherdMode shepherd_mode = (enum ShepherdMode)shared_mem->shepherd_mode;
+	enum ShepherdMode shepherd_mode =
+		(enum ShepherdMode)shared_mem->shepherd_mode;
 
 	while (1) {
 		/* Check if a sample was triggered by PRU1 */
@@ -178,84 +178,77 @@ void event_loop(volatile struct SharedMem *shared_mem,
 				_GPIO_OFF(USR_LED1);
 			}
 			/* We only handle rpmsg comms if we're not at the last sample */
-			else{
-        handle_rpmsg(free_buffers_ptr,
-					     (enum ShepherdMode)
-						     shared_mem->shepherd_mode,
-					     (enum ShepherdState)shared_mem
-						     ->shepherd_state);
+			else {
+				handle_rpmsg(
+					free_buffers_ptr, (enum ShepherdMode),
+					shared_mem->shepherd_mode,
+					(enum ShepherdState)
+						shared_mem->shepherd_state);
 			}
 		}
 	}
 }
 
-void main(void) {
-  /* Allow OCP master port access by the PRU so the PRU can read external
+void main(void)
+{
+	/* Allow OCP master port access by the PRU so the PRU can read external
    * memories */
-  CT_CFG.SYSCFG_bit.STANDBY_INIT = 0;
+	CT_CFG.SYSCFG_bit.STANDBY_INIT = 0;
 
-  simple_mutex_exit(&shared_mem->gpio_edges_mutex);
+	simple_mutex_exit(&shared_mem->gpio_edges_mutex);
 
-  /* Enable interrupts from PRU1 */
-  CT_INTC.EISR_bit.EN_SET_IDX = PRU_PRU_EVT_SAMPLE;
-  CT_INTC.EISR_bit.EN_SET_IDX = PRU_PRU_EVT_BLOCK_END;
+	/* Enable interrupts from PRU1 */
+	CT_INTC.EISR_bit.EN_SET_IDX = PRU_PRU_EVT_SAMPLE;
+	CT_INTC.EISR_bit.EN_SET_IDX = PRU_PRU_EVT_BLOCK_END;
 
-  rpmsg_init("rpmsg-pru");
+	rpmsg_init("rpmsg-pru");
 
-  /*
+	/*
    * The dynamically allocated shared DDR RAM holds all the buffers that
    * are used to transfer the actual data between us and the Linux host.
    * This memory is requested from remoteproc via a carveour resource request
    * in our resourcetable
    */
-  buffers = (struct SampleBuffer *)resourceTable.shared_mem.pa;
+	buffers = (struct SampleBuffer *)resourceTable.shared_mem.pa;
 
-  /*
+	/*
    * The shared mem is dynamically allocated and we have to inform user space
    * about the address and size via sysfs, which exposes parts of the
    * shared_mem structure
    */
-  shared_mem->mem_base_addr = resourceTable.shared_mem.pa;
-  shared_mem->mem_size = resourceTable.shared_mem.len;
+	shared_mem->mem_base_addr = resourceTable.shared_mem.pa;
+	shared_mem->mem_size = resourceTable.shared_mem.len;
 
-  shared_mem->n_buffers = RING_SIZE;
-  shared_mem->samples_per_buffer = SAMPLES_PER_BUFFER;
-  shared_mem->buffer_period_ns = BUFFER_PERIOD_NS;
+	shared_mem->n_buffers = RING_SIZE;
+	shared_mem->samples_per_buffer = SAMPLES_PER_BUFFER;
+	shared_mem->buffer_period_ns = BUFFER_PERIOD_NS;
 
-  shared_mem->calibration_settings.adc_load_current_gain =
-      (int32_t)(2.0 * 50.25 / (0.625 * 4.096) * ((1 << 17) - 1)),
-  shared_mem->calibration_settings.adc_load_current_offset = -(1 << 17),
-  shared_mem->calibration_settings.adc_load_voltage_gain =
-      (int32_t)(1 / (1.25 * 4.096) * ((1 << 18) - 1)),
-  shared_mem->calibration_settings.adc_load_voltage_offset = 0,
+	shared_mem->harvesting_voltage = 0;
+	shared_mem->shepherd_mode = MODE_HARVESTING;
 
-  shared_mem->virtcap_settings = kBQ25570Settings;
+	/* Jump to this label, whenever user requests 'stop' */
+	while (true) {
+		_GPIO_OFF(USR_LED1);
+		_GPIO_OFF(DEBUG_P0);
+		_GPIO_OFF(DEBUG_P1);
 
-  shared_mem->harvesting_voltage = 0;
-  shared_mem->shepherd_mode = MODE_HARVESTING;
+		virtcap_init((const struct VirtCapSettings *)&shared_mem
+				     ->virtcap_settings,
+			     set_output,
+			     (const struct CalibrationSettings *)&shared_mem
+				     ->calibration_settings);
 
-  /* Jump to this label, whenever user requests 'stop' */
-  while (true) {
-    _GPIO_OFF(USR_LED1);
-    _GPIO_OFF(DEBUG_P0);
-    _GPIO_OFF(DEBUG_P1);
+		init_ring(&free_buffers);
+		sampling_init((enum ShepherdMode)shared_mem->shepherd_mode,
+			      shared_mem->harvesting_voltage);
+		shared_mem->gpio_edges = NULL;
 
-    virtcap_init(
-        (const struct VirtCapSettings *)&shared_mem->virtcap_settings,
-        set_output,
-        (const struct CalibrationSettings *)&shared_mem->calibration_settings);
+		/* Clear all interrupt events */
+		CT_INTC.SICR_bit.STS_CLR_IDX = PRU_PRU_EVT_SAMPLE;
+		CT_INTC.SICR_bit.STS_CLR_IDX = PRU_PRU_EVT_BLOCK_END;
 
-    init_ring(&free_buffers);
-    sampling_init((enum ShepherdMode)shared_mem->shepherd_mode,
-                  shared_mem->harvesting_voltage);
-    shared_mem->gpio_edges = NULL;
+		shared_mem->shepherd_state = STATE_IDLE;
 
-    /* Clear all interrupt events */
-    CT_INTC.SICR_bit.STS_CLR_IDX = PRU_PRU_EVT_SAMPLE;
-    CT_INTC.SICR_bit.STS_CLR_IDX = PRU_PRU_EVT_BLOCK_END;
-
-    shared_mem->shepherd_state = STATE_IDLE;
-
-    event_loop(shared_mem, &free_buffers, buffers);
-  }
+		event_loop(shared_mem, &free_buffers, buffers);
+	}
 }

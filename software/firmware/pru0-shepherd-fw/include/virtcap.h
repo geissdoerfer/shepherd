@@ -37,11 +37,11 @@ static const struct VirtCapSettings kBQ25570Settings = {
 
 typedef void (*virtcap_nofp_callback_func_t)(uint8_t);
 
-void virtcap_init(const struct VirtCapSettings* settings_arg,
-                     virtcap_nofp_callback_func_t callback_arg,
-                     const struct CalibrationSettings* calib);
+void virtcap_init(struct VirtCapSettings *settings_arg,
+		  virtcap_nofp_callback_func_t callback_arg,
+		  struct CalibrationSettings *calib);
 void virtcap_update(int32_t current_measured, int32_t voltage_measured,
-                       int32_t input_current, int32_t input_voltage);
+		    int32_t input_current, int32_t input_voltage);
 int32_t voltage_mv_to_logic(int32_t voltage);
 int32_t current_ua_to_logic(int32_t current);
 int32_t current_ma_to_logic(int32_t current);
