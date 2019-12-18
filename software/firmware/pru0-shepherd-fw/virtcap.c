@@ -6,23 +6,37 @@
 
 /* ---------------------------------------------------------------------
  * VirtCap
- * 
+ *
  * input:
  *    output current: current flowing out of shepherd
  *    output voltage: output voltage of shepherd
  *    input current: current value from recorded trace
  *    input voltage: voltage value from recorded trace
- *    
+ *
  * output:
  *    toggles shepherd output
- * 
- * VirtCap emulates a energy harvesting supply chain storage capacitor and 
+ *
+ * VirtCap emulates a energy harvesting supply chain storage capacitor and
  * buck/boost converter
- * 
+ *
  * This code is written as part of the thesis of Boris Blokland
  * Any questions on this code can be send to borisblokland@gmail.com
  * ----------------------------------------------------------------------
  */
+
+#define SHIFT 26
+
+/* Values for converter efficiency lookup table */
+static int32_t max_t1;
+static int32_t max_t2;
+static int32_t max_t3;
+static int32_t max_t4;
+
+static int32_t scale_index_t1;
+static int32_t scale_index_t2;
+static int32_t scale_index_t3;
+static int32_t scale_index_t4;
+
 
 // Derived constants
 static int32_t harvest_multiplier;
@@ -183,4 +197,47 @@ int32_t current_ua_to_logic(int32_t current) {
   /* Add 2^17 because current is defined around zero, not 2^17 */
   logic_current += cs.adc_load_current_offset + (1 << 17);
   return logic_current;
+}
+
+
+void lookup_init() {
+  max_t1 = current_ua_to_logic(0.1 * 1e3);
+  max_t2 = current_ua_to_logic(1 * 1e3);
+  max_t3 = current_ua_to_logic(10 * 1e3);
+  max_t4 = current_ua_to_logic(100 * 1e3);
+
+  scale_index_t1 = 9 * (1 << SHIFT) / max_t1;
+  scale_index_t2 = 9 * (1 << SHIFT) / max_t2;
+  scale_index_t3 = 9 * (1 << SHIFT) / max_t3;
+  scale_index_t4 = 9 * (1 << SHIFT) / max_t4;
+}
+
+/*
+ * The lookup table returns the efficiency corresponding to the given
+ * input current. Lookup table is divided into 4 sections, which each have
+ * a different x-axis scale. First is determined in which section the current
+ * points to. Then the current is scaled to a value between 0--9, which is used
+ * as index in the lookup table.
+ *
+ * Figure 4: 'Charger Efficiency vs Input Current' in the datatsheet on
+ * https://www.ti.com/lit/ds/symlink/bq25570.pdf shows how those 4 sections are
+ * defined.
+ */
+int32_t lookup(int32_t table[][9], int32_t current) {
+  if (current < max_t1) {
+    int32_t index = current * scale_index_t1 >> SHIFT;
+    return table[0][index];
+  } else if (current < max_t2) {
+    int32_t index = current * scale_index_t2 >> SHIFT;
+    return table[1][index];
+  } else if (current < max_t3) {
+    int32_t index = current * scale_index_t3 >> SHIFT;
+    return table[2][index];
+  } else if (current < max_t4) {
+    int32_t index = current * scale_index_t4 >> SHIFT;
+    return table[3][index];
+  } else {
+    // Should never get here
+    return table[3][8];
+  }
 }

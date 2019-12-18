@@ -2,7 +2,6 @@
 
 #include <stdint.h>
 #include "commons.h"
-#include "lookup_table.h"
 
 #define TRUE 1
 #define FALSE 0
@@ -13,10 +12,10 @@
 static const struct VirtCapSettings kBQ25570Settings = {
   .upper_threshold_voltage = 3500,
   .lower_threshold_voltage = 3200,
-  .sample_period_us = 10,   
-  .capacitance_uf = 1000,    
+  .sample_period_us = 10,
+  .capacitance_uf = 1000,
   .max_cap_voltage = 4200,
-  .min_cap_voltage = 0,    
+  .min_cap_voltage = 0,
   .init_cap_voltage = 3200,
   .dc_output_voltage = 2300,
   .leakage_current = 9,
@@ -46,3 +45,6 @@ void virtcap_update(int32_t current_measured, int32_t voltage_measured,
 int32_t voltage_mv_to_logic(int32_t voltage);
 int32_t current_ua_to_logic(int32_t current);
 int32_t current_ma_to_logic(int32_t current);
+
+int32_t lookup(int32_t table[][9], int32_t current);
+void lookup_init();
