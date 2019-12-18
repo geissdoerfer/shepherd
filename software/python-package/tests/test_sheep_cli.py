@@ -43,7 +43,9 @@ def data_h5(tmp_path):
 @pytest.mark.timeout(60)
 def test_record(shepherd_up, cli_runner, tmp_path):
     store = tmp_path / "out.h5"
-    res = cli_runner.invoke(cli, ["record", "-l", "10", "-o", f"{str(store)}"])
+    res = cli_runner.invoke(
+        cli, ["-vvv", "record", "-l", "10", "-o", f"{str(store)}"]
+    )
 
     assert res.exit_code == 0
     assert store.exists()
@@ -54,7 +56,7 @@ def test_record(shepherd_up, cli_runner, tmp_path):
 def test_record_ldo_short(shepherd_up, cli_runner, tmp_path):
     store = tmp_path / "out.h5"
     res = cli_runner.invoke(
-        cli, ["record", "-l", "10", "-o", f"{str(store)}", "-c", "2.5"]
+        cli, ["-vvv", "record", "-l", "10", "-o", f"{str(store)}", "-c", "2.5"]
     )
 
     assert res.exit_code == 0
@@ -67,7 +69,16 @@ def test_record_ldo_explicit(shepherd_up, cli_runner, tmp_path):
     store = tmp_path / "out.h5"
     res = cli_runner.invoke(
         cli,
-        ["record", "-l", "10", "-o", f"{str(store)}", "--ldo-voltage", "2.5"],
+        [
+            "-vvv",
+            "record",
+            "-l",
+            "10",
+            "-o",
+            f"{str(store)}",
+            "--ldo-voltage",
+            "2.5",
+        ],
     )
 
     assert res.exit_code == 0
@@ -79,7 +90,18 @@ def test_record_ldo_explicit(shepherd_up, cli_runner, tmp_path):
 def test_record_ldo_fail(shepherd_up, cli_runner, tmp_path):
     store = tmp_path / "out.h5"
     res = cli_runner.invoke(
-        cli, ["record", "-l", "10", "-f", "-o", f"{str(store)}", "-c", "-1.0"]
+        cli,
+        [
+            "-vvv",
+            "record",
+            "-l",
+            "10",
+            "-f",
+            "-o",
+            f"{str(store)}",
+            "-c",
+            "-1.0",
+        ],
     )
     assert res.exit_code != -1
 
@@ -89,7 +111,7 @@ def test_record_ldo_fail(shepherd_up, cli_runner, tmp_path):
 def test_record_no_calib(shepherd_up, cli_runner, tmp_path):
     store = tmp_path / "out.h5"
     res = cli_runner.invoke(
-        cli, ["record", "-l", "10", "--no-calib", "-o", f"{str(store)}"]
+        cli, ["-vvv", "record", "-l", "10", "--no-calib", "-o", f"{str(store)}"]
     )
 
     assert res.exit_code == 0
@@ -101,7 +123,16 @@ def test_record_no_calib(shepherd_up, cli_runner, tmp_path):
 def test_emulate(shepherd_up, cli_runner, tmp_path, data_h5):
     store = tmp_path / "out.h5"
     res = cli_runner.invoke(
-        cli, ["emulate", "-l", "10", "-o", f"{str(store)}", f"{str(data_h5)}"]
+        cli,
+        [
+            "-vvv",
+            "emulate",
+            "-l",
+            "10",
+            "-o",
+            f"{str(store)}",
+            f"{str(data_h5)}",
+        ],
     )
 
     assert res.exit_code == 0
@@ -118,6 +149,7 @@ def test_virtcap_emulate(shepherd_up, cli_runner, tmp_path, data_h5):
     res = cli_runner.invoke(
         cli,
         [
+            "-vvv",
             "emulate",
             "-l",
             "10",
@@ -145,6 +177,7 @@ def test_virtcap_emulate_wrong_option(
     res = cli_runner.invoke(
         cli,
         [
+            "-vvv",
             "emulate",
             "-l",
             "10",
@@ -166,6 +199,7 @@ def test_emulate_ldo_short(shepherd_up, cli_runner, tmp_path, data_h5):
     res = cli_runner.invoke(
         cli,
         [
+            "-vvv",
             "emulate",
             "-l",
             "10",
@@ -187,7 +221,7 @@ def test_emulate_ldo_fail(shepherd_up, cli_runner, tmp_path, data_h5):
     res = cli_runner.invoke(
         cli,
         [
-            "emulate",
+            "-vvv" "emulate",
             "-l",
             "10",
             "-c",
@@ -210,14 +244,21 @@ def test_targetpower(state, shepherd_up, cli_runner):
 
 @pytest.mark.hardware
 def test_targetpower_voltage(shepherd_up, cli_runner):
-    res = cli_runner.invoke(cli, ["targetpower", "--voltage", "2.1"])
+    res = cli_runner.invoke(cli, ["-vvv", "targetpower", "--voltage", "2.1"])
     assert res.exit_code == 0
 
-    res = cli_runner.invoke(cli, ["targetpower", "--on", "--voltage", "3.3"])
+    res = cli_runner.invoke(
+        cli, ["-vvv", "targetpower", "--on", "--voltage", "3.3"]
+    )
     assert res.exit_code == 0
 
-    res = cli_runner.invoke(cli, ["targetpower", f"--on", "--voltage", "10"])
+    res = cli_runner.invoke(
+        cli, ["-vvv", "targetpower", f"--on", "--voltage", "10"]
+    )
     assert res.exit_code != 0
 
-    res = cli_runner.invoke(cli, ["targetpower", f"--off", "--voltage", "3.0"])
+    res = cli_runner.invoke(
+        cli, ["-vvv", "targetpower", f"--off", "--voltage", "3.0"]
+    )
     assert res.exit_code != 0
+
