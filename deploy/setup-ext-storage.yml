@@ -1,0 +1,70 @@
+---
+- name: Setup tmpfs and shepherd recordings on external storage
+  hosts: all
+  vars:
+    storage_dev: mmcblk0
+  become: yes
+  tasks:
+
+  - name: Confirm formatting external storage
+    pause: prompt='This will format your external storage at /dev/{{ storage_dev }}. All data will be lost. Press Ctrl+c and then "a" to abort'
+
+  - name: Check root device
+    shell: "mount | grep ' / ' | cut -d' ' -f 1"
+    register: root_dev
+
+  - fail:
+      msg: Cannot use root device as external storage!
+    when: root_dev.stdout == "/dev/" + storage_dev + "p1"
+
+  - name: install parted
+    apt:
+      name: parted
+      state: present
+
+  - name: Read device information
+    parted: 'device=/dev/{{ storage_dev }} unit=MiB'
+    register: dev_info
+
+  - name: Unmount external storage
+    command: 'umount /dev/{{ storage_dev }}p1'
+    ignore_errors: yes
+    failed_when: no
+
+  - name: Remove all partitions from disk
+    parted:
+      device: '/dev/{{ storage_dev }}'
+      number: '{{ item.num }}'
+      state: absent
+    loop: '{{ dev_info.partitions }}'
+
+  - name: Create a new primary partition
+    parted:
+      device: '/dev/{{ storage_dev}}'
+      number: 1
+      state: present
+
+  - name: Create a ext4 filesystem
+    filesystem:
+      fstype: ext4
+      dev: '/dev/{{ storage_dev }}p1'
+
+  - name: Mount external storage at /var/shepherd/recordings
+    mount:
+      path: '/var/shepherd/recordings'
+      src: '/dev/{{ storage_dev }}p1'
+      fstype: ext4
+      opts: defaults
+      state: mounted
+      dump: '2'
+      passno: '2'
+
+  - name: Mount tmpfs at /tmp
+    mount:
+      path: '/tmp'
+      src: 'tmpfs'
+      fstype: tmpfs
+      opts: rw,nodev,nosuid,size=128M
+      state: mounted
+      dump: '0'
+      passno: '0'
