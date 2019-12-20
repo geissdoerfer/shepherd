@@ -10,11 +10,36 @@
    - { line: 'disable_uboot_overlay_adc=1', regexp: '#?disable_uboot_overlay_adc=1' }
    - { line: '#enable_uboot_cape_universal=1', regexp: '#?enable_uboot_cape_universal=1' }
    - { line: 'enable_uboot_overlays=1', regexp: '#?enable_uboot_overlays=1'}
-   - { line: 'uboot_overlay_pru=/lib/firmware/AM335X-PRU-RPROC-4-14-TI-00A0.dtbo', regexp: '#?uboot_overlay_pru=/lib/firmware/AM335X-PRU-RPROC-4-14-TI-00A0.dtbo' }
-   - { line: '#uboot_overlay_pru=/lib/firmware/AM335X-PRU-UIO-00A0.dtbo', regexp: '#?uboot_overlay_pru=/lib/firmware/AM335X-PRU-UIO-00A0.dtbo' }
-   - { line: 'uboot_overlay_addr3=/lib/firmware/BB-UART1-00A0.dtbo', regexp: '#?uboot_overlay_addr3=/lib/firmware\S*' }
-   - { line: 'uboot_overlay_addr4=/lib/firmware/BB-I2C1-00A0.dtbo', regexp: '#?uboot_overlay_addr4=/lib/firmware\S*' }
-   - { line: 'dtb_overlay=/lib/firmware/BB-SHPRD-00A0.dtbo', regexp: '#dtb_overlay=/lib/firmware\S*'}
+   - { line: 'uboot_overlay_pru=/lib/firmware/AM335X-PRU-RPROC-4-14-TI-00A0.dtbo', regexp: '#?uboot_overlay_pru=\/lib\/firmware\/AM335X-PRU-RPROC-4-14-TI-00A0.dtbo' }
+   - { line: '#uboot_overlay_pru=/lib/firmware/AM335X-PRU-UIO-00A0.dtbo', regexp: '#?uboot_overlay_pru=\/lib\/firmware\/AM335X-PRU-UIO-00A0.dtbo' }
+   - { line: 'uboot_overlay_addr3=/lib/firmware/BB-UART1-00A0.dtbo', regexp: '#?uboot_overlay_addr3=\/lib\/firmware\S*' }
+   - { line: 'uboot_overlay_addr4=/lib/firmware/BB-I2C1-00A0.dtbo', regexp: '#?uboot_overlay_addr4=\/lib\/firmware\S*' }
+  become: yes
+  notify:
+    - restart device
+  tags:
+    - device-tree
+
+- name: Enable shepherd overlay
+  lineinfile:
+    dest: '/boot/uEnv.txt'
+    regexp: '#?dtb_overlay=\/lib\/firmware\S*'
+    line: 'dtb_overlay=/lib/firmware/BB-SHPRD-00A0.dtbo'
+    state: present
+  when: virtcap | default(False) == False
+  become: yes
+  notify:
+    - restart device
+  tags:
+    - device-tree
+
+- name: Enable shepherd virtcap overlay
+  lineinfile:
+    dest: '/boot/uEnv.txt'
+    regexp: '#?dtb_overlay=\/lib\/firmware\S*'
+    line: 'dtb_overlay=/lib/firmware/BB-SHPRDVCAP-00A0.dtbo'
+    state: present
+  when: virtcap | default(False) == True
   become: yes
   notify:
     - restart device
