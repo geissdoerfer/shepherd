@@ -115,7 +115,7 @@ The documentation is hosted on [readthedocs](https://shepherd-testbed.readthedoc
 
 ## People
 
-*shepherd* is being developed at the Networked Embedded Systems Lab at TU Dresden as part of the DFG-funded project Next-IoT.
+*shepherd* development is lead at the Networked Embedded Systems Lab at TU Dresden as part of the DFG-funded project Next-IoT.
 
 The following people have contributed to *shepherd*:
 
@@ -123,3 +123,4 @@ The following people have contributed to *shepherd*:
  - [Mikolaj Chwalisz](https://www.tkn.tu-berlin.de/team/chwalisz/)
  - [Marco Zimmerling](https://wwwpub.zih.tu-dresden.de/~mzimmerl/)
  - [Justus Paulick](https://github.com/kugelbit)
+ - [Boris Blokland](https://github.com/borro0)
