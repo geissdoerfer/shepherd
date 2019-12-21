@@ -32,7 +32,14 @@ User Guide
 Developer Guide
 ---------------------
 
-Coming soon...
+.. toctree::
+   :maxdepth: 2
+
+   dev/contributing
+   dev/data_handling
+   dev/sysfs
+   dev/gps_sync
+   dev/virtcap
 
 Indices and tables
 ==================
