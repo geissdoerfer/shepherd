@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!DOCTYPE eagle SYSTEM "eagle.dtd">
-<eagle version="9.4.2">
+<eagle version="9.5.2">
 <drawing>
 <settings>
 <setting alwaysvectorfont="no"/>
@@ -9,7 +9,7 @@
 <grid distance="50" unitdist="mil" unit="mil" style="lines" multiple="1" display="no" altdistance="5" altunitdist="mil" altunit="mil"/>
 <layers>
 <layer number="1" name="Top" color="4" fill="1" visible="yes" active="yes"/>
-<layer number="2" name="Route2" color="16" fill="1" visible="no" active="yes"/>
+<layer number="2" name="Route2" color="16" fill="1" visible="no" active="no"/>
 <layer number="3" name="Route3" color="17" fill="1" visible="no" active="no"/>
 <layer number="4" name="Route4" color="18" fill="1" visible="no" active="no"/>
 <layer number="5" name="Route5" color="19" fill="1" visible="no" active="no"/>
@@ -22,7 +22,7 @@
 <layer number="12" name="Route12" color="20" fill="1" visible="no" active="no"/>
 <layer number="13" name="Route13" color="21" fill="1" visible="no" active="no"/>
 <layer number="14" name="Route14" color="22" fill="1" visible="no" active="no"/>
-<layer number="15" name="Route15" color="23" fill="1" visible="no" active="yes"/>
+<layer number="15" name="Route15" color="23" fill="1" visible="no" active="no"/>
 <layer number="16" name="Bottom" color="1" fill="1" visible="yes" active="yes"/>
 <layer number="17" name="Pads" color="2" fill="1" visible="yes" active="yes"/>
 <layer number="18" name="Vias" color="2" fill="1" visible="yes" active="yes"/>
@@ -165,45 +165,19 @@
 <plain>
 <dimension x1="17.145" y1="12.7" x2="17.145" y2="0" x3="20.32" y3="6.35" textsize="1.143" textratio="16" layer="47"/>
 <dimension x1="0.635" y1="12.7" x2="17.145" y2="12.7" x3="8.89" y3="13.97" textsize="1.143" textratio="16" layer="47"/>
-<text x="2.286" y="11.684" size="0.889" layer="25" font="vector" ratio="16">SHPRD v1.4 CPLT STRG</text>
+<text x="2.794" y="11.557" size="0.8128" layer="25" font="vector" ratio="16">SHPRD v1.5 CPLT STRG</text>
+<circle x="1.27" y="0.889" radius="0.254" width="0.508" layer="21"/>
+<circle x="16.51" y="0.889" radius="0.254" width="0.508" layer="21"/>
+<text x="21.082" y="11.811" size="1.016" layer="48" font="vector" ratio="17" rot="R270">P4: Pins pointing
+to bottom,
+solder on top</text>
+<text x="-3.937" y="13.081" size="1.016" layer="48" font="vector" ratio="17" rot="R270">P3: Pins pointing
+to bottom,
+solder on top</text>
 </plain>
 <libraries>
 <library name="shepherd">
 <packages>
-<package name="SHPRD_CPLT_S">
-<pad name="P$1" x="2.54" y="2.54" drill="1.016" shape="octagon"/>
-<pad name="P$2" x="2.54" y="5.08" drill="1.016" shape="octagon"/>
-<pad name="P$3" x="2.54" y="7.62" drill="1" shape="octagon"/>
-<pad name="P$4" x="2.54" y="10.16" drill="1" shape="octagon"/>
-<pad name="P$5" x="15.24" y="2.54" drill="1.016" shape="octagon"/>
-<pad name="P$6" x="15.24" y="5.08" drill="1.016" shape="octagon"/>
-<pad name="P$7" x="15.24" y="7.62" drill="1.016" shape="octagon"/>
-<pad name="P$8" x="15.24" y="10.16" drill="1.016" shape="octagon"/>
-<wire x1="0.635" y1="12.7" x2="17.145" y2="12.7" width="0.127" layer="20"/>
-<wire x1="17.145" y1="12.7" x2="17.145" y2="0" width="0.127" layer="20"/>
-<wire x1="17.145" y1="0" x2="0.635" y2="0" width="0.127" layer="20"/>
-<wire x1="0.635" y1="0" x2="0.635" y2="12.7" width="0.127" layer="20"/>
-<wire x1="1.27" y1="10.795" x2="1.905" y2="11.43" width="0.2032" layer="21"/>
-<wire x1="1.905" y1="11.43" x2="3.175" y2="11.43" width="0.2032" layer="21"/>
-<wire x1="3.175" y1="11.43" x2="3.81" y2="10.795" width="0.2032" layer="21"/>
-<wire x1="3.81" y1="10.795" x2="3.81" y2="1.905" width="0.2032" layer="21"/>
-<wire x1="3.81" y1="1.905" x2="3.175" y2="1.27" width="0.2032" layer="21"/>
-<wire x1="3.175" y1="1.27" x2="1.905" y2="1.27" width="0.2032" layer="21"/>
-<wire x1="1.905" y1="1.27" x2="1.27" y2="1.905" width="0.2032" layer="21"/>
-<wire x1="1.27" y1="1.905" x2="1.27" y2="10.795" width="0.2032" layer="21"/>
-<wire x1="13.97" y1="10.795" x2="14.605" y2="11.43" width="0.2032" layer="21"/>
-<wire x1="14.605" y1="11.43" x2="15.875" y2="11.43" width="0.2032" layer="21"/>
-<wire x1="15.875" y1="11.43" x2="16.51" y2="10.795" width="0.2032" layer="21"/>
-<wire x1="16.51" y1="10.795" x2="16.51" y2="1.905" width="0.2032" layer="21"/>
-<wire x1="16.51" y1="1.905" x2="15.875" y2="1.27" width="0.2032" layer="21"/>
-<wire x1="15.875" y1="1.27" x2="14.605" y2="1.27" width="0.2032" layer="21"/>
-<wire x1="14.605" y1="1.27" x2="13.97" y2="1.905" width="0.2032" layer="21"/>
-<wire x1="13.97" y1="1.905" x2="13.97" y2="10.795" width="0.2032" layer="21"/>
-<text x="5.334" y="1.778" size="1.27" layer="25" font="vector" ratio="15" rot="R90">P3</text>
-<text x="13.716" y="1.905" size="1.27" layer="25" font="vector" ratio="15" rot="R90">P4</text>
-<circle x="16.637" y="1.143" radius="0.283978125" width="0" layer="25"/>
-<circle x="1.143" y="1.143" radius="0.283978125" width="0" layer="25"/>
-</package>
 <package name="CAPC2012X145" urn="urn:adsk.eagle:footprint:4930367/1">
 <description>Chip, 2.00 X 1.25 X 1.45 mm body
 &lt;p&gt;Chip package with body size 2.00 X 1.25 X 1.45 mm&lt;/p&gt;</description>
@@ -231,6 +205,12 @@
 <smd name="2" x="1.4774" y="0" dx="1.178" dy="2.6252" layer="1"/>
 <text x="0" y="2.2616" size="1.27" layer="25" align="bottom-center">&gt;NAME</text>
 <text x="0" y="-2.2616" size="1.27" layer="27" align="top-center">&gt;VALUE</text>
+</package>
+<package name="SHPRD_CPLT_S">
+<wire x1="0.635" y1="12.7" x2="17.145" y2="12.7" width="0.127" layer="20"/>
+<wire x1="17.145" y1="12.7" x2="17.145" y2="0" width="0.127" layer="20"/>
+<wire x1="17.145" y1="0" x2="0.635" y2="0" width="0.127" layer="20"/>
+<wire x1="0.635" y1="0" x2="0.635" y2="12.7" width="0.127" layer="20"/>
 </package>
 </packages>
 <packages3d>
@@ -1331,6 +1311,62 @@ grid 5.08 mm, diameter 8.5 mm</description>
 </package3d>
 </packages3d>
 </library>
+<library name="pinhead" urn="urn:adsk.eagle:library:325">
+<description>&lt;b&gt;Pin Header Connectors&lt;/b&gt;&lt;p&gt;
+&lt;author&gt;Created by librarian@cadsoft.de&lt;/author&gt;</description>
+<packages>
+<package name="1X04" urn="urn:adsk.eagle:footprint:22258/1" library_version="4">
+<description>&lt;b&gt;PIN HEADER&lt;/b&gt;</description>
+<wire x1="0" y1="0.635" x2="0.635" y2="1.27" width="0.1524" layer="21"/>
+<wire x1="0.635" y1="1.27" x2="1.905" y2="1.27" width="0.1524" layer="21"/>
+<wire x1="1.905" y1="1.27" x2="2.54" y2="0.635" width="0.1524" layer="21"/>
+<wire x1="2.54" y1="0.635" x2="2.54" y2="-0.635" width="0.1524" layer="21"/>
+<wire x1="2.54" y1="-0.635" x2="1.905" y2="-1.27" width="0.1524" layer="21"/>
+<wire x1="1.905" y1="-1.27" x2="0.635" y2="-1.27" width="0.1524" layer="21"/>
+<wire x1="0.635" y1="-1.27" x2="0" y2="-0.635" width="0.1524" layer="21"/>
+<wire x1="-4.445" y1="1.27" x2="-3.175" y2="1.27" width="0.1524" layer="21"/>
+<wire x1="-3.175" y1="1.27" x2="-2.54" y2="0.635" width="0.1524" layer="21"/>
+<wire x1="-2.54" y1="0.635" x2="-2.54" y2="-0.635" width="0.1524" layer="21"/>
+<wire x1="-2.54" y1="-0.635" x2="-3.175" y2="-1.27" width="0.1524" layer="21"/>
+<wire x1="-2.54" y1="0.635" x2="-1.905" y2="1.27" width="0.1524" layer="21"/>
+<wire x1="-1.905" y1="1.27" x2="-0.635" y2="1.27" width="0.1524" layer="21"/>
+<wire x1="-0.635" y1="1.27" x2="0" y2="0.635" width="0.1524" layer="21"/>
+<wire x1="0" y1="0.635" x2="0" y2="-0.635" width="0.1524" layer="21"/>
+<wire x1="0" y1="-0.635" x2="-0.635" y2="-1.27" width="0.1524" layer="21"/>
+<wire x1="-0.635" y1="-1.27" x2="-1.905" y2="-1.27" width="0.1524" layer="21"/>
+<wire x1="-1.905" y1="-1.27" x2="-2.54" y2="-0.635" width="0.1524" layer="21"/>
+<wire x1="-5.08" y1="0.635" x2="-5.08" y2="-0.635" width="0.1524" layer="21"/>
+<wire x1="-4.445" y1="1.27" x2="-5.08" y2="0.635" width="0.1524" layer="21"/>
+<wire x1="-5.08" y1="-0.635" x2="-4.445" y2="-1.27" width="0.1524" layer="21"/>
+<wire x1="-3.175" y1="-1.27" x2="-4.445" y2="-1.27" width="0.1524" layer="21"/>
+<wire x1="3.175" y1="1.27" x2="4.445" y2="1.27" width="0.1524" layer="21"/>
+<wire x1="4.445" y1="1.27" x2="5.08" y2="0.635" width="0.1524" layer="21"/>
+<wire x1="5.08" y1="0.635" x2="5.08" y2="-0.635" width="0.1524" layer="21"/>
+<wire x1="5.08" y1="-0.635" x2="4.445" y2="-1.27" width="0.1524" layer="21"/>
+<wire x1="3.175" y1="1.27" x2="2.54" y2="0.635" width="0.1524" layer="21"/>
+<wire x1="2.54" y1="-0.635" x2="3.175" y2="-1.27" width="0.1524" layer="21"/>
+<wire x1="4.445" y1="-1.27" x2="3.175" y2="-1.27" width="0.1524" layer="21"/>
+<pad name="1" x="-3.81" y="0" drill="1.016" shape="long" rot="R90"/>
+<pad name="2" x="-1.27" y="0" drill="1.016" shape="long" rot="R90"/>
+<pad name="3" x="1.27" y="0" drill="1.016" shape="long" rot="R90"/>
+<pad name="4" x="3.81" y="0" drill="1.016" shape="long" rot="R90"/>
+<text x="-5.1562" y="1.8288" size="1.27" layer="25" ratio="10">&gt;NAME</text>
+<text x="-5.08" y="-3.175" size="1.27" layer="27">&gt;VALUE</text>
+<rectangle x1="1.016" y1="-0.254" x2="1.524" y2="0.254" layer="51"/>
+<rectangle x1="-1.524" y1="-0.254" x2="-1.016" y2="0.254" layer="51"/>
+<rectangle x1="-4.064" y1="-0.254" x2="-3.556" y2="0.254" layer="51"/>
+<rectangle x1="3.556" y1="-0.254" x2="4.064" y2="0.254" layer="51"/>
+</package>
+</packages>
+<packages3d>
+<package3d name="1X04" urn="urn:adsk.eagle:package:22407/2" type="model" library_version="4">
+<description>PIN HEADER</description>
+<packageinstances>
+<packageinstance name="1X04"/>
+</packageinstances>
+</package3d>
+</packages3d>
+</library>
 </libraries>
 <attributes>
 </attributes>
@@ -1340,7 +1376,7 @@ grid 5.08 mm, diameter 8.5 mm</description>
 <class number="0" name="default" width="0" drill="0">
 </class>
 </classes>
-<designrules name="PCB-POOL Standard_ML4">
+<designrules name="PCB-POOL Standard">
 <description language="de">&lt;b&gt;EAGLE Design Rules Prototypen  für PCB-POOL(R)&lt;/b&gt;
 &lt;p&gt;
 Wir haben in diesem DRU File alle notwendigen Design Einstellungen vorgenommen, damit Sie Ihre Leiterplatte 
@@ -1359,9 +1395,9 @@ requirements to avoid problems during production.&lt;br&gt;
 Covered vias can be set in Masks (Limit).
 
 &lt;/p&gt;Your Beta LAYOUT Team</description>
-<param name="layerSetup" value="(1+2*15+16)"/>
+<param name="layerSetup" value="(1*16)"/>
 <param name="mtCopper" value="0.035mm 0.035mm 0.035mm 0.035mm 0.035mm 0.035mm 0.035mm 0.035mm 0.035mm 0.035mm 0.035mm 0.035mm 0.035mm 0.035mm 0.035mm 0.035mm"/>
-<param name="mtIsolate" value="0.38mm 0.71mm 0.38mm 0.15mm 0.2mm 0.15mm 0.2mm 0.15mm 0.2mm 0.15mm 0.2mm 0.15mm 0.2mm 0.15mm 0.38mm"/>
+<param name="mtIsolate" value="1.5mm 0.15mm 0.2mm 0.15mm 0.2mm 0.15mm 0.2mm 0.15mm 0.2mm 0.15mm 0.2mm 0.15mm 0.2mm 0.15mm 0.2mm"/>
 <param name="mdWireWire" value="0.15mm"/>
 <param name="mdWirePad" value="0.15mm"/>
 <param name="mdWireVia" value="0.15mm"/>
@@ -1408,7 +1444,7 @@ Covered vias can be set in Masks (Limit).
 <param name="psElongationOffset" value="100"/>
 <param name="mvStopFrame" value="0"/>
 <param name="mvCreamFrame" value="0"/>
-<param name="mlMinStopFrame" value="0.075mm"/>
+<param name="mlMinStopFrame" value="0.03mm"/>
 <param name="mlMaxStopFrame" value="0.2mm"/>
 <param name="mlMinCreamFrame" value="0mil"/>
 <param name="mlMaxCreamFrame" value="0.2mm"/>
@@ -1528,13 +1564,12 @@ Covered vias can be set in Masks (Limit).
 </pass>
 </autorouter>
 <elements>
-<element name="U$1" library="shepherd" package="SHPRD_CPLT_S" value="SHPRD_CPLT_S" x="0" y="0" smashed="yes"/>
 <element name="C1" library="shepherd" package="CAPC2012X145" package3d_urn="urn:adsk.eagle:package:4930364/1" value="" x="8.89" y="10.16" smashed="yes">
 <attribute name="NAME" x="6.731" y="8.5336" size="1.016" layer="25" font="vector" ratio="16" align="bottom-center"/>
 <attribute name="VALUE" x="8.89" y="8.4844" size="1.27" layer="27" align="top-center"/>
 </element>
 <element name="C2" library="shepherd" package="CAPC3225X280" package3d_urn="urn:adsk.eagle:package:4926069/1" value="" x="8.89" y="2.54" smashed="yes">
-<attribute name="NAME" x="6.096" y="0.2296" size="1.016" layer="25" font="vector" ratio="16" align="bottom-center"/>
+<attribute name="NAME" x="11.811" y="1.3726" size="1.016" layer="25" font="vector" ratio="16" align="bottom-center"/>
 <attribute name="VALUE" x="8.89" y="0.2784" size="1.27" layer="27" align="top-center"/>
 </element>
 <element name="C3" library="rcl" library_urn="urn:adsk.eagle:library:334" package="E5-8,5" package3d_urn="urn:adsk.eagle:package:23374/1" value="" x="8.89" y="6.35" smashed="yes">
@@ -1542,18 +1577,20 @@ Covered vias can be set in Masks (Limit).
 <attribute name="SPICEPREFIX" value="C" x="8.89" y="6.35" size="1.778" layer="27" display="off"/>
 <attribute name="VALUE" x="6.3754" y="3.3274" size="1.27" layer="27" ratio="10"/>
 </element>
+<element name="P4" library="pinhead" library_urn="urn:adsk.eagle:library:325" package="1X04" package3d_urn="urn:adsk.eagle:package:22407/2" value="" x="15.24" y="6.35" smashed="yes" rot="MR90">
+<attribute name="NAME" x="12.9032" y="0.4318" size="1.0668" layer="25" font="vector" ratio="17"/>
+<attribute name="POPULARITY" value="91" x="15.24" y="6.35" size="1.778" layer="28" rot="MR90" display="off"/>
+<attribute name="VALUE" x="12.065" y="1.27" size="1.27" layer="28" rot="MR90"/>
+</element>
+<element name="P3" library="pinhead" library_urn="urn:adsk.eagle:library:325" package="1X04" package3d_urn="urn:adsk.eagle:package:22407/2" value="" x="2.54" y="6.35" smashed="yes" rot="MR90">
+<attribute name="NAME" x="5.0292" y="1.4478" size="1.0668" layer="25" font="vector" ratio="17" rot="R180"/>
+<attribute name="POPULARITY" value="91" x="2.54" y="6.35" size="1.778" layer="28" rot="MR90" display="off"/>
+<attribute name="VALUE" x="-0.635" y="1.27" size="1.27" layer="28" rot="MR90"/>
+</element>
+<element name="U$1" library="shepherd" package="SHPRD_CPLT_S" value="" x="0" y="0" smashed="yes"/>
 </elements>
 <signals>
-<signal name="+3V3">
-<contactref element="U$1" pad="P$1"/>
-</signal>
 <signal name="GND">
-<contactref element="U$1" pad="P$8"/>
-<contactref element="U$1" pad="P$7"/>
-<contactref element="U$1" pad="P$3"/>
-<contactref element="U$1" pad="P$4"/>
-<contactref element="U$1" pad="P$5"/>
-<contactref element="U$1" pad="P$6"/>
 <contactref element="C3" pad="-"/>
 <contactref element="C1" pad="2"/>
 <contactref element="C2" pad="2"/>
@@ -1569,20 +1606,30 @@ Covered vias can be set in Masks (Limit).
 <vertex x="17.145" y="0"/>
 <vertex x="0.635" y="0"/>
 </polygon>
+<contactref element="P4" pad="4"/>
+<contactref element="P4" pad="3"/>
+<contactref element="P4" pad="2"/>
+<contactref element="P4" pad="1"/>
+<contactref element="P3" pad="3"/>
+<contactref element="P3" pad="4"/>
 </signal>
 <signal name="N$1">
 <contactref element="C2" pad="1"/>
-<contactref element="U$1" pad="P$2"/>
 <contactref element="C1" pad="1"/>
 <contactref element="C3" pad="+"/>
-<wire x1="2.54" y1="5.08" x2="5.08" y2="2.54" width="0.6096" layer="1"/>
-<wire x1="2.54" y1="5.08" x2="4.191" y2="6.731" width="0.6096" layer="1"/>
-<wire x1="4.191" y1="8.636" x2="5.715" y2="10.16" width="0.6096" layer="1"/>
-<wire x1="5.715" y1="10.16" x2="8.0057" y2="10.16" width="0.6096" layer="1"/>
-<wire x1="4.191" y1="6.731" x2="4.191" y2="8.636" width="0.6096" layer="1"/>
-<wire x1="5.08" y1="2.54" x2="7.4126" y2="2.54" width="0.6096" layer="1"/>
-<wire x1="2.54" y1="5.08" x2="5.08" y2="5.08" width="0.6096" layer="16"/>
-<wire x1="5.08" y1="5.08" x2="6.35" y2="6.35" width="0.6096" layer="16"/>
+<contactref element="P3" pad="2"/>
+<wire x1="2.54" y1="5.08" x2="4.445" y2="5.08" width="0.508" layer="1"/>
+<wire x1="4.445" y1="5.08" x2="5.08" y2="5.08" width="0.508" layer="1"/>
+<wire x1="5.08" y1="5.08" x2="6.35" y2="6.35" width="0.508" layer="1"/>
+<wire x1="8.0057" y1="10.16" x2="6.35" y2="10.16" width="0.508" layer="1"/>
+<wire x1="6.35" y1="10.16" x2="4.445" y2="8.255" width="0.508" layer="1"/>
+<wire x1="4.445" y1="8.255" x2="4.445" y2="5.08" width="0.508" layer="1"/>
+<wire x1="7.4126" y1="2.54" x2="5.461" y2="2.54" width="0.508" layer="1"/>
+<wire x1="4.445" y1="3.556" x2="4.445" y2="5.08" width="0.508" layer="1"/>
+<wire x1="5.461" y1="2.54" x2="4.445" y2="3.556" width="0.508" layer="1"/>
+</signal>
+<signal name="+3V3">
+<contactref element="P3" pad="1"/>
 </signal>
 </signals>
 <mfgpreviewcolors>
@@ -1595,6 +1642,10 @@ Covered vias can be set in Masks (Limit).
 </board>
 </drawing>
 <compatibility>
+<note version="6.3" minversion="6.2.2" severity="warning">
+Since Version 6.2.2 text objects can contain more than one line,
+which will not be processed correctly with this version.
+</note>
 <note version="8.2" severity="warning">
 Since Version 8.2, EAGLE supports online libraries. The ids
 of those online libraries will not be understood (or retained)
