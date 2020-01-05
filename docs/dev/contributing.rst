@@ -44,6 +44,37 @@ This motivates the use of docker for creating an isolated and well defined build
 The procedure for building the image, creating a container, copying the code into the container, building the packages and copying the artifacts back to the host are found in the `.travis.yml` in the repository's root directory.
 
 
+Building the docs
+-----------------
+
+Make sure you have the python requirements installed:
+
+.. code-block:: bash
+
+    pipenv install
+
+Activate the `pipenv` environment:
+
+.. code-block:: bash
+
+    pipenv shell
+
+Change into the docs directory and build the html documentation
+
+.. code-block:: bash
+
+    cd docs
+    make html
+
+The build is found at `docs/_build/html`. You can view it by starting a simple http server:
+
+.. code-block:: bash
+
+    cd _build/html
+    python -m http.server
+
+Now navigate your browser to `localhost:8000` to view the documentation.
+
 Tests
 -----
 
