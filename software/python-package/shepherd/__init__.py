@@ -273,7 +273,7 @@ class ShepherdDebug(ShepherdIO):
     """
 
     def __init__(self):
-        super().__init__("debug", False, "artificial")
+        super().__init__("debug", "artificial")
 
     def adc_read(self, channel: str):
         """Reads value from specified ADC channel.
