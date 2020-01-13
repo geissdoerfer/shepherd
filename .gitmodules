@@ -1,3 +1,0 @@
-[submodule "deploy/roles/gps-host/files/pps-gmtimer"]
-	path = deploy/roles/gps-host/files/pps-gmtimer
-	url = https://github.com/kugelbit/pps-gmtimer

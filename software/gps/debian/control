@@ -1,0 +1,12 @@
+Source: shepherd-gps
+Maintainer: Kai Geissdoerfer <kai.geissdoerfer@tu-dresden.de>
+Build-Depends: debhelper (>=11)
+Homepage: <https://github.com/geissdoerfer/shepherd>
+
+Package: shepherd-gps
+Architecture: all
+Multi-Arch: foreign
+Pre-Depends: python3-pip
+Conflicts: shepherd-ptp
+Depends: ${misc:Depends}, ${shlibs:Depends}, gpsd, chrony, pps-gmtimer-dkms
+Description: GPS configuration for use with shepherd

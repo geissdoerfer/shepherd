@@ -11,8 +11,8 @@
 
 - name: Override service configs
   copy:
-    src: '{{ item }}.override.conf'
-    dest: '/etc/systemd/system/{{ item }}.service.d/override.conf'
+    src: '{{ gps_path }}/{{ item }}.override.conf'
+    dest: '/etc/systemd/system/{{ item }}.service.d/'
   with_items:
     - chrony
     - gpsd
@@ -20,14 +20,14 @@
 
 - name: Add config systemd service
   template:
-    src: 'ublox-config.service'
-    dest: '/etc/systemd/system/'
+    src: '{{ gps_path }}/debian/shepherd-gps.ublox-config.service'
+    dest: '/etc/systemd/system/ublox-config.service'
   tags: conf
 
 # services not started at boot, but after respective file exists
 - name: Add service path activation
   copy:
-    src: 'chrony.path'
+    src: '{{ gps_path }}/chrony.path'
     dest: '/etc/systemd/system/chrony.path'
   tags: conf
 

@@ -47,10 +47,17 @@ build_ptp() {
 }
 
 build_pps_gmtimer() {
-    cd /code/pps_gmtimer
+    cd /code/pps-gmtimer
     dpkg-buildpackage -uc -us
 
     cp ../pps-gmtimer-dkms_*_all.deb /artifacts/debian/
+}
+
+build_gps() {
+    cd /code/gps
+
+    dpkg-buildpackage -uc -us
+    cp ../shepherd-gps_*_all.deb /artifacts/debian/
 }
 
 build_meta_package() {
@@ -69,6 +76,7 @@ mkdir -p /artifacts/debian
 
 build_ptp
 build_pps_gmtimer
+build_gps
 build_openocd
 build_firmware
 build_kernel_module

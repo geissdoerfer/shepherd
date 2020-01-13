@@ -1,0 +1,3 @@
+#!/bin/sh
+
+sed -r -i 's/uboot_overlay_addr1=\/lib\/firmware\/BB-GPS-00A0.dtbo/#uboot_overlay_addr1=\/lib\/firmware\/<file>.dtbo/g' /boot/uEnv.txt

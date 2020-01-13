@@ -6,5 +6,6 @@ Homepage: <https://github.com/geissdoerfer/shepherd>
 Package: shepherd-ptp
 Architecture: all
 Multi-Arch: foreign
+Conflicts: shepherd-gps
 Depends: ${misc:Depends}, ${shlibs:Depends}, linuxptp
 Description: PTP configuration for use with shepherd

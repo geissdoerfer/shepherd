@@ -1,0 +1,4 @@
+#!/bin/sh
+
+pip3 install ubxserial
+sed -r -i 's/#?uboot_overlay_addr1=\/lib\/firmware\S*/uboot_overlay_addr1=\/lib\/firmware\/BB-GPS-00A0.dtbo/g' /boot/uEnv.txt

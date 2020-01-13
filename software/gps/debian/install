@@ -1,0 +1,6 @@
+ublox_config.ubx etc/shepherd
+gpsd.conf etc/shepherd
+chrony.conf etc/shepherd
+chrony.path etc/systemd/system
+chrony.override.conf etc/systemd/system/chrony.service.d
+gpsd.override.conf etc/systemd/system/gpsd.service.d

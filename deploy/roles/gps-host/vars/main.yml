@@ -1,2 +1,4 @@
 ---
-ublox_tty_dev: /dev/ttyO2
+gps_path: '{{ role_path }}/../../../software/gps/'
+pps_gmtimer_path: '{{ role_path }}/../../../software/pps-gmtimer/src/'
+uEnv: '/boot/uEnv.txt'

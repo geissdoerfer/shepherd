@@ -9,25 +9,15 @@
     name: ['gpsd', 'gpsd-clients', 'chrony', 'pps-tools', 'python3-pip', 'linux-headers-{{ kernelrelease.stdout.strip() }}']
     state: present
 
-- name: configure gpsd
+- name: configure chrony and gpsd
   template:
-    src: 'gpsd'
-    dest: '/etc/default/'
-    mode: 0644
-  tags: conf
-
-- name: configure chrony
-  template:
-    src: '{{ item }}'
-    dest: '/etc/chrony/'
+    src: '{{ gps_path }}/{{ item }}.conf'
+    dest: '/etc/shepherd/'
     mode: 0644
   with_items:
-   - chrony.conf
+   - chrony
+   - gpsd
   tags: conf
-
-- set_fact:
-    uEnv: '/boot/uEnv.txt'
-    capes_enabled: ['DD-GPS-00A0']
 
 - name: Disable factory enabled capes
   lineinfile:
@@ -45,27 +35,33 @@
 - name: Set enabled capes
   lineinfile:
     dest: '{{ uEnv }}'
-    regexp: '#?uboot_overlay_addr1=\/lib\/firmware\/(<file8>|{{ item }}).dtbo'
-    line: 'uboot_overlay_addr1=/lib/firmware/{{ item }}.dtbo'
+    regexp: '#?uboot_overlay_addr1=\/lib\/firmware\/(<file8>|BB-GPS-00A0).dtbo'
+    line: 'uboot_overlay_addr1=/lib/firmware/BB-GPS-00A0.dtbo'
     state: present
-  with_items: "{{ capes_enabled }}"
 
 - name: Copy pps-gmtimer code
   synchronize:
-    src: files/pps-gmtimer/
-    dest: /opt/pps-gmtimer/
-    rsync_opts:
-      - "--no-motd"
-      - "--exclude=.git"
-      - "--exclude=.vscode"
-  tags: kernel
+    src: '{{ pps_gmtimer_path }}'
+    dest: /opt/pps-gmtimer
+  tags: pps
 
-- name: Build and install GPS-PPS dtbo and kernel module
+- name: Build and install pps-gmtimer module
   make:
-    chdir: /opt/pps-gmtimer/
+    chdir: /opt/pps-gmtimer
     target: install
-  tags: kernel
+  tags: pps
 
+- name: Copy pps-gmtimer code
+  synchronize:
+    src: '{{ gps_path }}'
+    dest: /opt/gps
+
+- name: Build and install device tree overlay
+  make:
+    chdir: "/opt/gps"
+    target: install
+  tags:
+    - device-tree
 
 - name: make system find kernel-modul
   command: depmod -ae
@@ -78,7 +74,7 @@
 
 - name: Copy ublox config file
   copy:
-    src: ublox_config.ubx
+    src: '{{ gps_path }}/ublox_config.ubx'
     dest: /etc/shepherd/
 
 - include_tasks: systemd.yml
