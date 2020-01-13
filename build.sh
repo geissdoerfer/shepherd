@@ -46,6 +46,13 @@ build_ptp() {
     cp ../shepherd-ptp_*_all.deb /artifacts/debian/
 }
 
+build_pps_gmtimer() {
+    cd /code/pps_gmtimer
+    dpkg-buildpackage -uc -us
+
+    cp ../pps-gmtimer-dkms_*_all.deb /artifacts/debian/
+}
+
 build_meta_package() {
     cd /code/meta-package
 
@@ -61,6 +68,7 @@ make_repository() {
 mkdir -p /artifacts/debian
 
 build_ptp
+build_pps_gmtimer
 build_openocd
 build_firmware
 build_kernel_module

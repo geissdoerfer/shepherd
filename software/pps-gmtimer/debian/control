@@ -1,0 +1,8 @@
+Source: pps-gmtimer-dkms
+Maintainer: Kai Geissdoerfer <kai.geissdoerfer@tu-dresden.de>
+Build-Depends: debhelper (>= 11), dkms
+
+Package: pps-gmtimer-dkms
+Architecture: all
+Depends: ${misc:Depends}
+Description: DKMS source for the shepherd GPS PPS driver
