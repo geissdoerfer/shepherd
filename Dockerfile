@@ -55,4 +55,4 @@ RUN chmod +x /build.sh
 
 ENTRYPOINT ["/tini", "--"]
 
-CMD ["/bin/bash"]
+CMD ["sh", "-c", "/build.sh"]
