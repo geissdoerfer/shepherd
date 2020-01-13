@@ -41,7 +41,7 @@ RUN wget http://software-dl.ti.com/codegen/esd/cgt_public_sw/PRU/2.3.1/ti_cgt_pr
 RUN chmod +x ti_cgt_pru_2.3.1_linux_installer_x86.bin
 RUN ./ti_cgt_pru_2.3.1_linux_installer_x86.bin --mode unattended --prefix /tools
 
-RUN wget http://git.ti.com/cgit/cgit.cgi/pru-software-support-package/pru-software-support-package.git/snapshot/pru-software-support-package-5.4.0.tar.gz
+RUN wget --retry-on-http-error=503,301 http://git.ti.com/cgit/cgit.cgi/pru-software-support-package/pru-software-support-package.git/snapshot/pru-software-support-package-5.4.0.tar.gz
 RUN tar -xvf pru-software-support-package-5.4.0.tar.gz
 
 ENV PRU_CGT /tools/ti-cgt-pru_2.3.1
@@ -55,4 +55,4 @@ RUN chmod +x /build.sh
 
 ENTRYPOINT ["/tini", "--"]
 
-CMD ["sh", "-c", "/build.sh"]
+CMD ["/bin/bash"]
