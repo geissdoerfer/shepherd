@@ -15,8 +15,8 @@
         "P8.13", /* ENABLE HARVESTER */
         "P8.28", /* ADC RST/PDN */
         "P8.30", /* LED2 USER SPACE */
-        "P8.33", /* GENERAL PURPOSE BUTTON */
-        "P8.34", /* GENERAL PURPOSE LED */
+        "P8.33", /* GENERAL PURPOSE LED */
+        "P8.34", /* GENERAL PURPOSE BUTTON */
         "P8.36", /* ENABLE LEVEL CONVERTER */
         "P8.41", /* DEBUG PIN0 PRU1 */
         "P8.42", /* DEBUG PIN1 PRU1 */
@@ -51,8 +51,8 @@
             0x024 0x07  /* P8.13, gpio0[23] */
             0x0e8 0x07	/* P8.28, gpio2[24] */
             0x0ec 0x07	/* P8.30, gpio2[25] */
-            0x0d4 0x37	/* P8.33, gpio0[9] */
-            0x0cc 0x07	/* P8.34, gpio2[17] */
+            0x0d4 0x07	/* P8.33, gpio0[9] */
+            0x0cc 0x37	/* P8.34, gpio2[17] */
             0x0c8 0x07	/* P8.36, gpio2[16] */
             0x0b0 0x05	/* P8.41, pr1_pru1_pru_r30_4 */
             0x0b4 0x05	/* P8.42, pr1_pru1_pru_r30_5 */

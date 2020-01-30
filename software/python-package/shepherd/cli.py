@@ -419,8 +419,8 @@ def rpc(port):
 
 
 @cli.command(short_help="Start shepherd launcher")
-@click.option("--led", "-l", type=int, default=81)
-@click.option("--button", "-b", type=int, default=9)
+@click.option("--led", "-l", type=int, default=9)
+@click.option("--button", "-b", type=int, default=81)
 def launcher(led, button):
     with Launcher(button, led) as lnch:
         lnch.run()
