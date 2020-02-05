@@ -44,10 +44,13 @@
       number: 1
       state: present
 
+  - name: Unmount external storage
+    command: 'umount /dev/{{ storage_dev }}p1'
+    ignore_errors: yes
+    failed_when: no
+
   - name: Create a ext4 filesystem
-    filesystem:
-      fstype: ext4
-      dev: '/dev/{{ storage_dev }}p1'
+    command: 'mkfs.ext4 -F /dev/{{ storage_dev }}p1'
 
   - name: Mount external storage at /var/shepherd/recordings
     mount:
