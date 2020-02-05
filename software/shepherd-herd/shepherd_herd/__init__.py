@@ -168,7 +168,7 @@ def cli(ctx, inventory, limit, user, key_filename, verbose):
         hostnames = dict()
         for hostname, hostvars in inventory_data["sheep"]["hosts"].items():
             if limit is not None:
-                if not hostname in limit:
+                if not hostname in limit.split(","):
                     continue
 
             if "ansible_host" in hostvars.keys():
