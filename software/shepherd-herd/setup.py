@@ -7,7 +7,7 @@ HERE = pathlib.Path(__file__).parent
 # The text of the README file
 README = (HERE / "README.md").read_text()
 
-requirements = ["click", "fabric", "numpy", "pyYAML"]
+requirements = ["click", "fabric", "numpy", "pyYAML", "click-config-file"]
 
 setup(
     name="shepherd_herd",
