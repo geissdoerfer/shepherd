@@ -1,8 +1,11 @@
 sed -r -i 's/#?disable_uboot_overlay_video=1/disable_uboot_overlay_video=1/g' /boot/uEnv.txt
+sed -r -i 's/#?disable_uboot_overlay_audio=1/disable_uboot_overlay_audio=1/g' /boot/uEnv.txt
+sed -r -i 's/#?disable_uboot_overlay_wireless=1/disable_uboot_overlay_wireless=1/g' /boot/uEnv.txt
 sed -r -i 's/#?disable_uboot_overlay_adc=1/disable_uboot_overlay_adc=1/g' /boot/uEnv.txt
 sed -r -i 's/#?enable_uboot_cape_universal=1/#enable_uboot_cape_universal=1/g' /boot/uEnv.txt
 sed -r -i 's/#?enable_uboot_overlays=1/enable_uboot_overlays=1/g' /boot/uEnv.txt
-sed -r -i 's/#?uboot_overlay_pru=\/lib\/firmware\/AM335X-PRU-RPROC-4-14-TI-00A0.dtbo/uboot_overlay_pru=\/lib\/firmware\/AM335X-PRU-RPROC-4-14-TI-00A0.dtbo/g' /boot/uEnv.txt
+sed -r -i 's/#?uboot_overlay_pru=\/lib\/firmware\/AM335X-PRU-RPROC-4-14-TI-00A0.dtbo/#uboot_overlay_pru=\/lib\/firmware\/AM335X-PRU-RPROC-4-14-TI-00A0.dtbo/g' /boot/uEnv.txt
+sed -r -i 's/#?uboot_overlay_pru=\/lib\/firmware\/AM335X-PRU-RPROC-4-19-TI-00A0.dtbo/uboot_overlay_pru=\/lib\/firmware\/AM335X-PRU-RPROC-4-19-TI-00A0.dtbo/g' /boot/uEnv.txt
 sed -r -i 's/#?uboot_overlay_pru=\/lib\/firmware\/AM335X-PRU-UIO-00A0.dtbo/#uboot_overlay_pru=\/lib\/firmware\/AM335X-PRU-UIO-00A0.dtbo/g' /boot/uEnv.txt
 sed -r -i 's/#?uboot_overlay_addr3=\/lib\/firmware\S*/uboot_overlay_addr3=\/lib\/firmware\/BB-UART1-00A0.dtbo/g' /boot/uEnv.txt
 sed -r -i 's/#?uboot_overlay_addr4=\/lib\/firmware\S*/uboot_overlay_addr4=\/lib\/firmware\/BB-I2C1-00A0.dtbo/g' /boot/uEnv.txt
