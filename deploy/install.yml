@@ -2,7 +2,14 @@
 - name: Install/Upgrade shepherd
   hosts: all
   become: true
- 
+
+  vars_prompt:
+    - name: ptp
+      prompt: "Do you want to install ptp? [yN]"
+      private: no
+      default: "no"
+      when: ptp is not defined
+
   tasks:
 
   - name: Get kernel version
