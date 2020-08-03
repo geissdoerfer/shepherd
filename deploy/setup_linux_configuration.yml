@@ -1,0 +1,120 @@
+---
+- name: Bring Kernel to defined Version and remove Clutter
+  hosts: all
+  become: true
+
+  vars:
+    # shepherd firmware expects a certain branch!
+    default_kernel_branch: lts-4_19
+    timezone: Europe/Berlin
+    # potentially dangerous:
+    non_essential_packages_a: ['dnsmasq', 'dnsmasq-*', 'nginx', 'nginx-*']
+    # old kernel data
+    non_essential_packages_b: ['linux-image-5.4.*', 'linux-image-4.15.*', 'linux-image-4.14.*']
+    non_essential_packages_c: ['linux-headers-5.4.*', 'linux-headers-4.15.*', 'linux-headers-4.14.*']
+    # not needed drivers / packages Todo: rf-drivers could become important later
+    non_essential_packages_d: ['alsa-utils', 'wireless-*', 'wpasupplicant', 'ofono', 'bluez', 'bluetooth', 'rfkill']
+    non_essential_packages_e: ['seeed-modules-*', 'rtl8723bu-*', 'rtl8821cu-*', 'can-utils', 'libasound*']
+    non_essential_packages_f: ['ti-sgx-*', 'eject', 'iw', 'vpdma-*', 'libx11*', 'rfkill']
+    # todo: vpdma maybe my fault, manual install
+
+  vars_prompt:
+    # these can be also passed as argument:  -e "update_kernel=True"
+    - name: update_kernel
+      prompt: "Do you want to update the Kernel? [yN]"
+      private: no
+      default: "no"
+      when: update_kernel is not defined
+
+    - name: update_bootloader
+      prompt: "Do you want to update the Bootloader? [yN]"
+      private: no
+      default: "no"
+      when: update_bootloader is not defined
+
+  tasks:
+
+  - name: GIT - Update "boot-scripts" from RoberCNelson
+    git:
+      repo: https://github.com/RobertCNelson/boot-scripts
+      dest: /opt/scripts
+      update: yes
+      version: master
+
+  - name: SCRIPT - Switch to newest release of Kernel Branch "{{ default_kernel_branch }}"
+    shell: /opt/scripts/tools/update_kernel.sh --{{ default_kernel_branch }}
+    when: update_kernel|bool
+    # TODO: this script gets recommended, but apt should be also just fine, should be cleaner
+
+  - name: SYS - Restart device
+    shell: sleep 2 && shutdown -r now "Ansible restart"
+    async: 1
+    poll: 0
+    ignore_errors: true
+    when: update_kernel|bool
+  - name: SYS - Waiting to come back
+    wait_for_connection:
+      delay: 15
+      timeout: 300
+    become: no
+    when: update_kernel|bool
+
+  - name: SCRIPT - Update Bootloader
+    shell: yes | /opt/scripts/tools/developers/update_bootloader.sh
+    when: update_bootloader|bool
+
+  - name: Uname - Get Kernel-Version
+    command: uname --kernel-release
+    register: kernelrelease
+    changed_when: False
+
+  # TODO: this is a copy of an entry in install.yml
+  - name: APT - Install matching Kernel-Headers for running Kernel
+    apt:
+      name: 'linux-headers-{{ kernelrelease.stdout.strip() }}'
+      update_cache: yes
+
+  - name: APT - Update Cache
+    apt:
+      update_cache: yes
+
+  - name: APT - Combine Package-List
+    set_fact:
+      non_essential_pckgs: "{{ non_essential_packages_a +
+                               non_essential_packages_b +
+                               non_essential_packages_c +
+                               non_essential_packages_d +
+                               non_essential_packages_e +
+                               non_essential_packages_f }}"
+
+  # TODO: kernel / header that comes with image are somehow not in apt -> dpkgs
+
+  - name: APT - Uninstall non-essential Packages
+    apt:
+      name: "{{ item }}"
+      state: absent
+      purge: yes
+    with_list: non_essential_pckgs
+
+  - name: APT - Remove useless Packages from the Cache
+    apt:
+      autoclean: yes
+
+  - name: APT - Remove Dependencies that are no longer required
+    apt:
+      autoremove: yes
+
+  - name: CFG - Set timezone to "{{ timezone }}"
+    timezone:
+      name: "{{ timezone }}"
+
+  - name: SYS - Restart Device
+    shell: sleep 2 && shutdown -r now "Ansible restart"
+    async: 1
+    poll: 0
+    ignore_errors: true
+  - name: SYS - Waiting to come back
+    wait_for_connection:
+      delay: 15
+      timeout: 300
+    become: no
