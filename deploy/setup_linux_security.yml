@@ -1,0 +1,96 @@
+---
+# note: best to be started with "-v" to get stdout
+- name: Strengthen Security for Beaglebone Ubuntu
+  hosts: all
+  become: true
+  # TODO: (maybe) remove avahi in managed network
+
+  tasks:
+
+  - name: SYS - Remove default User "ubuntu"
+    user:
+      name: ubuntu
+      remove: yes
+      state: absent
+
+  - name: CFG - Improve SSDd-Security
+    lineinfile:
+      dest: /etc/ssh/sshd_config
+      regexp: "{{ item.regex }}"
+      line: "{{ item.line }}"
+      state: present
+    with_items:
+      - {regex: '^.*Protocol.*$', line: 'Protocol 2'}
+      - {regex: '^.*StrictModes.*$', line: 'StrictModes yes'}
+      - {regex: '^.*LoginGraceTime.*$', line: 'LoginGraceTime 1m'}
+      - {regex: '^.*MaxAuthTries.*$', line: 'MaxAuthTries 3'}
+      - {regex: '^.*PermitRootLogin.*$', line: 'PermitRootLogin no'}
+      - {regex: '^.*PasswordAuthentication.*$', line: 'PasswordAuthentication no'}
+      - {regex: '^.*PermitEmptyPasswords.*$', line: 'PermitEmptyPasswords no'}
+      - {regex: '^.*UsePAM.*$', line: 'UsePAM yes'}
+      - {regex: '^.*PubkeyAuthentication.*$', line: 'PubkeyAuthentication yes'}
+      - {regex: '^.*AuthorizedKeysFile.*$', line: 'AuthorizedKeysFile .ssh/authorized_keys'}
+      - {regex: '^.*RhostsRSAAuthentication.*$', line: 'RhostsRSAAuthentication no'}
+      - {regex: '^.*ChallengeResponseAuthentication.*$', line: 'ChallengeResponseAuthentication no'}
+      - {regex: '^.*X11Forwarding.*$', line: 'X11Forwarding no'}
+      - {regex: '^.*AllowUsers.*$', line: 'AllowUsers {{ ansible_user }}'}
+      # select good or exclude weak algorithms:
+      - {regex: '^.*KexAlgorithms.*$', line: 'KexAlgorithms -ecdh-sha2*,diffie-hellman-group-exchange*,diffie-hellman-group14-sha1'}
+      - {regex: '^.*HostKeyAlgorithms.*$', line: 'HostKeyAlgorithms -ecda-sha2*,ecdsa-sha2*'}
+      - {regex: '^.*Ciphers.*$', line: 'Ciphers chacha20-poly1305@openssh.com,aes128-ctr,aes192-ctr,aes256-ctr'}
+      - {regex: '^.*MACs.*$', line: 'MACs -umac-64*,hmac-sha1*,hmac-sha2-256,hmac-sha2-512,umac-128@open*'}
+
+
+  - name: CFG - Install custom SSDd-Banner for Login
+    copy:
+      src: '{{ playbook_dir }}/sshd_banner.text'
+      dest: '/etc/issue.net'
+      force: yes
+      mode: u=rw
+
+  - name: CFG - Disable "message of the day"-Service (motd)
+    lineinfile:
+      dest: /etc/default/motd-news
+      regexp: '^.*ENABLED.*$'
+      line: 'ENABLED=0'
+      state: present
+
+  - name: CFG - Disable motd-news.timer
+    command: systemctl disable motd-news.timer
+
+  - name: CFG - Disable Terminal over Serial -> Services
+    command: systemctl mask {{ item }}
+    with_items:
+      - 'serial-getty@ttyGS0.service'
+      - 'serial-getty@ttyS0.service'
+      - 'getty@tty1.service'
+
+  - name: CFG - Disable Terminal over Serial -> Grub
+    replace:
+      dest: /etc/default/grub
+      regexp: '^console=ttyO0,115200n8\s$'
+      replace: ''
+
+  # TODO: part 3 needed, terminal still active
+
+  - name: SYS - Find and disable world-writables
+    command: find / -xdev -perm +o=w ! \( -type d -perm +o=t \) ! -type l -ok chmod -v o-w {} \;
+
+  - name: SYS - Prevent active User from creating new world writables
+    shell: 'umask 002 && umask'
+
+  - name: SYS - Restart Device
+    shell: sleep 2 && shutdown -r now "Ansible restart"
+    async: 1
+    poll: 0
+    ignore_errors: true
+  - name: SYS - Waiting to come back
+    wait_for_connection:
+      delay: 15
+      timeout: 300
+    become: no
+
+  - name: INFO - check for port-listeners (look for open ports beside of SSHd)
+    shell: netstat -apn | grep LISTEN
+    register: netstat
+  # - debug: msg="{{ netstat.stdout }}"
