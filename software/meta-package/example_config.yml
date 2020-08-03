@@ -4,7 +4,7 @@ command: record
 parameters:
   no_calib: false
   force: false
-  init_voltage: 2.0
+  ldo_voltage: 2.0
   load: artificial
   mode: harvesting
   output: /var/shepherd/recordings
