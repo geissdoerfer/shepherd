@@ -21,7 +21,7 @@ MODULE_SOFTDEP("pre: rpmsg_pru");
 
 static const struct of_device_id shepherd_dt_ids[] = {
 	{
-		.compatible = "shepherd",
+		.compatible = "tud,shepherd",
 	},
 	{ /* sentinel */ }
 };
