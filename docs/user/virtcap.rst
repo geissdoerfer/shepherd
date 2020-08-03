@@ -219,15 +219,15 @@ emulation we model this voltage drop by calculating
    :name: fig:vcap-drop
    :width: 95.0%
    :alt: Scope image of storage capacitor voltage (in blue) and output 
-   		voltage (in yellow) from a solar-powered bq25570 converter with a 
-   		94 storage capacitor, 22 output capacitor and 1 kΩ load. While the 
-   		output is off, the capacitor voltage charges until it reaches its 
-   		upper threshold voltage. When the output voltage turns on, the 
-   		capacitor voltage drops 0.1 V.
+        voltage (in yellow) from a solar-powered bq25570 converter with a
+        94 storage capacitor, 22 output capacitor and 1 kΩ load. While the
+        output is off, the capacitor voltage charges until it reaches its
+        upper threshold voltage. When the output voltage turns on, the
+        capacitor voltage drops 0.1 V.
 
    Scope image of storage capacitor voltage (in blue) and output 
    voltage (in yellow) from a solar-powered bq25570 converter with a 
-   94 storage capacitor, 22 output capacitor and 1 kΩ load. While the 
+   94 storage capacitor, 22 uF output capacitor and 1 kΩ load. While the
    output is off, the capacitor voltage charges until it reaches its 
    upper threshold voltage. When the output voltage turns on, the 
    capacitor voltage drops 0.1 V.

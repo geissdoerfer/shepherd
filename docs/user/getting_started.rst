@@ -121,7 +121,7 @@ The *install* playbook allows to easily automate this process on a group of node
 
     ansible-playbook deploy/install.yml
 
-To install and configure PTP for time-synchronization, you can set the `ptp` variable on the command line:
+To install and configure PTP for time-synchronization, you can set the `ptp` variable on the command line, alternatively you get asked on script-start:
 
 .. code-block:: bash
 
@@ -129,3 +129,11 @@ To install and configure PTP for time-synchronization, you can set the `ptp` var
 
 
 On success, the nodes will reboot and should be ready for use, for example, using the *shepherd-herd* command line utility.
+
+Further playbooks:
+    - ``setup_linux_configuration.yml`` will handle updates, some configuration, remove clutter, improve ram-usage and boot-duration
+    - ``setup_linux_security.yml`` will close system so that nodes can be distributed safely in open spaces (basic steps against getting into system)
+    - ``fetch-hostkeys.yml`` will copy keys from nodes, handy for reflashing image, while keeping keys
+    - ``setup-dev-nfs.yml`` establish a local network file system ``/opt/shepherd-dev`` for the nodes to access
+    - ``setup-ext-storage.yml`` will format and automount sd-card to ''/var/shepherd/recordings''
+    - ``deploy.yml`` offers faster and easier way to test updates in shepherd-code-base

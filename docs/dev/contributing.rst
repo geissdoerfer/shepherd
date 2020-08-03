@@ -79,7 +79,7 @@ Tests
 -----
 
 There is an initial testing framework that covers a large portion of the python code.
-You should always make sure the tests are passing before commiting your code.
+You should always make sure the tests are passing before committing your code.
 
 To run the python tests, have a copy of the source code on a BeagleBone.
 Change into the `software/python-package` directory and run:
