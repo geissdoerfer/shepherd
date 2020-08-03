@@ -10,16 +10,11 @@
   tasks:
 
   - set_fact:
-      new_user: "{{ ansible_user }}"
-
-  - set_fact:
-      ansible_user: "{{ default_user }}"
-
-  - set_fact:
-      ansible_password: "{{ default_password }}"
-
-  - set_fact:
-      ansible_become_password: "{{ default_password }}"
+    new_user: "{{ ansible_user }}"
+    # special internal variables:
+    ansible_user: "{{ default_user }}"
+    ansible_password: "{{ default_password }}"
+    ansible_become_password: "{{ default_password }}"
 
   - name: Set hostname
     hostname:
@@ -39,7 +34,7 @@
       groups: sudo
       append: yes
 
-  - name: Set authorized key from local file
+  - name: enable and setup password-less ssh-login via authorized key from local file (prereq is run of ssh-keygen)
     authorized_key:
       user: "{{ item }}"
       state: present
