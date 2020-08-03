@@ -1,0 +1,69 @@
+---
+- name: Refresh Source, compile and install PRU-Firmware, restart Shepherd-Kernel-Module, without Reboot
+  hosts: all
+  become: true
+
+  vars:
+    shepherd_install_path: /opt/shepherd
+
+  vars_prompt:
+    # these can be also passed as argument:  -e "refresh_source=True"
+    - name: refresh_source
+      prompt: "Do you want to (forcefully) git pull the Shepherd-Source on Nodes? [yN]"
+      private: no
+      default: "no"
+      when: refresh_source is not defined
+
+  tasks:
+
+  - name: GIT - Update Shepherd-Codebase
+    git:
+      repo: https://github.com/orgua/shepherd
+      dest: '{{ shepherd_install_path }}'
+      update: yes
+      version: master
+      force: yes
+    when: refresh_source|bool
+
+  - name: Stop Kernel Module
+    command: modprobe -r shepherd
+
+  - name: Clean PRU Firmware Source
+    make:
+      chdir: "{{ shepherd_install_path }}/software/firmware/{{ item }}-shepherd-fw"
+      target: clean
+    environment:
+      PRU_CGT: '{{ pru_cgt_path }}'
+      PRU_SUPPORT: '{{ ti_path }}/{{ pru_support_package }}'
+    with_items:
+      - pru0
+      - pru1
+
+  - name: Build and install PRU firmware
+    make:
+      chdir: "{{ shepherd_install_path }}/software/firmware/{{ item }}-shepherd-fw"
+      target: install
+    environment:
+      PRU_CGT: '{{ pru_cgt_path }}'
+      PRU_SUPPORT: '{{ ti_path }}/{{ pru_support_package }}'
+    with_items:
+      - pru0
+      - pru1
+
+  - name: Stop PRU0
+    command: echo "stop" > /sys/class/remoterproc/remoteproc1/state
+
+  - name: Stop PRU1
+    command: echo "stop" > /sys/class/remoterproc/remoteproc2/state
+
+  - name: Build and install kernel module
+    make:
+      chdir: "{{ shepherd_install_path }}/software/kernel-module/src"
+      target: install
+
+  - name: Reload kernel modules
+    command: depmod -a
+
+  - name: Load Shepherd-Module
+    command: modprobe -a shepherd
+
