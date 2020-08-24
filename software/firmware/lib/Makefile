@@ -7,7 +7,6 @@
 # order to use the same Makefile
 #(ARM Linux) ln -s /usr/bin/ /usr/share/ti/cgt-pru/bin
 
-ifndef PRU_CGT
 define ERROR_BODY
 
 *******************************************************************************
@@ -22,8 +21,6 @@ order to use the same Makefile
 *******************************************************************************
 
 endef
-$(error $(ERROR_BODY))
-endif
 
 PRU_NUM ?= 0
 REMOTEPROC_NUM = $(shell expr $(PRU_NUM) + 1 )
@@ -61,6 +58,9 @@ all: printStart $(TARGET) printEnd
 
 .PHONY: printStart
 printStart:
+	ifndef PRU_CGT
+	$(error $(ERROR_BODY))
+	endif
 	@echo ''
 	@echo '************************************************************'
 	@echo 'Building project: $(PROJ_NAME)'
@@ -112,7 +112,7 @@ clean:
 	@echo ''
 
 .PHONY: install
-install: all
+install:
 	@echo ''
 	@echo '************************************************************'
 	@echo 'Installing project: $(PROJ_NAME)'
