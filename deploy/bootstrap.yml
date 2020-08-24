@@ -10,11 +10,11 @@
   tasks:
 
   - set_fact:
-    new_user: "{{ ansible_user }}"
-    # special internal variables:
-    ansible_user: "{{ default_user }}"
-    ansible_password: "{{ default_password }}"
-    ansible_become_password: "{{ default_password }}"
+      new_user: "{{ ansible_user }}"
+      # special internal variables:
+      ansible_user: "{{ default_user }}"
+      ansible_password: "{{ default_password }}"
+      ansible_become_password: "{{ default_password }}"
 
   - name: Set hostname
     hostname:
