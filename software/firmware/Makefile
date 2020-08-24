@@ -1,17 +1,24 @@
 DIRS = pru0-shepherd-fw pru1-shepherd-fw device-tree
+
 BUILDDIRS = $(DIRS:%=build-%)
 CLEANDIRS = $(DIRS:%=clean-%)
+INSTADIRS = $(DIRS:%=insta-%)
 
+
+.PHONY: all
 all: $(BUILDDIRS)
-$(DIRS): $(BUILDDIRS)
+
+.PHONY: clean
+clean: $(CLEANDIRS)
+
+.PHONY: install
+install: $(INSTADIRS)
+
 $(BUILDDIRS):
 	$(MAKE) -C $(@:build-%=%)
 
-install: $(BUILDDIRS)
-$(DIRS): $(BUILDDIRS)
-$(BUILDDIRS):
-	$(MAKE) -C $(@:build-%=%) install
-
-clean: $(CLEANDIRS)
-$(CLEANDIRS): 
+$(CLEANDIRS):
 	$(MAKE) -C $(@:clean-%=%) clean
+
+$(INSTADIRS):
+	$(MAKE) -C $(@:insta-%=%) install
