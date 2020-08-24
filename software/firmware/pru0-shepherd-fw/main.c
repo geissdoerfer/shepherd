@@ -201,7 +201,7 @@ void main(void)
 	/*
 	 * The dynamically allocated shared DDR RAM holds all the buffers that
 	 * are used to transfer the actual data between us and the Linux host.
-	 * This memory is requested from remoteproc via a carveour resource request
+	 * This memory is requested from remoteproc via a carveout resource request
 	 * in our resourcetable
 	 */
 	struct SampleBuffer *buffers =

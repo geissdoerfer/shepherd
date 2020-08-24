@@ -81,7 +81,7 @@ static inline int check_gpio(volatile struct SharedMem *shared_mem,
 	static uint32_t prev_gpio_status = 0x00;
 
 	/*
-     * Only continue if shepherd is running and PRU0 acutally provides a buffer
+     * Only continue if shepherd is running and PRU0 actually provides a buffer
      * to write to.
      */
 	if ((shared_mem->shepherd_state != STATE_RUNNING) ||
@@ -201,7 +201,8 @@ int event_loop(volatile struct SharedMem *shared_mem)
 	iep_start();
 
 	while (1) {
-		check_gpio(shared_mem, current_timestamp_ns, sample_counter,
+        // TODO: take timestamp here and do statistics, min, max, mean
+	    check_gpio(shared_mem, current_timestamp_ns, sample_counter,
 			   last_sample_ticks);
 
 		/* Check for timer interrupt from Linux host [Event1] */
