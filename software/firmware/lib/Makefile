@@ -1,10 +1,8 @@
+# contains most "magic" for cgt-compiling the pru-code
 
-NEED_TOOLCHAIN = "false"
 .DEFAULT_GOAL := all
-.PHONY: all
-all: NEED_TOOLCHAIN = "true"
 
-ifeq ($(NEED_TOOLCHAIN), "true")
+ifeq ($(MAKECMDGOALS),all)
 ifndef PRU_CGT
 define CGT_ERROR_BODY
 
@@ -36,6 +34,7 @@ endef
 $(error $(SUP_ERROR_BODY))
 endif
 endif
+
 
 PRU_NUM ?= 0
 REMOTEPROC_NUM = $(shell expr $(PRU_NUM) + 1 )
