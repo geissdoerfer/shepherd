@@ -4,7 +4,6 @@ BUILDDIRS = $(DIRS:%=build-%)
 CLEANDIRS = $(DIRS:%=clean-%)
 INSTADIRS = $(DIRS:%=insta-%)
 
-
 .PHONY: all
 all: $(BUILDDIRS)
 
