@@ -1,13 +1,12 @@
-# PRU_CGT environment variable must point to the TI PRU code gen tools directory. E.g.:
-#(Desktop Linux) export PRU_CGT=/path/to/pru/code/gen/tools/ti-cgt-pru_2.1.2
-#(Windows) set PRU_CGT=C:/path/to/pru/code/gen/tools/ti-cgt-pru_2.1.2
-#(ARM Linux*) export PRU_CGT=/usr/share/ti/cgt-pru
-#
-# *ARM Linux also needs to create a symbolic link to the /usr/bin/ directory in
-# order to use the same Makefile
-#(ARM Linux) ln -s /usr/bin/ /usr/share/ti/cgt-pru/bin
 
-define ERROR_BODY
+NEED_TOOLCHAIN = "false"
+.DEFAULT_GOAL := all
+.PHONY: all
+all: NEED_TOOLCHAIN = "true"
+
+ifeq ($(NEED_TOOLCHAIN), "true")
+ifndef PRU_CGT
+define CGT_ERROR_BODY
 
 *******************************************************************************
 PRU_CGT environment variable is not set. Examples given:
@@ -21,7 +20,22 @@ order to use the same Makefile
 *******************************************************************************
 
 endef
-printStart: export ERROR_BODY:=$(ERROR_BODY)
+$(error $(CGT_ERROR_BODY))
+endif
+ifndef PRU_SUPPORT
+define SUP_ERROR_BODY
+
+*******************************************************************************
+PRU_SUPPORT environment variable is not set. Examples given:
+(Desktop Linux) export PRU_SUPPORT=/path/to/ti/pru-software-support-package-5.7.0
+(Windows) set PRU_SUPPORT=C:/path/to/ti/pru-software-support-package-5.7.0
+(ARM Linux) export PRU_SUPPORT=/usr/share/ti/pru-software-support-package-5.7.0
+*******************************************************************************
+
+endef
+$(error $(SUP_ERROR_BODY))
+endif
+endif
 
 PRU_NUM ?= 0
 REMOTEPROC_NUM = $(shell expr $(PRU_NUM) + 1 )
@@ -48,6 +62,9 @@ LFLAGS=--reread_libs --warn_sections --stack_size=$(STACK_SIZE) --heap_size=$(HE
 TARGET=$(GEN_DIR)/pru$(PRU_NUM)-$(FW_NAME).out
 MAP=$(GEN_DIR)/pru$(PRU_NUM)-$(FW_NAME).map
 
+TARGET_PATH := $(folder_path)$(TARGET)
+TARGET_SIZE := $(shell stat -L -c %s $(TARGET_PATH))
+
 VPATH = $(BASE_PATH)/lib/src
 
 #Using .object instead of .obj in order to not conflict with the CCS build process
@@ -59,7 +76,6 @@ all: printStart $(TARGET) printEnd
 
 .PHONY: printStart
 printStart:
-	test -n "$(PRU_CGT)" || (echo '$$ERROR_BODY' ; exit 1)
 	@echo ''
 	@echo '************************************************************'
 	@echo 'Building project: $(PROJ_NAME)'
@@ -69,7 +85,7 @@ printEnd:
 	@echo ''
 	@echo 'Output files can be found in the "$(GEN_DIR)" directory'
 	@echo ''
-	@echo 'Finished building project: $(PROJ_NAME)'
+	@echo 'Finished building project: $(PROJ_NAME), in $(TARGET_PATH) [$(TARGET_SIZE) bytes]'
 	@echo '************************************************************'
 	@echo ''
 
@@ -79,8 +95,7 @@ $(TARGET): $(OBJECTS) $(LINKER_COMMAND_FILE)
 	@echo 'Building target: $@'
 	@echo 'Invoking: PRU Linker'
 	$(PRU_CGT)/bin/clpru $(CFLAGS) -z -i$(PRU_CGT)/lib -i$(PRU_CGT)/include $(LFLAGS) -o $(TARGET) $(OBJECTS) -m$(MAP) $(LINKER_COMMAND_FILE) --library=libc.a $(LIBS)
-	$(stat -L -c %s $(folder_path)$@)
-	@echo 'Finished building target: $(folder_path)$@ with file-size of $(stat -L -c %s $(folder_path)$@) bytes' # TODO: not working yet
+	@echo 'Finished building target: $@ [$$(shell stat -L -c %s $(TARGET_PATH)) bytes]' # TODO: not working yet
 
 # Invokes the compiler on all c files in the directory to create the object files
 $(GEN_DIR)/%.object: %.c

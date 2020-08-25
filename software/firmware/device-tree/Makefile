@@ -1,3 +1,6 @@
+.PHONY: all
+all: BB-SHPRD-00A0.dtbo BB-SHPRDVCAP-00A0.dtbo
+
 BB-SHPRD-00A0.dtbo: BB-SHPRD-00A0.dts
 	dtc -W no-unit_address_vs_reg -@ -I dts -O dtb -o $@ $<
 

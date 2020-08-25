@@ -14,7 +14,7 @@ clean: $(CLEANDIRS)
 install: $(INSTADIRS)
 
 $(BUILDDIRS):
-	$(MAKE) -C $(@:build-%=%)
+	$(MAKE) -C $(@:build-%=%) all
 
 $(CLEANDIRS):
 	$(MAKE) -C $(@:clean-%=%) clean
