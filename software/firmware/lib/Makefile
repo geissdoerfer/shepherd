@@ -21,6 +21,7 @@ order to use the same Makefile
 *******************************************************************************
 
 endef
+printStart: export ERROR_BODY:=$(ERROR_BODY)
 
 PRU_NUM ?= 0
 REMOTEPROC_NUM = $(shell expr $(PRU_NUM) + 1 )
@@ -58,9 +59,7 @@ all: printStart $(TARGET) printEnd
 
 .PHONY: printStart
 printStart:
-	ifndef PRU_CGT
-	$(error $(ERROR_BODY))
-	endif
+	test -n "$(PRU_CGT)" || (echo '$$ERROR_BODY' ; exit 1)
 	@echo ''
 	@echo '************************************************************'
 	@echo 'Building project: $(PROJ_NAME)'
@@ -80,7 +79,8 @@ $(TARGET): $(OBJECTS) $(LINKER_COMMAND_FILE)
 	@echo 'Building target: $@'
 	@echo 'Invoking: PRU Linker'
 	$(PRU_CGT)/bin/clpru $(CFLAGS) -z -i$(PRU_CGT)/lib -i$(PRU_CGT)/include $(LFLAGS) -o $(TARGET) $(OBJECTS) -m$(MAP) $(LINKER_COMMAND_FILE) --library=libc.a $(LIBS)
-	@echo 'Finished building target: $@'
+	$(stat -L -c %s $(folder_path)$@)
+	@echo 'Finished building target: $(folder_path)$@ with file-size of $(stat -L -c %s $(folder_path)$@) bytes' # TODO: not working yet
 
 # Invokes the compiler on all c files in the directory to create the object files
 $(GEN_DIR)/%.object: %.c
