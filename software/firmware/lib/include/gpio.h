@@ -1,8 +1,16 @@
 #ifndef __GPIO_H_
 #define __GPIO_H_
 
-volatile register uint32_t __R31;
+#ifdef __GNUC__
+#include <pru/io.h>
+#else
 volatile register uint32_t __R30;
+volatile register uint32_t __R31;
+#define read_r30()      __R30
+#define write_r30(x)    __R30 = x
+#define read_r31()      __R31
+#define write_r31(x)    __R31 = x
+#endif
 
 #if defined(PRU0)
 
@@ -42,8 +50,8 @@ volatile register uint32_t __R30;
 #endif
 
 
-#define _GPIO_TOGGLE(x) __R30 ^= (1 << x)
-#define _GPIO_ON(x) __R30 |= (1 << x)
-#define _GPIO_OFF(x) __R30 &= ~(1 << x)
+#define _GPIO_TOGGLE(x) write_r30(read_r30() ^ (1 << x))
+#define _GPIO_ON(x)     write_r30(read_r30() | (1 << x))
+#define _GPIO_OFF(x)    write_r30(read_r30() & ~(1 << x))
 
 #endif /* __GPIO_H_ */

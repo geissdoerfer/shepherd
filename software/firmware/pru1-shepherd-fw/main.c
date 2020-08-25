@@ -58,7 +58,7 @@ static inline int check_control_reply(struct CtrlRepMsg *ctrl_rep)
 		if (ctrl_rep->identifier != MSG_SYNC_CTRL_REP)
 			return fault_handler("Wrong RPMSG ID");
 
-		if (rpmsg_get((void *)ctrl_rep) > 0)
+		if (rpmsg_get((uint8_t *)ctrl_rep) > 0)
 			return fault_handler("Extra pending messages");
 		return 0;
 	}
@@ -90,7 +90,7 @@ static inline int check_gpio(volatile struct SharedMem *shared_mem,
 		return 0;
 	}
 
-	uint32_t now_status = __R31 & 0x0F;
+	uint32_t now_status = (uint32_t)read_r31() & 0x0F;
 	uint32_t diff = now_status ^ prev_gpio_status;
 
 	prev_gpio_status = now_status;
@@ -193,7 +193,7 @@ int event_loop(volatile struct SharedMem *shared_mem)
 	/* Clear raw interrupt status from ARM host */
 	INTC_CLEAR_EVENT(HOST_PRU_EVT_TIMESTAMP);
 	/* Wait for first timer interrupt from Linux host */
-	while (!(__R31 & (1U << 30)))
+	while (!(read_r31() & (1U << 30)))
 		;
 	if (INTC_CHECK_EVENT(HOST_PRU_EVT_TIMESTAMP))
 		INTC_CLEAR_EVENT(HOST_PRU_EVT_TIMESTAMP);
@@ -206,7 +206,7 @@ int event_loop(volatile struct SharedMem *shared_mem)
 			   last_sample_ticks);
 
 		/* Check for timer interrupt from Linux host [Event1] */
-		if (__R31 & HOST_INT_TIMESTAMP) {
+		if (read_r31() & HOST_INT_TIMESTAMP) {
 			if (!INTC_CHECK_EVENT(HOST_PRU_EVT_TIMESTAMP))
 				continue;
 
@@ -332,7 +332,7 @@ int event_loop(volatile struct SharedMem *shared_mem)
 		}
 	}
 }
-void main(void)
+int main(void)
 {
 	/* Allow OCP master port access by the PRU so the PRU can read external memories */
 	CT_CFG.SYSCFG_bit.STANDBY_INIT = 0;
