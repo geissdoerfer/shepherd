@@ -10,7 +10,12 @@
 
 extern struct my_resource_table resourceTable;
 
- // TODO: removed volatile register R30/31, a copied section of gpio.h, why is it needed here?
+#ifdef __GNUC__
+#include <pru/io.h>
+#else
+volatile register uint32_t __R31;
+volatile register uint32_t __R30;
+#endif
 
 
 /* The PRU-ICSS system events used for RPMsg are defined in the Linux device tree

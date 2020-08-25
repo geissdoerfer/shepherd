@@ -24,6 +24,7 @@ inline void simple_mutex_enter(volatile simple_mutex_t * mutex)
 	#endif
 
 }
+
 inline void simple_mutex_exit(volatile simple_mutex_t * mutex)
 {
 	mutex->MY_LOCK = 0;

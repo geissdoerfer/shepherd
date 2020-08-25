@@ -5,7 +5,11 @@
 
 #include "iep.h"
 
+#ifdef __GNUC__
+#include <pru/io.h>
+#else
 volatile register uint32_t __R31;
+#endif
 
 void iep_set_us(unsigned int value)
 {

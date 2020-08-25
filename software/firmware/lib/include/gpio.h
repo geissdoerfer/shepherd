@@ -3,7 +3,7 @@
 
 #ifdef __GNUC__
 #include <pru/io.h>
-#else
+#else // NOTE: gcc can't use registers directly, so this is a workaround to allow gcc & cgt
 volatile register uint32_t __R30;
 volatile register uint32_t __R31;
 #define read_r30()      __R30

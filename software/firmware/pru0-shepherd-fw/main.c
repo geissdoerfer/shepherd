@@ -132,7 +132,7 @@ void event_loop(volatile struct SharedMem *shared_mem,
 
 	while (1) {
 		/* Check if a sample was triggered by PRU1 */
-		if (__R31 & (1U << 31)) {
+		if (read_r31() & (1U << 31)) {
 			/* Important: We have to clear the interrupt here, to avoid missing interrupts */
 			if (INTC_CHECK_EVENT(PRU_PRU_EVT_BLOCK_END)) {
 				int_source = SIG_BLOCK_END;
@@ -180,7 +180,7 @@ void event_loop(volatile struct SharedMem *shared_mem,
 	}
 }
 
-void main(void)
+int main(void)
 {
 	/*
 	 * The shared mem is dynamically allocated and we have to inform user space
