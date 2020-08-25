@@ -65,7 +65,7 @@ many embedded systems.
 To use the printf you need to supply your own character output function,
 something like :
 
-void putc ( void* p, char c)
+void putc ( void* p, uint8_t c)
 	{
 	while (!SERIAL_PORT_EMPTY) ;
 	SERIAL_PORT_TX_REGISTER = c;
@@ -108,10 +108,10 @@ regs Kusti, 23.10.2004
 
 #include <stdarg.h>
 
-void putcp(void* p,char c);
-void tfp_sprintf(char* s,char *fmt, ...);
+void putcp(void* p, uint8_t c);
+void tfp_sprintf(uint8_t* s, uint8_t *fmt, ...);
 
-void tfp_format(void* putp,void (*putf) (void*,char),char *fmt, va_list va);
+void tfp_format(void* putp,void (*putf) (void*, uint8_t), uint8_t *fmt, va_list va);
 
 #define sprintf tfp_sprintf
 
