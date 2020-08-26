@@ -35,7 +35,7 @@ enum SyncState {
 	REPLY_PENDING
 };
 
-int fault_handler(char *err_msg)
+int fault_handler(uint8_t *err_msg)
 {
 	/* If shepherd is not running, we can recover from the fault */
 	if (shared_mem->shepherd_state != STATE_RUNNING) {
@@ -117,7 +117,7 @@ static inline int check_gpio(volatile struct SharedMem *shared_mem,
 			->timestamp_ns[shared_mem->gpio_edges->idx] =
 			gpio_timestamp;
 		shared_mem->gpio_edges->bitmask[shared_mem->gpio_edges->idx] =
-			(char)now_status;
+			(uint8_t)now_status;
 		shared_mem->gpio_edges->idx += 1;
 		simple_mutex_exit(&shared_mem->gpio_edges_mutex);
 	}
@@ -164,7 +164,7 @@ int event_loop(volatile struct SharedMem *shared_mem)
      * Buffer for storing the control reply from Linux kernel module
      * needs to be large enough to hold the largest possible RPMSG
      */
-	char rpmsg_buffer[256];
+    uint8_t rpmsg_buffer[256];
 	struct CtrlRepMsg *ctrl_rep = (struct CtrlRepMsg *)&rpmsg_buffer;
 
 	/* Prepare message that will be sent to Linux kernel module */

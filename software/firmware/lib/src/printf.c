@@ -29,11 +29,12 @@
  * OF SUCH DAMAGE.
  */
 
+#include "stdint.h"
 #include "printf.h"
 
-typedef void (*putcf) (void*,char);
+typedef void (*putcf) (void*, uint8_t);
 
-static void ui2a(unsigned int num, unsigned int base, int uc,char * bf)
+static void ui2a(unsigned int num, unsigned int base, int uc, uint8_t * bf)
 	{
 	int n=0;
 	unsigned int d=1;
@@ -51,7 +52,7 @@ static void ui2a(unsigned int num, unsigned int base, int uc,char * bf)
 	*bf=0;
 	}
 
-static void i2a (int num, char * bf)
+static void i2a (int num, uint8_t * bf)
 	{
 	if (num<0) {
 		num=-num;
@@ -60,7 +61,7 @@ static void i2a (int num, char * bf)
 	ui2a(num,10,0,bf);
 	}
 
-static int a2d(char ch)
+static int a2d(uint8_t ch)
 	{
 	if (ch>='0' && ch<='9')
 		return ch-'0';
@@ -71,9 +72,9 @@ static int a2d(char ch)
 	else return -1;
 	}
 
-static char a2i(char ch, char** src,int base,int* nump)
+static uint8_t a2i(uint8_t ch, uint8_t** src, int base, int* nump)
 	{
-	char* p= *src;
+    uint8_t* p= *src;
 	int num=0;
 	int digit;
 	while ((digit=a2d(ch))>=0) {
@@ -86,11 +87,11 @@ static char a2i(char ch, char** src,int base,int* nump)
 	return ch;
 	}
 
-static void putchw(void* putp,putcf putf,int n, char z, char* bf)
+static void putchw(void* putp,putcf putf, int n, uint8_t z, uint8_t* bf)
 	{
-	char fc=z? '0' : ' ';
-	char ch;
-	char* p=bf;
+    uint8_t fc=z? '0' : ' ';
+    uint8_t ch;
+    uint8_t* p=bf;
 	while (*p++ && n > 0)
 		n--;
 	while (n-- > 0)
@@ -99,18 +100,18 @@ static void putchw(void* putp,putcf putf,int n, char z, char* bf)
 		putf(putp,ch);
 	}
 
-void tfp_format(void* putp,putcf putf,char *fmt, va_list va)
+void tfp_format(void* putp, putcf putf, uint8_t *fmt, va_list va)
 	{
-	char bf[12];
+    uint8_t bf[12];
 
-	char ch;
+    uint8_t ch;
 
 
 	while ((ch=*(fmt++))) {
 		if (ch!='%')
 			putf(putp,ch);
 		else {
-			char lz=0;
+            uint8_t lz=0;
 			int w=0;
 			ch=*(fmt++);
 			if (ch=='0') {
@@ -142,10 +143,10 @@ void tfp_format(void* putp,putcf putf,char *fmt, va_list va)
 					putchw(putp,putf,w,lz,bf);
 					break;
 				case 'c' :
-					putf(putp,(char)(va_arg(va, int)));
+					putf(putp,(uint8_t)(va_arg(va, int)));
 					break;
 				case 's' :
-					putchw(putp,putf,w,0,va_arg(va, char*));
+					putchw(putp,putf,w,0,va_arg(va, uint8_t*));
 					break;
 				case '%' :
 					putf(putp,ch);
@@ -158,14 +159,14 @@ void tfp_format(void* putp,putcf putf,char *fmt, va_list va)
 	}
 
 
-void putcp(void* p,char c)
+void putcp(void* p, uint8_t c)
 	{
-	*(*((char**)p))++ = c;
+	*(*((uint8_t**)p))++ = c;
 	}
 
 
 
-void tfp_sprintf(char* s,char *fmt, ...)
+void tfp_sprintf(uint8_t* s, uint8_t *fmt, ...)
 	{
 	va_list va;
 	va_start(va,fmt);

@@ -45,7 +45,7 @@ unsigned int handle_block_end(volatile struct SharedMem *shared_mem,
 			      unsigned int sample_idx)
 {
 	unsigned int next_buffer_idx;
-	char tmp_idx;
+    uint8_t tmp_idx;
 	struct SampleBuffer *next_buffer;
 
 	/* Lock access to gpio_edges structure to avoid inconsistency */
@@ -111,7 +111,7 @@ int handle_rpmsg(struct RingBuffer *free_buffers_ptr, enum ShepherdMode mode,
 		}
 	} else {
 		if (msg_in.msg_type == MSG_DEP_BUF_FROM_HOST) {
-			ring_put(free_buffers_ptr, (char)msg_in.value);
+			ring_put(free_buffers_ptr, (uint8_t)msg_in.value);
 			return 0;
 		} else {
 			send_message(MSG_DEP_ERR_INVLDCMD, msg_in.msg_type);
