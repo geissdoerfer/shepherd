@@ -99,7 +99,6 @@ add_executable(PRU0
 
 add_executable(PRU1
         ${CMAKE_CURRENT_LIST_DIR}/pru1-shepherd-fw/main.c
-        ${CMAKE_CURRENT_LIST_DIR}/pru1-shepherd-fw/include/kernel_pru_comm.h
         ${CMAKE_CURRENT_LIST_DIR}/pru1-shepherd-fw/include/resource_table.h
         ${SOURCE}
         ${HEADERS}
