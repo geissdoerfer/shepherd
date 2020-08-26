@@ -25,7 +25,7 @@
 #define SAMPLE_INTERVAL_NS BUFFER_PERIOD_NS / SAMPLES_PER_BUFFER
 
 volatile struct SharedMem *shared_mem =
-	(volatile struct SharedMem *)PRU_SHARED_MEM_STRUCT_OFFSET;
+        (volatile struct SharedMem *)PRU_SHARED_MEM_STRUCT_OFFSET;
 
 enum SyncState {
 	IDLE,
@@ -312,6 +312,7 @@ int32_t event_loop(volatile struct SharedMem *shared_mem)
 							(SAMPLES_PER_BUFFER -
 							 sample_counter);
 
+                    // TODO: expensive modulo can be avoided, division already done
 					n_comp = (block_period -
 						  CT_IEP.TMR_CMP1) %
 						 (SAMPLES_PER_BUFFER -
