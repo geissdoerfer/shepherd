@@ -34,14 +34,14 @@
 
 typedef void (*putcf) (void*, uint8_t);
 
-static void ui2a(unsigned int num, unsigned int base, int uc, uint8_t * bf)
+static void ui2a(uint32_t num, uint32_t base, int32_t uc, uint8_t * bf)
 	{
-	int n=0;
-	unsigned int d=1;
+	int32_t n=0;
+	uint32_t d=1;
 	while (num/d >= base)
 		d*=base;
 	while (d!=0) {
-		int dgt = num / d;
+		int32_t dgt = num / d;
 		num%= d;
 		d/=base;
 		if (n || dgt>0 || d==0) {
@@ -52,7 +52,7 @@ static void ui2a(unsigned int num, unsigned int base, int uc, uint8_t * bf)
 	*bf=0;
 	}
 
-static void i2a (int num, uint8_t * bf)
+static void i2a (int32_t num, uint8_t * bf)
 	{
 	if (num<0) {
 		num=-num;
@@ -61,7 +61,7 @@ static void i2a (int num, uint8_t * bf)
 	ui2a(num,10,0,bf);
 	}
 
-static int a2d(uint8_t ch)
+static int32_t a2d(uint8_t ch)
 	{
 	if (ch>='0' && ch<='9')
 		return ch-'0';
@@ -72,11 +72,11 @@ static int a2d(uint8_t ch)
 	else return -1;
 	}
 
-static uint8_t a2i(uint8_t ch, uint8_t** src, int base, int* nump)
+static uint8_t a2i(uint8_t ch, uint8_t** src, int32_t base, int32_t* nump)
 	{
     uint8_t* p= *src;
-	int num=0;
-	int digit;
+	int32_t num=0;
+	int32_t digit;
 	while ((digit=a2d(ch))>=0) {
 		if (digit>base) break;
 		num=num*base+digit;
@@ -87,7 +87,7 @@ static uint8_t a2i(uint8_t ch, uint8_t** src, int base, int* nump)
 	return ch;
 	}
 
-static void putchw(void* putp,putcf putf, int n, uint8_t z, uint8_t* bf)
+static void putchw(void* putp, putcf putf, int32_t n, uint8_t z, uint8_t* bf)
 	{
     uint8_t fc=z? '0' : ' ';
     uint8_t ch;
@@ -112,7 +112,7 @@ void tfp_format(void* putp, putcf putf, uint8_t *fmt, va_list va)
 			putf(putp,ch);
 		else {
             uint8_t lz=0;
-			int w=0;
+			int32_t w=0;
 			ch=*(fmt++);
 			if (ch=='0') {
 				ch=*(fmt++);
@@ -127,23 +127,23 @@ void tfp_format(void* putp, putcf putf, uint8_t *fmt, va_list va)
 					goto abort;
 				case 'u' : {
 
-					ui2a(va_arg(va, unsigned int),10,0,bf);
+					ui2a(va_arg(va, uint32_t),10,0,bf);
 					putchw(putp,putf,w,lz,bf);
 					break;
 					}
 				case 'd' :  {
 
-					i2a(va_arg(va, int),bf);
+					i2a(va_arg(va, int32_t),bf);
 					putchw(putp,putf,w,lz,bf);
 					break;
 					}
 				case 'x': case 'X' :
 
-					ui2a(va_arg(va, unsigned int),16,(ch=='X'),bf);
+					ui2a(va_arg(va, uint32_t),16,(ch=='X'),bf);
 					putchw(putp,putf,w,lz,bf);
 					break;
 				case 'c' :
-					putf(putp,(uint8_t)(va_arg(va, int)));
+					putf(putp,(uint8_t)(va_arg(va, int32_t)));
 					break;
 				case 's' :
 					putchw(putp,putf,w,0,va_arg(va, uint8_t*));

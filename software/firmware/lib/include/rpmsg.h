@@ -7,11 +7,11 @@
 #include <pru_rpmsg.h>
 #include "printf.h"
 
-void rpmsg_putraw(void * data, unsigned int len);
+void rpmsg_putraw(void * data, uint32_t len);
 void rpmsg_printf(uint8_t *fmt, ...);
 void rpmsg_init(uint8_t * chan_name);
 void rpmsg_flush();
-int rpmsg_get(uint8_t * s);
+int32_t rpmsg_get(uint8_t * s);
 
 #define printf rpmsg_printf
 
