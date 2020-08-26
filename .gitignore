@@ -131,3 +131,8 @@ dmypy.json
 .pyre/
 
 # End of https://www.gitignore.io/api/python,ansible
+
+# IDE
+.idea/
+# personalized file in inventory should get ignored
+inventory/
