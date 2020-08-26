@@ -14,16 +14,16 @@
 
 
 void iep_init();
-void iep_set_us(uint32_t value);
+void iep_set_us(unsigned int value);
 void iep_reset();
 void iep_start();
 void iep_stop();
-inline int8_t iep_check_evt_cmp(uint32_t compare_channel);
-inline void iep_clear_evt_cmp(uint32_t compare_channel);
-void iep_enable_evt_cmp(uint32_t compare_channel);
-void iep_disable_evt_cmp(uint32_t compare_channel);
-void iep_set_cmp_val(uint32_t compare_channel, uint32_t value);
-uint32_t iep_get_cmp_val(uint32_t compare_channel);
+inline int iep_check_evt_cmp(unsigned int compare_channel);
+inline void iep_clear_evt_cmp(unsigned int compare_channel);
+void iep_enable_evt_cmp(unsigned int compare_channel);
+void iep_disable_evt_cmp(unsigned int compare_channel);
+void iep_set_cmp_val(unsigned int compare_channel, unsigned int value);
+unsigned int iep_get_cmp_val(unsigned int compare_channel);
 
 
 #endif /* __IEP_H_ */

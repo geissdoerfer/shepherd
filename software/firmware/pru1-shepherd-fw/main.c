@@ -35,7 +35,7 @@ enum SyncState {
 	REPLY_PENDING
 };
 
-int32_t fault_handler(uint8_t *err_msg)
+int fault_handler(uint8_t *err_msg)
 {
 	/* If shepherd is not running, we can recover from the fault */
 	if (shared_mem->shepherd_state != STATE_RUNNING) {
@@ -49,9 +49,9 @@ int32_t fault_handler(uint8_t *err_msg)
 	}
 }
 
-static inline int32_t check_control_reply(struct CtrlRepMsg *ctrl_rep)
+static inline int check_control_reply(struct CtrlRepMsg *ctrl_rep)
 {
-	int32_t n;
+	int n;
 	n = rpmsg_get((void *)ctrl_rep);
 
 	if (n == sizeof(struct CtrlRepMsg)) {
@@ -73,10 +73,10 @@ static inline int32_t check_control_reply(struct CtrlRepMsg *ctrl_rep)
  * synchronization between the PRUs to avoid inconsistent state, while
  * minimizing sampling delay
  */
-static inline int32_t check_gpio(volatile struct SharedMem *shared_mem,
-        uint64_t current_timestamp_ns,
-        uint32_t sample_counter,
-        uint32_t last_sample_ticks)
+static inline int check_gpio(volatile struct SharedMem *shared_mem,
+			     uint64_t current_timestamp_ns,
+			     unsigned int sample_counter,
+			     unsigned int last_sample_ticks)
 {
 	static uint32_t prev_gpio_status = 0x00;
 
@@ -155,9 +155,9 @@ static inline int32_t check_gpio(volatile struct SharedMem *shared_mem,
  * Event 3
  */
 
-int32_t event_loop(volatile struct SharedMem *shared_mem)
+int event_loop(volatile struct SharedMem *shared_mem)
 {
-    uint32_t sample_counter;
+	unsigned int sample_counter;
 	uint64_t current_timestamp_ns;
 	uint32_t last_sample_ticks;
 	/*
@@ -178,10 +178,10 @@ int32_t event_loop(volatile struct SharedMem *shared_mem)
      * period is increased by 1 in order to compensate for the remainder of the
      * integer division used to calculate the sampling period
      */
-    uint32_t n_comp = 0;
+	unsigned int n_comp = 0;
 
 	/* Our initial guess of the sampling period based on nominal timer period */
-    uint32_t sample_period = TIMER_BASE_PERIOD / SAMPLES_PER_BUFFER;
+	unsigned int sample_period = TIMER_BASE_PERIOD / SAMPLES_PER_BUFFER;
 
 	/* These are our initial guesses for buffer sample period */
 	iep_set_cmp_val(IEP_CMP0, TIMER_BASE_PERIOD);
@@ -272,7 +272,7 @@ int32_t event_loop(volatile struct SharedMem *shared_mem)
 			last_sample_ticks = iep_get_cmp_val(IEP_CMP1);
 			if (sample_counter < SAMPLES_PER_BUFFER) {
 				/* Forward sample timer based on current sample_period*/
-                uint32_t next_cmp_val =
+				unsigned int next_cmp_val =
 					last_sample_ticks + sample_period;
 				/* If we are in compensation phase add one */
 				if (n_comp > 0) {
@@ -289,7 +289,7 @@ int32_t event_loop(volatile struct SharedMem *shared_mem)
 			/* If we are waiting for a reply from Linux kernel module */
 			if (sync_state == REPLY_PENDING) {
 				if (check_control_reply(ctrl_rep) == 0) {
-                    uint32_t block_period;
+					unsigned int block_period;
 					/* The new timer period is the base period plus the correction calculated by the controller */
 					if (ctrl_rep->clock_corr >
 					    TIMER_BASE_PERIOD / 10) {
@@ -333,7 +333,7 @@ int32_t event_loop(volatile struct SharedMem *shared_mem)
 		}
 	}
 }
-void main(void)
+int main(void)
 {
 	/* Allow OCP master port access by the PRU so the PRU can read external memories */
 	CT_CFG.SYSCFG_bit.STANDBY_INIT = 0;

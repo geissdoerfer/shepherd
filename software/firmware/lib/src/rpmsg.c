@@ -53,7 +53,7 @@ struct pru_rpmsg_transport transport;
 
 static uint8_t print_buffer[RPMSG_BUF_SIZE];
 
-void rpmsg_putraw(void * data, uint32_t len)
+void rpmsg_putraw(void * data, unsigned int len)
 {
 	pru_rpmsg_send(&transport, RPMSG_SRC, RPMSG_DST, data, len);
 }
@@ -93,13 +93,13 @@ void rpmsg_flush()
 	CT_INTC.SECR0 |= (1 << FROM_ARM_HOST);
 }
 
-int32_t rpmsg_get(uint8_t * s)
+int rpmsg_get(uint8_t * s)
 {
 	uint16_t src, dst, len;
-	int32_t ret = pru_rpmsg_receive(&transport, &src, &dst, s, &len);
+	int ret = pru_rpmsg_receive(&transport, &src, &dst, s, &len);
 	if(ret != PRU_RPMSG_SUCCESS)
 	{
 		return ret;
 	}
-	return (int32_t) len;
+	return (int) len;
 }

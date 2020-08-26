@@ -29,7 +29,7 @@ enum int_source_e { SIG_SAMPLE, SIG_BLOCK_END } int_source;
 volatile struct SharedMem *shared_mem =
 	(volatile struct SharedMem *)PRU_SHARED_MEM_STRUCT_OFFSET;
 
-static void send_message(uint32_t msg_id, uint32_t value)
+static void send_message(unsigned int msg_id, unsigned int value)
 {
 	struct DEPMsg msg_out;
 
@@ -38,13 +38,13 @@ static void send_message(uint32_t msg_id, uint32_t value)
 	rpmsg_putraw((void *)&msg_out, sizeof(struct DEPMsg));
 }
 
-uint32_t handle_block_end(volatile struct SharedMem *shared_mem,
-        struct RingBuffer *free_buffers_ptr,
-		struct SampleBuffer *buffers,
-		uint32_t current_buffer_idx,
-        uint32_t sample_idx)
+unsigned int handle_block_end(volatile struct SharedMem *shared_mem,
+			      struct RingBuffer *free_buffers_ptr,
+			      struct SampleBuffer *buffers,
+			      unsigned int current_buffer_idx,
+			      unsigned int sample_idx)
 {
-    uint32_t next_buffer_idx;
+	unsigned int next_buffer_idx;
     uint8_t tmp_idx;
 	struct SampleBuffer *next_buffer;
 
@@ -77,7 +77,7 @@ uint32_t handle_block_end(volatile struct SharedMem *shared_mem,
 	return next_buffer_idx;
 }
 
-int32_t handle_rpmsg(struct RingBuffer *free_buffers_ptr, enum ShepherdMode mode,
+int handle_rpmsg(struct RingBuffer *free_buffers_ptr, enum ShepherdMode mode,
 		 enum ShepherdState state)
 {
 	struct DEPMsg msg_in;
@@ -94,7 +94,7 @@ int32_t handle_rpmsg(struct RingBuffer *free_buffers_ptr, enum ShepherdMode mode
 	_GPIO_TOGGLE(USR_LED1);
 
 	if ((mode == MODE_DEBUG) && (state == STATE_RUNNING)) {
-        uint32_t res;
+		unsigned int res;
 		switch (msg_in.msg_type) {
 		case MSG_DEP_DBG_ADC:
 			res = sample_dbg_adc(msg_in.value);
@@ -124,8 +124,8 @@ void event_loop(volatile struct SharedMem *shared_mem,
 		struct RingBuffer *free_buffers_ptr,
 		struct SampleBuffer *buffers)
 {
-    uint32_t sample_idx = 0;
-    uint32_t buffer_idx = NO_BUFFER;
+	unsigned int sample_idx = 0;
+	unsigned int buffer_idx = NO_BUFFER;
 
 	enum ShepherdMode shepherd_mode =
 		(enum ShepherdMode)shared_mem->shepherd_mode;
@@ -180,7 +180,7 @@ void event_loop(volatile struct SharedMem *shared_mem,
 	}
 }
 
-void main(void)
+int main(void)
 {
 	/*
 	 * The shared mem is dynamically allocated and we have to inform user space

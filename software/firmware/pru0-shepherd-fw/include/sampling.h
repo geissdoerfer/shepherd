@@ -3,10 +3,10 @@
 
 #include "commons.h"
 
-void sampling_init(enum ShepherdMode mode, uint32_t harvesting_voltage);
-void sample(struct SampleBuffer *current_buffer, uint32_t sample_idx,
+void sampling_init(enum ShepherdMode mode, unsigned int harvesting_voltage);
+void sample(struct SampleBuffer *current_buffer, unsigned int sample_idx,
 	    enum ShepherdMode mode);
-uint32_t sample_dbg_adc(uint32_t channel_no);
-void sample_dbg_dac(uint32_t value);
+unsigned int sample_dbg_adc(unsigned int channel_no);
+void sample_dbg_dac(unsigned int value);
 
 #endif /* __SAMPLING_H_ */

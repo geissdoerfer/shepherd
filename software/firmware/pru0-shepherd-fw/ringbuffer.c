@@ -8,7 +8,7 @@ void init_ring(struct RingBuffer * buf)
 	buf->active=0;
 }
 
-void ring_put(struct RingBuffer * buf, uint8_t element)
+int ring_put(struct RingBuffer * buf, uint8_t element)
 {
     buf->ring[buf->end] = element;
 
@@ -22,9 +22,10 @@ void ring_put(struct RingBuffer * buf, uint8_t element)
     {
         if(++buf->start > RING_SIZE) buf->start -= RING_SIZE; // faster version of buf = (buf + 1) % SIZE
     }
+    return 0;
 }
 
-int32_t ring_get(struct RingBuffer * buf, uint8_t * element)
+int ring_get(struct RingBuffer * buf, uint8_t * element)
 {
     if(!buf->active)
     {
@@ -36,7 +37,7 @@ int32_t ring_get(struct RingBuffer * buf, uint8_t * element)
     return 0;
 }
 
-int32_t ring_empty(struct RingBuffer * buf)
+int ring_empty(struct RingBuffer * buf)
 {
     return buf->active;
 }

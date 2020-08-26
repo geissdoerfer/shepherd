@@ -21,10 +21,11 @@
 #define DAC_CMD_OFFSET 19
 #define DAC_ADDR_OFFSET 16
 
-extern uint32_t adc_readwrite(uint32_t cs_pin, uint32_t val);
-extern void dac_write(uint32_t cs_pin, uint32_t val);
+extern unsigned int adc_readwrite(unsigned int cs_pin, unsigned int val);
+extern void dac_write(unsigned int cs_pin, unsigned int val);
 
-static inline void sample_harvesting(struct SampleBuffer *buffer, uint32_t sample_idx)
+static inline void sample_harvesting(struct SampleBuffer *buffer,
+				     unsigned int sample_idx)
 {
 	/* Read current  and select channel 0 (voltage) for the read after! */
 	buffer->values_current[sample_idx] =
@@ -34,7 +35,8 @@ static inline void sample_harvesting(struct SampleBuffer *buffer, uint32_t sampl
 		adc_readwrite(SPI_CS_ADC, MAN_CH_SLCT | (ADC_CH_A_IN << 10));
 }
 
-static inline void sample_load(struct SampleBuffer *buffer, uint32_t sample_idx)
+static inline void sample_load(struct SampleBuffer *buffer,
+			       unsigned int sample_idx)
 {
 	/* Read load current and select load voltage for next reading */
 	buffer->values_current[sample_idx] =
@@ -44,7 +46,8 @@ static inline void sample_load(struct SampleBuffer *buffer, uint32_t sample_idx)
 		adc_readwrite(SPI_CS_ADC, MAN_CH_SLCT | (ADC_CH_A_OUT << 10));
 }
 
-static inline void sample_emulation(struct SampleBuffer *buffer, uint32_t sample_idx)
+static inline void sample_emulation(struct SampleBuffer *buffer,
+				    unsigned int sample_idx)
 {
 	/* write the emulation voltage value from buffer to DAC */
 	dac_write(SPI_CS_DAC,
@@ -63,12 +66,13 @@ static inline void sample_emulation(struct SampleBuffer *buffer, uint32_t sample
 		adc_readwrite(SPI_CS_ADC, MAN_CH_SLCT | (ADC_CH_A_OUT << 10));
 }
 
-static inline void sample_virtcap(struct SampleBuffer *buffer, uint32_t sample_idx)
+static inline void sample_virtcap(struct SampleBuffer *buffer,
+				  unsigned int sample_idx)
 {
 	struct ADCReading read;
-	static int32_t under_sample_voltage_cntr = 0;
-	static int32_t last_voltage_measurement = 0;
-	static int32_t last_current_measurement = 0;
+	static int under_sample_voltage_cntr = 0;
+	static int last_voltage_measurement = 0;
+	static int last_current_measurement = 0;
 
 	int32_t input_current;
 	int32_t input_voltage;
@@ -123,7 +127,7 @@ static inline void sample_virtcap(struct SampleBuffer *buffer, uint32_t sample_i
 		buffer->values_voltage[sample_idx] = 0;
 }
 
-void sample(struct SampleBuffer *current_buffer, uint32_t sample_idx,
+void sample(struct SampleBuffer *current_buffer, unsigned int sample_idx,
 	    enum ShepherdMode mode)
 {
 	switch (mode) {
@@ -142,20 +146,20 @@ void sample(struct SampleBuffer *current_buffer, uint32_t sample_idx,
 	}
 }
 
-uint32_t sample_dbg_adc(uint32_t channel_no)
+unsigned int sample_dbg_adc(unsigned int channel_no)
 {
-    uint32_t result;
+	unsigned int result;
 	adc_readwrite(SPI_CS_ADC, MAN_CH_SLCT | (channel_no << 10));
 	result = adc_readwrite(SPI_CS_ADC, MAN_CH_SLCT | (channel_no << 10));
 	return result;
 }
 
-void sample_dbg_dac(uint32_t value)
+void sample_dbg_dac(unsigned int value)
 {
 	dac_write(SPI_CS_DAC, value);
 }
 
-void sampling_init(enum ShepherdMode mode, uint32_t harvesting_voltage)
+void sampling_init(enum ShepherdMode mode, unsigned int harvesting_voltage)
 {
 	/* Chip-Select signals are active low */
 	_GPIO_ON(SPI_CS_ADC);
