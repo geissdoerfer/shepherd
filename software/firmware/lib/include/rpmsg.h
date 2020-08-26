@@ -8,10 +8,10 @@
 #include "printf.h"
 
 void rpmsg_putraw(void * data, unsigned int len);
-void rpmsg_printf(unsigned char *fmt, ...);
-void rpmsg_init(unsigned char * chan_name);
+void rpmsg_printf(char *fmt, ...);
+void rpmsg_init(char * chan_name);
 void rpmsg_flush();
-int rpmsg_get(unsigned char * s);
+int rpmsg_get(char * s);
 
 #define printf rpmsg_printf
 

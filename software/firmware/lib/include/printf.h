@@ -108,10 +108,10 @@ regs Kusti, 23.10.2004
 
 #include <stdarg.h>
 
-void putcp(void* p, unsigned char c);
-void tfp_sprintf(unsigned char* s,unsigned char *fmt, ...);
+void putcp(void* p,char c);
+void tfp_sprintf(char* s,char *fmt, ...);
 
-void tfp_format(void* putp, void (*putf) (void*, unsigned char), unsigned char *fmt, va_list va);
+void tfp_format(void* putp,void (*putf) (void*,char),char *fmt, va_list va);
 
 #define sprintf tfp_sprintf
 
