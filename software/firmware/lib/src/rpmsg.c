@@ -51,25 +51,25 @@ volatile register uint32_t __R30;
 #define VIRTIO_CONFIG_S_DRIVER_OK	4
 struct pru_rpmsg_transport transport;
 
-static uint8_t print_buffer[RPMSG_BUF_SIZE];
+static char print_buffer[RPMSG_BUF_SIZE];
 
 void rpmsg_putraw(void * data, unsigned int len)
 {
 	pru_rpmsg_send(&transport, RPMSG_SRC, RPMSG_DST, data, len);
 }
 
-void rpmsg_printf(uint8_t *fmt, ...)
+void rpmsg_printf(char *fmt, ...)
 {
 	va_list va;
 	va_start(va,fmt);
-    uint8_t * s = print_buffer;
+	char * s = print_buffer;
 	tfp_format(&s, putcp, fmt, va);
 	putcp(&s, 0);
-	rpmsg_putraw(print_buffer, strlen((char*)print_buffer) + 1);
+	rpmsg_putraw(print_buffer, strlen(print_buffer) + 1);
 	va_end(va);
 }
 
-void rpmsg_init(uint8_t * chan_name)
+void rpmsg_init(char * chan_name)
 {
 	volatile uint8_t *status;
 	/* Clear the status of the PRU-ICSS system event that the ARM will use to 'kick' us */
@@ -84,6 +84,9 @@ void rpmsg_init(uint8_t * chan_name)
 
 	/* Create the RPMsg channel between the PRU and ARM user space using the transport structure. */
 	while (pru_rpmsg_channel(RPMSG_NS_CREATE, &transport, chan_name, CHAN_DESC, CHAN_PORT) != PRU_RPMSG_SUCCESS);
+
+
+
 }
 
 void rpmsg_flush()
@@ -93,7 +96,7 @@ void rpmsg_flush()
 	CT_INTC.SECR0 |= (1 << FROM_ARM_HOST);
 }
 
-int rpmsg_get(uint8_t * s)
+int rpmsg_get(char * s)
 {
 	uint16_t src, dst, len;
 	int ret = pru_rpmsg_receive(&transport, &src, &dst, s, &len);
