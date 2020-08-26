@@ -48,7 +48,7 @@ enum ShepherdState {
 struct GPIOEdges {
 	uint32_t idx;
 	uint64_t timestamp_ns[MAX_GPIO_EVT_PER_BUFFER];
-    uint8_t bitmask[MAX_GPIO_EVT_PER_BUFFER];
+	char bitmask[MAX_GPIO_EVT_PER_BUFFER];
 } __attribute__((packed));
 
 struct SampleBuffer {
@@ -129,7 +129,7 @@ struct SharedMem {
 /* Format of RPMSG message sent from PRU1 to kernel module */
 struct CtrlReqMsg {
 	/* This is used to identify message type at receiver */
-    uint8_t identifier;
+	char identifier;
 	/* Number of ticks passed on the PRU's IEP timer */
 	uint32_t ticks_iep;
 	/* Previous buffer period in IEP ticks */
@@ -138,7 +138,7 @@ struct CtrlReqMsg {
 
 /* Format of RPMSG message sent from kernel module to PRU1 */
 struct CtrlRepMsg {
-    uint8_t identifier;
+	char identifier;
 	int32_t clock_corr;
 	uint64_t next_timestamp_ns;
 } __attribute__((packed));

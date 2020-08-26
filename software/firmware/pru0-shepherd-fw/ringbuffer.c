@@ -1,4 +1,3 @@
-#include "inttypes.h"
 #include "ringbuffer.h"
 
 void init_ring(struct RingBuffer * buf)
@@ -8,7 +7,7 @@ void init_ring(struct RingBuffer * buf)
 	buf->active=0;
 }
 
-int ring_put(struct RingBuffer * buf, uint8_t element)
+int ring_put(struct RingBuffer * buf, char element)
 {
     buf->ring[buf->end] = element;
 
@@ -25,7 +24,7 @@ int ring_put(struct RingBuffer * buf, uint8_t element)
     return 0;
 }
 
-int ring_get(struct RingBuffer * buf, uint8_t * element)
+int ring_get(struct RingBuffer * buf, char * element)
 {
     if(!buf->active)
     {
