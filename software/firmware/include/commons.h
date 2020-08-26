@@ -46,70 +46,70 @@ enum ShepherdState {
 };
 
 struct GPIOEdges {
-	uint32_t idx;
+	unsigned int idx;
 	uint64_t timestamp_ns[MAX_GPIO_EVT_PER_BUFFER];
-	char bitmask[MAX_GPIO_EVT_PER_BUFFER];
+    unsigned char bitmask[MAX_GPIO_EVT_PER_BUFFER];
 } __attribute__((packed));
 
 struct SampleBuffer {
-	uint32_t len;
+	unsigned int len;
 	uint64_t timestamp_ns;
-	uint32_t values_voltage[SAMPLES_PER_BUFFER];
-	uint32_t values_current[SAMPLES_PER_BUFFER];
+	unsigned int values_voltage[SAMPLES_PER_BUFFER];
+	unsigned int values_current[SAMPLES_PER_BUFFER];
 	struct GPIOEdges gpio_edges;
 } __attribute__((packed));
 
 struct CalibrationSettings {
 	/* Gain of load current adc. It converts current to adc value */
-	int32_t adc_load_current_gain;
+	int adc_load_current_gain;
 	/* Offset of load current adc */
-	int32_t adc_load_current_offset;
+	int adc_load_current_offset;
 	/* Gain of load voltage adc. It converts voltage to adc value */
-	int32_t adc_load_voltage_gain;
+	int adc_load_voltage_gain;
 	/* Offset of load voltage adc */
-	int32_t adc_load_voltage_offset;
+	int adc_load_voltage_offset;
 } __attribute__((packed));
 
 /* This structure defines all settings of virtcap emulation*/
 struct VirtCapSettings {
-  int32_t upper_threshold_voltage;
-  int32_t lower_threshold_voltage;
-  int32_t sample_period_us;
-  int32_t capacitance_uf;
-  int32_t max_cap_voltage;
-  int32_t min_cap_voltage;
-  int32_t init_cap_voltage;
-  int32_t dc_output_voltage;
-  int32_t leakage_current;
-  int32_t discretize;
-  int32_t output_cap_uf;
-  int32_t lookup_input_efficiency[4][9];
-  int32_t lookup_output_efficiency[4][9];
+  int upper_threshold_voltage;
+  int lower_threshold_voltage;
+  int sample_period_us;
+  int capacitance_uf;
+  int max_cap_voltage;
+  int min_cap_voltage;
+  int init_cap_voltage;
+  int dc_output_voltage;
+  int leakage_current;
+  int discretize;
+  int output_cap_uf;
+  int lookup_input_efficiency[4][9];
+  int lookup_output_efficiency[4][9];
 } __attribute__((packed));
 
 /* Format of RPMSG used in Data Exchange Protocol between PRU0 and user space */
 struct DEPMsg {
-	uint32_t msg_type;
-	uint32_t value;
+	unsigned int msg_type;
+	unsigned int value;
 } __attribute__((packed));
 
 /* Format of memory structure shared between PRU0, PRU1 and kernel module */
 struct SharedMem {
-	uint32_t shepherd_state;
+	unsigned int shepherd_state;
 	/* Stores the mode, e.g. harvesting or emulation */
-	uint32_t shepherd_mode;
+	unsigned int shepherd_mode;
 	/* Allows setting a fixed harvesting voltage as reference for the boost converter */
-	uint32_t harvesting_voltage;
+	unsigned int harvesting_voltage;
 	/* Physical address of shared area in DDR RAM, that is used to exchange data between user space and PRUs */
-	uint32_t mem_base_addr;
+	unsigned int mem_base_addr;
 	/* Length of shared area in DDR RAM */
-	uint32_t mem_size;
+	unsigned int mem_size;
 	/* Maximum number of buffers stored in the shared DDR RAM area */
-	uint32_t n_buffers;
+	unsigned int n_buffers;
 	/* Number of IV samples stored per buffer */
-	uint32_t samples_per_buffer;
+	unsigned int samples_per_buffer;
 	/* The time for sampling samples_per_buffer. Determines sampling rate */
-	uint32_t buffer_period_ns;
+	unsigned int buffer_period_ns;
 	/* ADC calibration settings */
 	struct CalibrationSettings calibration_settings;
 	/* This structure defines all settings of virtcap emulation*/
@@ -129,23 +129,23 @@ struct SharedMem {
 /* Format of RPMSG message sent from PRU1 to kernel module */
 struct CtrlReqMsg {
 	/* This is used to identify message type at receiver */
-	char identifier;
+    unsigned char identifier;
 	/* Number of ticks passed on the PRU's IEP timer */
-	uint32_t ticks_iep;
+	unsigned int ticks_iep;
 	/* Previous buffer period in IEP ticks */
-	uint32_t old_period;
+	unsigned int old_period;
 } __attribute__((packed));
 
 /* Format of RPMSG message sent from kernel module to PRU1 */
 struct CtrlRepMsg {
-	char identifier;
-	int32_t clock_corr;
+    unsigned char identifier;
+	int clock_corr;
 	uint64_t next_timestamp_ns;
 } __attribute__((packed));
 
 struct ADCReading {
-	int32_t current;
-	int32_t voltage;
+	int current;
+	int voltage;
 };
 
 

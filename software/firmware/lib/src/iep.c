@@ -17,7 +17,6 @@ void iep_set_us(unsigned int value)
 	iep_reset();
 	/* Set compare value */
 	CT_IEP.TMR_CMP0 = value * 200;
-
 }
 
 void iep_reset()
@@ -96,5 +95,4 @@ void iep_init()
 
 	/* Increment by one */
 	CT_IEP.TMR_GLB_CFG_bit.DEFAULT_INC = 0x01;
-
 }

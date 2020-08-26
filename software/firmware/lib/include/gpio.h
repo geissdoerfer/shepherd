@@ -4,8 +4,8 @@
 #ifdef __GNUC__
 #include <pru/io.h>
 #else // NOTE: gcc can't use registers directly, so this is a workaround to allow gcc & cgt
-volatile register uint32_t __R30;
-volatile register uint32_t __R31;
+volatile register unsigned int __R30;
+volatile register unsigned int __R31;
 #define read_r30()      __R30
 #define write_r30(x)    __R30 = x
 #define read_r31()      __R31

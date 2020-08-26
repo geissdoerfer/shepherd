@@ -31,9 +31,9 @@
 
 #include "printf.h"
 
-typedef void (*putcf) (void*,char);
+typedef void (*putcf) (void*, unsigned char);
 
-static void ui2a(unsigned int num, unsigned int base, int uc,char * bf)
+static void ui2a(unsigned int num, unsigned int base, int uc, unsigned char * bf)
 	{
 	int n=0;
 	unsigned int d=1;
@@ -51,7 +51,7 @@ static void ui2a(unsigned int num, unsigned int base, int uc,char * bf)
 	*bf=0;
 	}
 
-static void i2a (int num, char * bf)
+static void i2a (int num, unsigned char * bf)
 	{
 	if (num<0) {
 		num=-num;
@@ -60,7 +60,7 @@ static void i2a (int num, char * bf)
 	ui2a(num,10,0,bf);
 	}
 
-static int a2d(char ch)
+static int a2d(unsigned char ch)
 	{
 	if (ch>='0' && ch<='9')
 		return ch-'0';
@@ -71,9 +71,9 @@ static int a2d(char ch)
 	else return -1;
 	}
 
-static char a2i(char ch, char** src,int base,int* nump)
+static unsigned char a2i(unsigned char ch, unsigned char** src, int base, int* nump)
 	{
-	char* p= *src;
+	unsigned char* p= *src;
 	int num=0;
 	int digit;
 	while ((digit=a2d(ch))>=0) {
@@ -86,11 +86,11 @@ static char a2i(char ch, char** src,int base,int* nump)
 	return ch;
 	}
 
-static void putchw(void* putp,putcf putf,int n, char z, char* bf)
+static void putchw(void* putp, putcf putf, int n, unsigned char z, unsigned char* bf)
 	{
-	char fc=z? '0' : ' ';
-	char ch;
-	char* p=bf;
+    unsigned char fc=z? '0' : ' ';
+    unsigned char ch;
+    unsigned char* p=bf;
 	while (*p++ && n > 0)
 		n--;
 	while (n-- > 0)
@@ -99,12 +99,10 @@ static void putchw(void* putp,putcf putf,int n, char z, char* bf)
 		putf(putp,ch);
 	}
 
-void tfp_format(void* putp,putcf putf,char *fmt, va_list va)
+void tfp_format(void* putp, putcf putf, unsigned char *fmt, va_list va)
 	{
-	char bf[12];
-
-	char ch;
-
+    unsigned char bf[12];
+    unsigned char ch;
 
 	while ((ch=*(fmt++))) {
 		if (ch!='%')
@@ -158,14 +156,14 @@ void tfp_format(void* putp,putcf putf,char *fmt, va_list va)
 	}
 
 
-void putcp(void* p,char c)
+void putcp(void* p, unsigned char c)
 	{
-	*(*((char**)p))++ = c;
+	*(*((unsigned char**)p))++ = c;
 	}
 
 
 
-void tfp_sprintf(char* s,char *fmt, ...)
+void tfp_sprintf(unsigned char* s, unsigned char *fmt, ...)
 	{
 	va_list va;
 	va_start(va,fmt);

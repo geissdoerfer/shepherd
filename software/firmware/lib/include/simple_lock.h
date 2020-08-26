@@ -5,8 +5,8 @@
 
 
 typedef struct {
-    uint32_t lock_pru0;
-    uint32_t lock_pru1;
+    unsigned int lock_pru0;
+    unsigned int lock_pru1;
 }__attribute__((packed)) simple_mutex_t;
 
 inline void simple_mutex_enter(volatile simple_mutex_t * mutex);
