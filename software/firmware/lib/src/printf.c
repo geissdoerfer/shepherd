@@ -34,7 +34,7 @@
 
 typedef void (*putcf) (void*, uint8_t);
 
-static void ui2a(uint32_t num, uint32_t base, int32_t uc, uint8_t * bf)
+static void ui2a(uint32_t num, const uint32_t base, const int32_t uc, uint8_t * bf)
 	{
 	int32_t n=0;
 	uint32_t d=1;
@@ -61,7 +61,7 @@ static void i2a (int32_t num, uint8_t * bf)
 	ui2a(num,10,0,bf);
 	}
 
-static int32_t a2d(uint8_t ch)
+static int32_t a2d(const uint8_t ch)
 	{
 	if (ch>='0' && ch<='9')
 		return ch-'0';
@@ -72,7 +72,7 @@ static int32_t a2d(uint8_t ch)
 	else return -1;
 	}
 
-static uint8_t a2i(uint8_t ch, uint8_t** src, int32_t base, int32_t* nump)
+static uint8_t a2i(uint8_t ch, uint8_t** src, const int32_t base, int32_t* nump)
 	{
     uint8_t* p= *src;
 	int32_t num=0;
@@ -159,7 +159,7 @@ void tfp_format(void* putp, putcf putf, uint8_t *fmt, va_list va)
 	}
 
 
-void putcp(void* p, uint8_t c)
+void putcp(void* p, const uint8_t c)
 	{
 	*(*((uint8_t**)p))++ = c;
 	}

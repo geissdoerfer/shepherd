@@ -23,37 +23,36 @@ volatile register uint32_t __R30;
  * PRU1 uses system event 18 (To ARM) and 19 (From ARM)
  */
 #if defined(PRU0)
-	#define TO_ARM_HOST 16
-	#define FROM_ARM_HOST 17
+	#define TO_ARM_HOST     16U
+	#define FROM_ARM_HOST   17U
 
-	#define CHAN_DESC			"Channel 0"
-	#define CHAN_PORT			0
+	#define CHAN_DESC		"Channel 0"
+	#define CHAN_PORT		0U
 
 #elif defined(PRU1)
-	#define TO_ARM_HOST 18
-	#define FROM_ARM_HOST 19
+	#define TO_ARM_HOST     18U
+	#define FROM_ARM_HOST   19U
 
-	#define CHAN_DESC			"Channel 1"
-	#define CHAN_PORT			1
-
+	#define CHAN_DESC		"Channel 1"
+	#define CHAN_PORT		1
 #else
 	#error
 #endif
 
 /* Apparently this is the RPMSG address of the ARM core */
-#define RPMSG_DST 0x0400
-#define RPMSG_SRC CHAN_PORT
+#define RPMSG_DST   0x0400
+#define RPMSG_SRC   CHAN_PORT
 
 /*
  * Used to make sure the Linux drivers are ready for RPMsg communication
  * Found at linux-x.y.z/include/uapi/linux/virtio_config.h
  */
-#define VIRTIO_CONFIG_S_DRIVER_OK	4
+#define VIRTIO_CONFIG_S_DRIVER_OK	4U
 struct pru_rpmsg_transport transport;
 
 static uint8_t print_buffer[RPMSG_BUF_SIZE];
 
-void rpmsg_putraw(void * data, uint32_t len)
+void rpmsg_putraw(const void *const data, const uint32_t len)
 {
 	pru_rpmsg_send(&transport, RPMSG_SRC, RPMSG_DST, data, len);
 }
@@ -69,14 +68,13 @@ void rpmsg_printf(uint8_t *fmt, ...)
 	va_end(va);
 }
 
-void rpmsg_init(uint8_t * chan_name)
+void rpmsg_init(const char *const chan_name)
 {
-	volatile uint8_t *status;
 	/* Clear the status of the PRU-ICSS system event that the ARM will use to 'kick' us */
 	CT_INTC.SICR_bit.STS_CLR_IDX = FROM_ARM_HOST;
 
 	/* Make sure the Linux drivers are ready for RPMsg communication */
-	status = &resourceTable.rpmsg_vdev.status;
+    volatile uint8_t *const status = &resourceTable.rpmsg_vdev.status;
 	while (!(*status & VIRTIO_CONFIG_S_DRIVER_OK));
 
 	/* Initialize the RPMsg transport structure */
@@ -93,10 +91,10 @@ void rpmsg_flush()
 	CT_INTC.SECR0 |= (1 << FROM_ARM_HOST);
 }
 
-int32_t rpmsg_get(uint8_t * s)
+int32_t rpmsg_get(uint8_t *const buffer)
 {
 	uint16_t src, dst, len;
-	int32_t ret = pru_rpmsg_receive(&transport, &src, &dst, s, &len);
+	int32_t ret = pru_rpmsg_receive(&transport, &src, &dst, buffer, &len);
 	if(ret != PRU_RPMSG_SUCCESS)
 	{
 		return ret;

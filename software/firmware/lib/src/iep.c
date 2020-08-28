@@ -11,13 +11,12 @@
 volatile register uint32_t __R31;
 #endif
 
-void iep_set_us(uint32_t value)
+void iep_set_us(const uint32_t value)
 {
 	iep_stop();
 	iep_reset();
 	/* Set compare value */
-	CT_IEP.TMR_CMP0 = value * 200;
-
+	CT_IEP.TMR_CMP0 = value * 200U;
 }
 
 void iep_reset()
@@ -26,52 +25,49 @@ void iep_reset()
 	CT_IEP.TMR_CNT = 0x0;
 }
 
-void iep_start()
+inline void iep_start()
 {
 	/* Enable counter */
-	CT_IEP.TMR_GLB_CFG |= (1 << 0);
+	CT_IEP.TMR_GLB_CFG |= 1U; // (1 << 0)
 }
 
-void iep_stop()
+inline void iep_stop()
 {
 	/* Disable counter */
-	CT_IEP.TMR_GLB_CFG &= ~(1 << 0);
+	CT_IEP.TMR_GLB_CFG &= ~1U;
 }
 
 
-inline int8_t iep_check_evt_cmp(uint32_t compare_channel)
+inline bool_ft iep_check_evt_cmp(const uint8_ft compare_channel)
 {
-	if(CT_IEP.TMR_CMP_STS & (1 << compare_channel))
-		return 0;
-	else
-		return -1;
+    return (CT_IEP.TMR_CMP_STS & (1U << compare_channel)) ? (bool_ft)1 : (bool_ft)0;
 }
 
-inline void iep_clear_evt_cmp(uint32_t compare_channel)
+inline void iep_clear_evt_cmp(const uint8_ft compare_channel)
 {
-	CT_IEP.TMR_CMP_STS |= (1 << compare_channel);
+	CT_IEP.TMR_CMP_STS |= (1U << compare_channel);
 }
 
-void iep_enable_evt_cmp(uint32_t compare_channel)
+inline void iep_enable_evt_cmp(const uint8_ft compare_channel)
 {
-	CT_IEP.TMR_CMP_CFG_bit.CMP_EN |= (1 << compare_channel);
+	CT_IEP.TMR_CMP_CFG_bit.CMP_EN |= (1U << compare_channel);
 }
 
-void iep_disable_evt_cmp(uint32_t compare_channel)
+inline void iep_disable_evt_cmp(const uint8_ft compare_channel)
 {
-	CT_IEP.TMR_CMP_CFG_bit.CMP_EN &= ~(1 << compare_channel);
+	CT_IEP.TMR_CMP_CFG_bit.CMP_EN &= ~(1U << compare_channel);
 }
 
-void iep_set_cmp_val(uint32_t compare_channel, uint32_t value)
+inline void iep_set_cmp_val(const uint8_ft compare_channel, const uint32_t value)
 {
 	/* Hack to address the CMPN registers (offset=0x48 from CT_IEP) */
-	*((uint32_t *) &CT_IEP + 18 + compare_channel) = value;
+	*((uint32_t *) &CT_IEP + 18U + compare_channel) = value;
 }
 
-uint32_t iep_get_cmp_val(uint32_t compare_channel)
+inline uint32_t iep_get_cmp_val(const uint8_ft compare_channel)
 {
 	/* Hack to address the CMPN registers (offset=0x48 from CT_IEP) */
-	return *((uint32_t *) &CT_IEP + 18 + compare_channel);
+	return *((uint32_t *) &CT_IEP + 18U + compare_channel);
 }
 
 void iep_init()

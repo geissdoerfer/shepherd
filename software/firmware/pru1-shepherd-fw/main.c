@@ -228,7 +228,7 @@ int32_t event_loop(volatile struct SharedMem *shared_mem)
 					"Wrong state at host interrupt");
 		}
 		/* Timer compare 0 handle [Event 2] */
-		if (iep_check_evt_cmp(IEP_CMP0) == 0) {
+		if (iep_check_evt_cmp(IEP_CMP0)) {
 			/* Tell PRU0 to take the first sample of this block */
 			INTC_TRIGGER_EVENT(PRU_PRU_EVT_SAMPLE);
 			/* Clear Timer Compare 0 */
@@ -257,7 +257,7 @@ int32_t event_loop(volatile struct SharedMem *shared_mem)
 			_GPIO_OFF(DEBUG_P0);
 		}
 		/* Timer compare 1 handle [Event 3] */
-		if (iep_check_evt_cmp(IEP_CMP1) == 0) {
+		if (iep_check_evt_cmp(IEP_CMP1)) {
 			if (++sample_counter == SAMPLES_PER_BUFFER) {
 				/* Tell PRU0 to take the last sample in this block */
 				INTC_TRIGGER_EVENT(PRU_PRU_EVT_BLOCK_END);

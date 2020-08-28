@@ -111,7 +111,7 @@ regs Kusti, 23.10.2004
 void putcp(void* p, uint8_t c);
 void tfp_sprintf(uint8_t* s, uint8_t *fmt, ...);
 
-void tfp_format(void* putp,void (*putf) (void*, uint8_t), uint8_t *fmt, va_list va);
+void tfp_format(void* putp, void (*putf) (void*, uint8_t), uint8_t *fmt, va_list va);
 
 #define sprintf tfp_sprintf
 

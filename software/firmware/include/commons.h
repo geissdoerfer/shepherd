@@ -3,15 +3,17 @@
 
 #include "simple_lock.h"
 #include "shepherd_config.h"
+#include "int_optimized.h"
 
-#define HOST_PRU_EVT_TIMESTAMP 20
+#define HOST_PRU_EVT_TIMESTAMP          20U
 
-#define PRU_PRU_EVT_SAMPLE 30
-#define PRU_PRU_EVT_BLOCK_END 31
+#define PRU_PRU_EVT_SAMPLE              30U
+#define PRU_PRU_EVT_BLOCK_END           31U
 
-#define PRU_SHARED_MEM_STRUCT_OFFSET 0x10000
+#define PRU_SHARED_MEM_STRUCT_OFFSET    0x10000
 
-#define MAX_GPIO_EVT_PER_BUFFER 16384
+#define MAX_GPIO_EVT_PER_BUFFER         16384U
+
 
 /* Message IDs used in Data Exchange Protocol between PRU0 and user space */
 enum DEPMsgID {
@@ -48,7 +50,7 @@ enum ShepherdState {
 struct GPIOEdges {
 	uint32_t idx;
 	uint64_t timestamp_ns[MAX_GPIO_EVT_PER_BUFFER];
-    uint8_t bitmask[MAX_GPIO_EVT_PER_BUFFER];
+    uint8_t  bitmask[MAX_GPIO_EVT_PER_BUFFER];
 } __attribute__((packed));
 
 struct SampleBuffer {
