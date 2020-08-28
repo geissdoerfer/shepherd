@@ -57,7 +57,7 @@ void rpmsg_putraw(const void *const data, const uint32_t len)
 	pru_rpmsg_send(&transport, RPMSG_SRC, RPMSG_DST, data, len);
 }
 
-void rpmsg_printf(uint8_t *fmt, ...)
+void rpmsg_printf(char * fmt, ...)  // TODO: fmt should be const char *const, but underlying fn don't allow atm
 {
 	va_list va;
 	va_start(va,fmt);

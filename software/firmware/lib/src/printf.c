@@ -32,7 +32,7 @@
 #include "stdint.h"
 #include "printf.h"
 
-typedef void (*putcf) (void*, uint8_t);
+typedef void (*putcf) (void*, char);
 
 static void ui2a(uint32_t num, const uint32_t base, const int32_t uc, uint8_t * bf)
 	{
@@ -72,9 +72,9 @@ static int32_t a2d(const uint8_t ch)
 	else return -1;
 	}
 
-static uint8_t a2i(uint8_t ch, uint8_t** src, const int32_t base, int32_t* nump)
+static uint8_t a2i(uint8_t ch, char**const src, const int32_t base, int32_t *const nump)
 	{
-    uint8_t* p= *src;
+    char* p= *src;
 	int32_t num=0;
 	int32_t digit;
 	while ((digit=a2d(ch))>=0) {
@@ -100,12 +100,10 @@ static void putchw(void* putp, putcf putf, int32_t n, uint8_t z, uint8_t* bf)
 		putf(putp,ch);
 	}
 
-void tfp_format(void* putp, putcf putf, uint8_t *fmt, va_list va)
+void tfp_format(void* putp, putcf putf, char *fmt, va_list va)
 	{
     uint8_t bf[12];
-
     uint8_t ch;
-
 
 	while ((ch=*(fmt++))) {
 		if (ch!='%')
@@ -159,14 +157,14 @@ void tfp_format(void* putp, putcf putf, uint8_t *fmt, va_list va)
 	}
 
 
-void putcp(void* p, const uint8_t c)
+void putcp(void* p, const char character)
 	{
-	*(*((uint8_t**)p))++ = c;
+	*(*((char**)p))++ = character;
 	}
 
 
 
-void tfp_sprintf(uint8_t* s, uint8_t *fmt, ...)
+void tfp_sprintf(uint8_t* s, char *fmt, ...)
 	{
 	va_list va;
 	va_start(va,fmt);
