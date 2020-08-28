@@ -1,5 +1,6 @@
 #ifndef __COMMONS_H_
 #define __COMMONS_H_
+// NOTE: a similar version of this definition-file exists for the pru-firmware (copy changes by hand)
 
 /**
  * These are the system events that we use to signal events to the PRUs.

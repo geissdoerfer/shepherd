@@ -1,9 +1,11 @@
 #ifndef __COMMONS_H_
 #define __COMMONS_H_
+// NOTE: a similar version of this definition-file exists for the kernel module (copy changes by hand)
 
 #include "simple_lock.h"
 #include "shepherd_config.h"
 #include "int_optimized.h"
+
 
 #define HOST_PRU_EVT_TIMESTAMP          20U
 
@@ -136,14 +138,14 @@ struct CtrlReqMsg {
 	uint32_t ticks_iep;
 	/* Previous buffer period in IEP ticks */
 	uint32_t old_period;
-} __attribute__((packed));
+} __attribute__((packed)); // TODO: should be aligned with memory, (bytes)mod4
 
 /* Format of RPMSG message sent from kernel module to PRU1 */
 struct CtrlRepMsg {
     uint8_t identifier;
 	int32_t clock_corr;
 	uint64_t next_timestamp_ns;
-} __attribute__((packed));
+} __attribute__((packed)); // TODO: should be aligned with memory, (bytes)mod4
 
 struct ADCReading {
 	int32_t current;
