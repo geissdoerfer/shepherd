@@ -1,21 +1,21 @@
 #ifndef RINGBUFFER_H_
 #define RINGBUFFER_H_
 
-#define RING_SIZE 64
+#include "int_optimized.h"
 
-#define BUF_EMPTY -1
+#define RING_SIZE   64U
 
 struct RingBuffer
 {
     uint8_t ring[RING_SIZE];
-	int32_t start;
-	int32_t end;
-	int32_t active;
+	uint32_t start;
+	uint32_t end;
+	uint32_t active;
 };
 
 void init_ring(struct RingBuffer * buf);
 void ring_put(struct RingBuffer * buf, uint8_t element);
-int32_t ring_get(struct RingBuffer * buf, uint8_t * element);
-int32_t ring_empty(struct RingBuffer * buf);
+bool_ft ring_get(struct RingBuffer * buf, uint8_t * element);
+bool_ft ring_empty(const struct RingBuffer * buf);
 
 #endif
