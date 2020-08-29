@@ -59,7 +59,7 @@ set(HEADERS
 
         ${CMAKE_CURRENT_LIST_DIR}/lib/include/gpio.h
         ${CMAKE_CURRENT_LIST_DIR}/lib/include/iep.h
-        ${CMAKE_CURRENT_LIST_DIR}lib/include/int_optimized.h
+        ${CMAKE_CURRENT_LIST_DIR}/lib/include/int_optimized.h
         ${CMAKE_CURRENT_LIST_DIR}/lib/include/intc.h
         ${CMAKE_CURRENT_LIST_DIR}/lib/include/printf.h
         ${CMAKE_CURRENT_LIST_DIR}/lib/include/rpmsg.h
