@@ -33,8 +33,8 @@ static const struct VirtCapSettings kBQ25570Settings = {
   }
 };
 
-void virtcap_init(struct VirtCapSettings *settings_arg,
-		  struct CalibrationSettings *calib);
+void virtcap_init(struct VirtCapSettings *vcap_arg,
+		  struct CalibrationSettings *calib_arg);
 void virtcap_update(int32_t current_measured, int32_t voltage_measured,
 		    int32_t input_current, int32_t input_voltage);
 
@@ -42,7 +42,7 @@ bool_ft virtcap_get_output_state();
 
 int32_t voltage_mv_to_logic(int32_t voltage);
 int32_t current_ua_to_logic(int32_t current);
-int32_t current_ma_to_logic(int32_t current);
+//int32_t current_ma_to_logic(int32_t current);
 
 int32_t lookup(int32_t table[const][9], int32_t current);
 void lookup_init();
