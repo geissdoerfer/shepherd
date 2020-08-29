@@ -217,8 +217,8 @@ reset:
     _GPIO_OFF(USR_LED1);
 
     if (shared_mememory->shepherd_mode == MODE_VIRTCAP)
-        virtcap_init((struct VirtCapSettings *const )&shared_mememory->virtcap_settings,
-                 (struct CalibrationSettings *const )&shared_mememory->calibration_settings);
+        virtcap_init((struct VirtCapSettings *)&shared_mememory->virtcap_settings,
+                 (struct CalibrationSettings *)&shared_mememory->calibration_settings);
 
     init_ring(&free_buffers);
     sampling_init((enum ShepherdMode)shared_mememory->shepherd_mode,
