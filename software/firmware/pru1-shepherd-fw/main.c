@@ -17,8 +17,8 @@
 /* The Arm to Host interrupt for the timestamp event is mapped to Host interrupt 0 -> Bit 30 (see resource_table.h) */
 #define HOST_INT_TIMESTAMP (1U << 30U)
 
-#define DEBUG_P0    P8_41
-#define DEBUG_P1    P8_42
+#define DEBUG_P0            P8_41
+#define DEBUG_P1            P8_42
 
 /* The IEP is clocked with 200 MHz -> 5 nanoseconds per tick */
 #define TIMER_TICK_NS       5U
@@ -145,7 +145,7 @@ static inline void check_gpio(volatile struct SharedMem *const shared_mem,
  * Event 3
  */
 
-int32_t event_loop(volatile struct SharedMem *shared_mem)
+int32_t event_loop(volatile struct SharedMem *const shared_mem)
 {
     uint32_t sample_counter;
 	uint64_t current_timestamp_ns;
@@ -316,7 +316,7 @@ int32_t event_loop(volatile struct SharedMem *shared_mem)
 }
 void main(void)
 {
-    volatile struct SharedMem *shared_mememory =
+    volatile struct SharedMem *const shared_mememory =
             (volatile struct SharedMem *)PRU_SHARED_MEM_STRUCT_OFFSET;
 
     /* Allow OCP master port access by the PRU so the PRU can read external memories */
