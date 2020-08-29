@@ -26,7 +26,7 @@ volatile register uint32_t __R30;
 	#define TO_ARM_HOST     16U
 	#define FROM_ARM_HOST   17U
 
-	#define CHAN_DESC		"Channel 0"
+	#define CHAN_DESC		(uint8_t*)"Channel 0"
 	#define CHAN_PORT		0U
 
 #elif defined(PRU1)
@@ -48,7 +48,7 @@ volatile register uint32_t __R30;
  * Found at linux-x.y.z/include/uapi/linux/virtio_config.h
  */
 #define VIRTIO_CONFIG_S_DRIVER_OK	4U
-struct pru_rpmsg_transport transport;
+static struct pru_rpmsg_transport transport;
 
 static uint8_t print_buffer[RPMSG_BUF_SIZE];
 

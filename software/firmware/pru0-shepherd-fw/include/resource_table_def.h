@@ -69,76 +69,79 @@ struct ch_map pru_intc_map[] = {
 #pragma DATA_SECTION(resourceTable, ".resource_table")
 #pragma RETAIN(resourceTable)
 struct my_resource_table resourceTable = {
-	1, /* Resource table version: only version 1 is supported by the current driver */
-	3, /* number of entries in the table */
-	0,
-	0, /* reserved, must be zero */
-	/* offsets to entries */
-	{
-		offsetof(struct my_resource_table, rpmsg_vdev),
-		offsetof(struct my_resource_table, pru_ints),
-		offsetof(struct my_resource_table, shared_mem),
-	},
+        {
+                1, /* Resource table version: only version 1 is supported by the current driver */
+                3, /* number of entries in the table */
+                { 0U, 0U } /* reserved, must be zero */
+        },
+        /* offsets to entries */
+        {
+                offsetof(struct my_resource_table, rpmsg_vdev),
+                offsetof(struct my_resource_table, pru_ints),
+                offsetof(struct my_resource_table, shared_mem),
+        },
 
-	/* rpmsg vdev entry */
-	{
-		(uint32_t)TYPE_VDEV, //type
-		(uint32_t)VIRTIO_ID_RPMSG, //id
-		(uint32_t)0, //notifyid
-		(uint32_t)RPMSG_PRU_C0_FEATURES, //dfeatures
-		(uint32_t)0, //gfeatures
-		(uint32_t)0, //config_len
-		(uint8_t)0, //status
-		(uint8_t)2, //num_of_vrings, only two is supported
-		{ (uint8_t)0, (uint8_t)0 }, //reserved
-		/* no config data */
-	},
-	/* the two vrings */
-	{
-		0, //da, will be populated by host, can't pass it in
-		16, //align (bytes),
-		PRU_RPMSG_VQ0_SIZE, //num of descriptors
-		0, //notifyid, will be populated, can't pass right now
-		0 //reserved
-	},
-	{
-		0, //da, will be populated by host, can't pass it in
-		16, //align (bytes),
-		PRU_RPMSG_VQ1_SIZE, //num of descriptors
-		0, //notifyid, will be populated, can't pass right now
-		0 //reserved
-	},
+        /* rpmsg vdev entry */
+        {
+                (uint32_t)TYPE_VDEV, //type
+                (uint32_t)VIRTIO_ID_RPMSG, //id
+                (uint32_t)0, //notifyid
+                (uint32_t)RPMSG_PRU_C0_FEATURES, //dfeatures
+                (uint32_t)0, //gfeatures
+                (uint32_t)0, //config_len
+                (uint8_t)0, //status
+                (uint8_t)2, //num_of_vrings, only two is supported
+                { (uint8_t)0, (uint8_t)0 }, //reserved
+                /* no config data */
+        },
+        /* the two vrings */
+        {
+                0, //da, will be populated by host, can't pass it in
+                16, //align (bytes),
+                PRU_RPMSG_VQ0_SIZE, //num of descriptors
+                0, //notifyid, will be populated, can't pass right now
+                0 //reserved
+        },
+        {
+                0, //da, will be populated by host, can't pass it in
+                16, //align (bytes),
+                PRU_RPMSG_VQ1_SIZE, //num of descriptors
+                0, //notifyid, will be populated, can't pass right now
+                0 //reserved
+        },
 
-	{
-		TYPE_CUSTOM,
-		TYPE_PRU_INTS,
-		sizeof(struct fw_rsc_custom_ints),
-		{
-			/* PRU_INTS version */
-			0x0000,
-			/* Channel-to-host mapping, 255 for unused */
-			HOST_UNUSED,
-			1,
-			HOST_UNUSED,
-			3,
-			HOST_UNUSED,
-			HOST_UNUSED,
-			HOST_UNUSED,
-			HOST_UNUSED,
-			HOST_UNUSED,
-			HOST_UNUSED,
-			/* Number of evts being mapped to channels */
-			(sizeof(pru_intc_map) / sizeof(struct ch_map)),
-			/* Pointer to the structure containing mapped events */
-			pru_intc_map,
-		},
-	},
-	{ TYPE_CARVEOUT, 0x0, /* Memory address */
-	  0x0, /* Physical address */
-	  14558208, /* Length in bytes 64*(2*10000*4+12+4+16384+8*16384) */
-	  0, /* Flags */
-	  0, /* Reserved */
-	  "PRU_HOST_SHARED_MEM" },
+        {
+                TYPE_CUSTOM,
+                TYPE_PRU_INTS,
+                sizeof(struct fw_rsc_custom_ints),
+                {
+                        /* PRU_INTS version */
+                        0x0000,
+                        /* Channel-to-host mapping, 255 for unused */
+                        HOST_UNUSED,
+                        1,
+                        HOST_UNUSED,
+                        3,
+                        HOST_UNUSED,
+                        HOST_UNUSED,
+                        HOST_UNUSED,
+                        HOST_UNUSED,
+                        HOST_UNUSED,
+                        HOST_UNUSED,
+                        /* Number of evts being mapped to channels */
+                        (sizeof(pru_intc_map) / sizeof(struct ch_map)),
+                        /* Pointer to the structure containing mapped events */
+                        pru_intc_map,
+                },
+        },
+        {
+                TYPE_CARVEOUT, 0x0, /* Memory address */
+                0x0, /* Physical address */
+                14558208, /* Length in bytes 64*(2*10000*4+12+4+16384+8*16384) */
+                0, /* Flags */
+                0, /* Reserved */
+                "PRU_HOST_SHARED_MEM"
+        },
 };
 
 #endif /* _RSC_TABLE_PRU_H_ */

@@ -131,6 +131,8 @@ void sample(struct SampleBuffer *const current_buffer, const uint32_t sample_idx
 	case MODE_VIRTCAP:
 		sample_virtcap(current_buffer, sample_idx);
 		break;
+	default:
+	    break;
 	}
 }
 

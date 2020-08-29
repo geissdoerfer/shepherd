@@ -163,10 +163,8 @@ void virtcap_update(int32_t output_current, int32_t output_voltage,
 		    (new_cap_voltage < s.lower_threshold_voltage)) {
 			is_outputting = 0U; // we fall under our threshold
             virtcap_set_output_state(0U);
-		} else if (!is_outputting &&
-			   (new_cap_voltage > s.upper_threshold_voltage)) {
-			is_outputting =
-				1U; // we have enough voltage to switch on again
+		} else if (!is_outputting &&(new_cap_voltage > s.upper_threshold_voltage)) {
+			is_outputting = 1U; // we have enough voltage to switch on again
             virtcap_set_output_state(1U);
 			new_cap_voltage = (new_cap_voltage >> 10) *
 					  outputcap_scale_factor;
