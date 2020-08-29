@@ -94,7 +94,7 @@ static inline void sample_virtcap(struct SampleBuffer *const buffer, const uint3
 	} else {
 		/* Read load current and select load current for next reading */
 		read.current = adc_readwrite(
-			SPI_CS_ADC, MAN_CH_SLCT | (ADC_CH_A_OUT << 10));
+			SPI_CS_ADC, MAN_CH_SLCT | (ADC_CH_A_OUT << 10U));
 		buffer->values_current[sample_idx] = read.current;
 
 		read.voltage = last_voltage_measurement;
@@ -102,7 +102,7 @@ static inline void sample_virtcap(struct SampleBuffer *const buffer, const uint3
 	}
 
 	/* Execute virtcap algorithm */
-	virtcap_update(buffer->values_current[sample_idx] - ((1 << 17) - 1),
+	virtcap_update(buffer->values_current[sample_idx] - ((1U << 17U) - 1U),
 		       buffer->values_voltage[sample_idx], input_current,
 		       input_voltage);
 
@@ -112,7 +112,7 @@ static inline void sample_virtcap(struct SampleBuffer *const buffer, const uint3
 	 * output switch.
 	 */
 	if (!virtcap_get_output_state())
-		buffer->values_voltage[sample_idx] = 0;
+		buffer->values_voltage[sample_idx] = 0U;
 }
 
 void sample(struct SampleBuffer *const current_buffer, const uint32_t sample_idx,

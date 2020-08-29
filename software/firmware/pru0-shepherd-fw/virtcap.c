@@ -79,7 +79,7 @@ void virtcap_init(struct VirtCapSettings *const vcap_arg,
 
 	_GPIO_OFF(VIRTCAP_OUT_PIN);
 
-    cali_arg->adc_load_current_gain = ADC_LOAD_CURRENT_GAIN; // TODO: why is the original arg changed?
+    cali_arg->adc_load_current_gain = ADC_LOAD_CURRENT_GAIN; // TODO: why is the fn-arg changed?
     cali_arg->adc_load_current_offset = ADC_LOAD_CURRENT_OFFSET;
 	cali_arg->adc_load_voltage_gain = ADC_LOAD_VOLTAGE_GAIN;
 	cali_arg->adc_load_voltage_offset = ADC_LOAD_VOLTAGE_OFFSET;
