@@ -45,19 +45,19 @@
  * Sizes of the virtqueues (expressed in number of buffers supported,
  * and must be power of 2)
  */
-#define PRU_RPMSG_VQ0_SIZE 64
-#define PRU_RPMSG_VQ1_SIZE 64
+#define PRU_RPMSG_VQ0_SIZE  64U
+#define PRU_RPMSG_VQ1_SIZE  64U
 
 /*
  * The feature bitmap for virtio rpmsg
  */
-#define VIRTIO_RPMSG_F_NS 0 //name service notifications
+#define VIRTIO_RPMSG_F_NS   0U //name service notifications
 
 /* This firmware supports name service notifications as one of its features */
-#define RPMSG_PRU_C0_FEATURES (1 << VIRTIO_RPMSG_F_NS)
+#define RPMSG_PRU_C0_FEATURES (1U << VIRTIO_RPMSG_F_NS)
 
 /* Definition for unused interrupts */
-#define HOST_UNUSED 255
+#define HOST_UNUSED     255U
 
 /* Mapping sysevts to a channel. Each pair contains a sysevt, channel. */
 struct ch_map pru_intc_map[] = {
