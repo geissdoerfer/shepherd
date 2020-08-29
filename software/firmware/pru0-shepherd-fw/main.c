@@ -208,7 +208,7 @@ void main(void)
 	CT_INTC.EISR_bit.EN_SET_IDX = PRU_PRU_EVT_SAMPLE;
 	CT_INTC.EISR_bit.EN_SET_IDX = PRU_PRU_EVT_BLOCK_END;
 
-	rpmsg_init("rpmsg-pru");
+	rpmsg_init((uint8_t*)"rpmsg-pru");
 
 	_GPIO_OFF(USR_LED1);
 	_GPIO_OFF(DEBUG_P0);

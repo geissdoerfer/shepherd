@@ -33,7 +33,7 @@ enum SyncState {
 	REPLY_PENDING
 };
 
-void fault_handler(const uint32_t shepherd_state, char * err_msg)
+void fault_handler(const uint32_t shepherd_state, const uint8_t * err_msg)
 {
 	/* If shepherd is not running, we can recover from the fault */
 	if (shepherd_state != STATE_RUNNING) {
@@ -53,8 +53,8 @@ static inline bool_ft check_control_reply(const uint32_t shepherd_state, struct 
 	const int32_t n = rpmsg_get((void *)ctrl_rep);
 
 	if (n == sizeof(struct CtrlRepMsg)) {
-		if (ctrl_rep->identifier != MSG_SYNC_CTRL_REP)  fault_handler(shepherd_state, "Wrong RPMSG ID");
-		else if (rpmsg_get((uint8_t *)ctrl_rep) > 0)    fault_handler(shepherd_state, "Extra pending messages");
+		if (ctrl_rep->identifier != MSG_SYNC_CTRL_REP)  fault_handler(shepherd_state, (uint8_t*)"Wrong RPMSG ID");
+		else if (rpmsg_get((uint8_t *)ctrl_rep) > 0)    fault_handler(shepherd_state, (uint8_t*)"Extra pending messages");
 		// TODO: why is an extra message so bad? most likely sign for out of sync
 		return 1;
 	}
@@ -213,7 +213,7 @@ int32_t event_loop(volatile struct SharedMem *const shared_mem)
 			else if (sync_state == IDLE)
 				sync_state = WAIT_IEP_WRAP;
 			else {
-                fault_handler(shared_mem->shepherd_state,"Wrong state at host interrupt");
+                fault_handler(shared_mem->shepherd_state,(uint8_t*)"Wrong state at host interrupt");
                 return 0;
             }
 
@@ -239,7 +239,7 @@ int32_t event_loop(volatile struct SharedMem *const shared_mem)
 			else if (sync_state == IDLE)
 				sync_state = WAIT_HOST_INT;
 			else {
-                fault_handler(shared_mem->shepherd_state, "Wrong state at timer wrap");
+                fault_handler(shared_mem->shepherd_state, (uint8_t*)"Wrong state at timer wrap");
                 return 0;
             }
 
@@ -325,14 +325,14 @@ void main(void)
 	_GPIO_OFF(DEBUG_P0);
 	_GPIO_OFF(DEBUG_P1);
 
-	rpmsg_init("rpmsg-shprd");
+	rpmsg_init((uint8_t*)"rpmsg-shprd");
 	__delay_cycles(1000);
 
 	/* Enable 'timestamp' interrupt from ARM host */
 	CT_INTC.EISR_bit.EN_SET_IDX = HOST_PRU_EVT_TIMESTAMP;
 
 reset:
-	printf("starting synch routine..");
+	printf((uint8_t*)"starting synch routine..");
 	/* Make sure the mutex is clear */
 	simple_mutex_exit(&shared_mememory->gpio_edges_mutex);
 
