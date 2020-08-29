@@ -35,6 +35,7 @@
     environment:
       PRU_CGT: '{{ pru_cgt_path }}'
       PRU_SUPPORT: '{{ ti_path }}/{{ pru_support_package }}'
+      #PRU_SUPPORT: '{{ shepherd_install_path }}/software/firmware/_pssp57g' # TODO: just for debug
     with_items:
       - pru0
       - pru1
@@ -51,10 +52,10 @@
       - pru1
 
   - name: Stop PRU0
-    command: echo "stop" > /sys/class/remoterproc/remoteproc1/state
+    command: echo "stop" > /sys/class/remoteproc/remoteproc1/state
 
   - name: Stop PRU1
-    command: echo "stop" > /sys/class/remoterproc/remoteproc2/state
+    command: echo "stop" > /sys/class/remoteproc/remoteproc2/state
 
   - name: Build and install kernel module
     make:
