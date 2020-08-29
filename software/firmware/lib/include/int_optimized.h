@@ -1,9 +1,5 @@
-//
-// Created by ingmo on 26.08.2020.
-//
-
-#ifndef PRU1_INT_OPTIMIZED_H
-#define PRU1_INT_OPTIMIZED_H
+#ifndef INT_OPTIMIZED_H
+#define INT_OPTIMIZED_H
 
 #include <stdint.h>
 
@@ -29,4 +25,4 @@ const int16_ft cint16f_1 = 1;
 const int8_ft  cint8f_1 = 1;
 */
 
-#endif //PRU1_INT_OPTIMIZED_H
+#endif //INT_OPTIMIZED_H
