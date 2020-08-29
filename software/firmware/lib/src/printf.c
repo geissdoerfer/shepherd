@@ -33,7 +33,7 @@
 #include "printf.h"
 #include "int_optimized.h"
 
-typedef void (*putcf) (void*, uint8_t);
+typedef void (*putcf) (void*, uint8_t);  // TODO: despite the datasheet char does not seem to be uint32_t on PRU, so it seems we need to go back
 
 static void uint_to_ascii(uint32_t number, const uint32_t base, const bool_ft upper_case, uint8_t * buf)
 	{
