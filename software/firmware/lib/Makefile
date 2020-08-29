@@ -69,7 +69,7 @@ CFLAGS += --issue_remarks --display_error_number
 # -O4 -> link time optimization, 30-40% smaller code
 
 #Linker flags (Defined in 'PRU Optimizing C/C++ Compiler User's Guide)
-LFLAGS=--reread_libs --warn_sections --stack_size=$(STACK_SIZE) --heap_size=$(HEAP_SIZE)
+LFLAGS=--reread_libs --warn_sections --stack_size=$(STACK_SIZE) --heap_size=$(HEAP_SIZE) #--ram_model
 
 TARGET=$(GEN_DIR)/pru$(PRU_NUM)-$(FW_NAME).out
 MAP=$(GEN_DIR)/pru$(PRU_NUM)-$(FW_NAME).map
