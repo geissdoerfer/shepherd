@@ -54,8 +54,16 @@ HEAP_SIZE=0x100
 GEN_DIR=gen
 
 #Common compiler and linker flags (Defined in 'PRU Optimizing C/C++ Compiler User's Guide)
-CFLAGS = -v3 -O2 --display_error_number  --endian=little --hardware_mac=on --obj_directory=$(GEN_DIR) --pp_directory=$(GEN_DIR) -ppd -ppa --c99
-CFLAGS += --issue_remarks --float_operations_allowed=none # --fp_mode=relaxed
+# PRU-Hardware
+CFLAGS = -v3 --endian=little --hardware_mac=on
+# Compile Options
+CFLAGS += --c99 --float_operations_allowed=none --symdebug:none --plain_char=unsigned --fp_mode=relaxed
+CFLAGS += --obj_directory=$(GEN_DIR) --pp_directory=$(GEN_DIR) -ppd -ppa
+# Compile Optimization
+CFLAGS += -O4
+# Compile Feedback
+CFLAGS += --issue_remarks --display_error_number
+
 # -O2 -> default for shepherd
 # -O3 ->
 # -O4 -> link time optimization, 30-40% smaller code
