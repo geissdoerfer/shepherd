@@ -108,10 +108,10 @@ regs Kusti, 23.10.2004
 
 #include <stdarg.h>
 
-void putcp(void* p, char c);
-void tfp_sprintf(uint8_t* s, char *fmt, ...);
+void put_copy(void* dst_ptr, uint8_t character);
+void tfp_sprintf(uint8_t* dst_ptr, uint8_t *src_ptr, ...);
 
-void tfp_format(void* putp, void (*putf) (void*, char), char *fmt, va_list va);
+void tfp_format(void* dst_ptr, void (*put_fn) (void*, uint8_t), const uint8_t *src_ptr, va_list va);
 
 #define sprintf tfp_sprintf
 

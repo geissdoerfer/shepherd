@@ -57,18 +57,18 @@ void rpmsg_putraw(const void *const data, const uint32_t len)
 	pru_rpmsg_send(&transport, RPMSG_SRC, RPMSG_DST, data, len);
 }
 
-void rpmsg_printf(char * fmt, ...)  // TODO: fmt should be const char *const, but underlying fn don't allow atm
+void rpmsg_printf(const uint8_t * fmt, ...)  // TODO: fmt should be const char *const, but underlying fn don't allow atm
 {
 	va_list va;
 	va_start(va,fmt);
-    uint8_t * s = print_buffer;
-	tfp_format(&s, putcp, fmt, va);
-	putcp(&s, 0);
-	rpmsg_putraw(print_buffer, strlen((char*)print_buffer) + 1);
+    uint8_t * dst_ptr = print_buffer;
+    tfp_format(&dst_ptr, put_copy, fmt, va);
+    put_copy(&dst_ptr, 0U);
+	rpmsg_putraw(print_buffer, strlen((char*)print_buffer) + 1U);
 	va_end(va);
 }
 
-void rpmsg_init(const char *const chan_name)
+void rpmsg_init(const uint8_t *const chan_name)
 {
 	/* Clear the status of the PRU-ICSS system event that the ARM will use to 'kick' us */
 	CT_INTC.SICR_bit.STS_CLR_IDX = FROM_ARM_HOST;
@@ -88,7 +88,7 @@ void rpmsg_flush()
 {
 	uint16_t src, dst, len;
 	while(pru_rpmsg_receive(&transport, &src, &dst, print_buffer, &len) == PRU_RPMSG_SUCCESS){};
-	CT_INTC.SECR0 |= (1 << FROM_ARM_HOST);
+	CT_INTC.SECR0 |= (1U << FROM_ARM_HOST);
 }
 
 int32_t rpmsg_get(uint8_t *const buffer)

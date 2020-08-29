@@ -31,123 +31,123 @@
 
 #include "stdint.h"
 #include "printf.h"
+#include "int_optimized.h"
 
-typedef void (*putcf) (void*, char);
+typedef void (*putcf) (void*, uint8_t);
 
-static void ui2a(uint32_t num, const uint32_t base, const int32_t uc, uint8_t * bf)
+static void uint_to_ascii(uint32_t number, const uint32_t base, const bool_ft upper_case, uint8_t * buf)
 	{
-	int32_t n=0;
-	uint32_t d=1;
-	while (num/d >= base)
-		d*=base;
-	while (d!=0) {
-		int32_t dgt = num / d;
-		num%= d;
-		d/=base;
-		if (n || dgt>0 || d==0) {
-			*bf++ = dgt+(dgt<10 ? '0' : (uc ? 'A' : 'a')-10);
-			++n;
+	uint32_t num = number;
+    int32_t digit_count=0;
+	uint32_t base_pwr=1;
+	while (num/base_pwr >= base) // TODO: if numbers are transferred often, the division could be replaced by a LUT
+        base_pwr*=base;
+	while (base_pwr!=0) {
+		const uint32_t digit = num / base_pwr;
+        num -= base_pwr; // NOTE: replaced expensive modulo, not needed here
+        base_pwr/=base;
+		if (digit_count || digit>0 || base_pwr==0) {
+			*buf++ = digit+(digit<10 ? '0' : (upper_case ? 'A' : 'a')-10);
+			++digit_count;
 			}
 		}
-	*bf=0;
+	*buf=0;
 	}
 
-static void i2a (int32_t num, uint8_t * bf)
+static void int_to_ascii(const int32_t number, uint8_t * buf)
 	{
-	if (num<0) {
-		num=-num;
-		*bf++ = '-';
+	uint32_t num;
+    if (number<0) {
+        num=(uint32_t)-number;
+		*buf++ = '-';
 		}
-	ui2a(num,10,0,bf);
+    else num = (uint32_t)number;
+	uint_to_ascii(num, 10U, 0U, buf);
 	}
 
-static int32_t a2d(const uint8_t ch)
+static uint8_ft ascii_to_digit(const uint8_t character)
 	{
-	if (ch>='0' && ch<='9')
-		return ch-'0';
-	else if (ch>='a' && ch<='f')
-		return ch-'a'+10;
-	else if (ch>='A' && ch<='F')
-		return ch-'A'+10;
-	else return -1;
+	if (character>='0' && character<='9')
+		return (character - '0');
+	else if (character>='a' && character<='f')
+		return (character - 'a' + 10);
+	else if (character>='A' && character<='F')
+		return (character - 'A' + 10);
+	else return 255U;
 	}
 
-static uint8_t a2i(uint8_t ch, char**const src, const int32_t base, int32_t *const nump)
+static uint8_t ascii_to_uint(const uint8_t character, const uint8_t**const src, const uint32_t base, uint32_t *const number_ptr)
 	{
-    char* p= *src;
-	int32_t num=0;
-	int32_t digit;
-	while ((digit=a2d(ch))>=0) {
-		if (digit>base) break;
-		num=num*base+digit;
-		ch=*p++;
+    uint8_t ch = character;
+    const uint8_t* src_ptr= *src;
+	uint32_t number=0;
+	uint32_t digit;
+	while ((digit = ascii_to_digit(ch)) < 255U) {
+		if (digit > base) break;
+        number=number*base+digit;
+        ch=*src_ptr++;
 		}
-	*src=p;
-	*nump=num;
+	*src=src_ptr;
+	*number_ptr=number;
 	return ch;
 	}
 
-static void putchw(void* putp, putcf putf, int32_t n, uint8_t z, uint8_t* bf)
+// looks like "put character with left padding", padding is zero or spaces
+static void put_chw(void* put_ptr, putcf put_fn, uint32_t ch_count, const uint8_t zero, const uint8_t * ch_buf)
 	{
-    uint8_t fc=z? '0' : ' ';
+    uint8_t fill_char= zero ? '0' : ' ';
     uint8_t ch;
-    uint8_t* p=bf;
-	while (*p++ && n > 0)
-		n--;
-	while (n-- > 0)
-		putf(putp,fc);
-	while ((ch= *bf++))
-		putf(putp,ch);
+    const uint8_t* buf_ptr = ch_buf;
+	while (*buf_ptr++ && ch_count > 0)
+		ch_count--;
+	while (ch_count-- > 0)
+		put_fn(put_ptr,fill_char);
+	while ((ch= *ch_buf++))
+		put_fn(put_ptr,ch);
 	}
 
-void tfp_format(void* putp, putcf putf, char *fmt, va_list va)
+void tfp_format(void* dst_ptr, putcf put_fn, const uint8_t *src_ptr, va_list va)
 	{
-    uint8_t bf[12];
-    uint8_t ch;
+    uint8_t buffer[12];
+    uint8_t character;
 
-	while ((ch=*(fmt++))) {
-		if (ch!='%')
-			putf(putp,ch);
+	while ((character=*(src_ptr++)) > 0) {
+		if (character!='%')
+			put_fn(dst_ptr,character);
 		else {
-            uint8_t lz=0;
-			int32_t w=0;
-			ch=*(fmt++);
-			if (ch=='0') {
-				ch=*(fmt++);
-				lz=1;
+            uint8_t lzero=0;
+			uint32_t w=0;   // TODO: there is something off. w is like width (ch_count) in put_chw, but is a real number coming from ascii_to_uint()
+            character=*(src_ptr++);
+			if (character=='0') {
+                character=*(src_ptr++);
+                lzero=1;
 				}
-			if (ch>='0' && ch<='9') {
-				ch=a2i(ch,&fmt,10,&w);
+			if (character>='0' && character<='9') {
+                character= ascii_to_uint(character, &src_ptr, 10U, &w);
 				}
 
-			switch (ch) {
+			switch (character) {
 				case 0:
 					goto abort;
-				case 'u' : {
-
-					ui2a(va_arg(va, uint32_t),10,0,bf);
-					putchw(putp,putf,w,lz,bf);
+				case 'u' :
+				    uint_to_ascii(va_arg(va, uint32_t), 10U, 0U, buffer);
+                    put_chw(dst_ptr, put_fn, w, lzero, buffer);
 					break;
-					}
-				case 'd' :  {
-
-					i2a(va_arg(va, int32_t),bf);
-					putchw(putp,putf,w,lz,bf);
+				case 'd' :
+				    int_to_ascii(va_arg(va, int32_t), buffer);
+                    put_chw(dst_ptr, put_fn, w, lzero, buffer);
 					break;
-					}
 				case 'x': case 'X' :
-
-					ui2a(va_arg(va, uint32_t),16,(ch=='X'),bf);
-					putchw(putp,putf,w,lz,bf);
+				    uint_to_ascii(va_arg(va, uint32_t), 16U, (character=='X'), buffer);
+                    put_chw(dst_ptr, put_fn, w, lzero, buffer);
 					break;
 				case 'c' :
-					putf(putp,(uint8_t)(va_arg(va, int32_t)));
+					put_fn(dst_ptr,(uint8_t)(va_arg(va, int32_t)));
 					break;
-				case 's' :
-					putchw(putp,putf,w,0,va_arg(va, uint8_t*));
+				case 's' : put_chw(dst_ptr, put_fn, w, 0U, va_arg(va, uint8_t*));
 					break;
 				case '%' :
-					putf(putp,ch);
+					put_fn(dst_ptr,character);
 				default:
 					break;
 				}
@@ -157,18 +157,18 @@ void tfp_format(void* putp, putcf putf, char *fmt, va_list va)
 	}
 
 
-void putcp(void* p, const char character)
+void put_copy(void* dst_ptr, const uint8_t character)
 	{
-	*(*((char**)p))++ = character;
+	*(*((char**)dst_ptr))++ = character;
 	}
 
 
 
-void tfp_sprintf(uint8_t* s, char *fmt, ...)
+void tfp_sprintf(uint8_t* dst_ptr, uint8_t *src_ptr, ...)
 	{
 	va_list va;
-	va_start(va,fmt);
-	tfp_format(&s,putcp,fmt,va);
-	putcp(&s,0);
+	va_start(va,src_ptr);
+        tfp_format(&dst_ptr, put_copy, src_ptr, va);
+        put_copy(&dst_ptr, 0U);
 	va_end(va);
 	}
