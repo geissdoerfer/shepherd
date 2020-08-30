@@ -12,7 +12,7 @@
 
 #include "commons.h"
 #include "shepherd_config.h"
-#include "int_optimized.h"
+#include "stdint_optimized.h"
 
 /* The Arm to Host interrupt for the timestamp event is mapped to Host interrupt 0 -> Bit 30 (see resource_table.h) */
 #define HOST_INT_TIMESTAMP (1U << 30U)
@@ -91,12 +91,13 @@ static inline void check_gpio(volatile struct SharedMem *const shared_mem,
 
 	prev_gpio_status = now_status;
 
-	// TODO: reading from ram is slow, idx should be stored locally, potentially unsafe,
-	/* Each buffer can only store a limited number of events */
-	if (shared_mem->gpio_edges->idx >= MAX_GPIO_EVT_PER_BUFFER)
-		return;
+	if (diff > 0)
+	{
+        // TODO: reading from ram/far is slow, idx should be stored locally, potentially unsafe,
+        const uint32_t cIDX = shared_mem->gpio_edges->idx; // reduces reads to far-ram to current minimum
+        /* Each buffer can only store a limited number of events */
+        if (cIDX >= MAX_GPIO_EVT_PER_BUFFER) return;
 
-	if (diff > 0) {
 		/* Ticks since we've taken the last sample */
 		const uint32_t ticks_since_last_sample = CT_IEP.TMR_CNT - last_sample_ticks;
 
@@ -107,9 +108,9 @@ static inline void check_gpio(volatile struct SharedMem *const shared_mem,
 		const uint64_t gpio_timestamp = current_timestamp_ns + last_sample_ns + TIMER_TICK_NS * ticks_since_last_sample;
 
 		simple_mutex_enter(&shared_mem->gpio_edges_mutex);
-        shared_mem->gpio_edges->timestamp_ns[shared_mem->gpio_edges->idx] =	gpio_timestamp;
-        shared_mem->gpio_edges->bitmask[shared_mem->gpio_edges->idx] = (uint8_t)now_status;
-        shared_mem->gpio_edges->idx += 1;
+        shared_mem->gpio_edges->timestamp_ns[cIDX] = gpio_timestamp;
+        shared_mem->gpio_edges->bitmask[cIDX] = (uint8_t)now_status;
+        shared_mem->gpio_edges->idx = cIDX + 1;
 		simple_mutex_exit(&shared_mem->gpio_edges_mutex);
 	}
 }
@@ -192,7 +193,12 @@ int32_t event_loop(volatile struct SharedMem *const shared_mem)
 
 	while (1) {
         // TODO: take timestamp here and do statistics, min, max, mean
+        _GPIO_ON(DEBUG_P1);
 	    check_gpio(shared_mem, current_timestamp_ns, sample_counter, last_sample_ticks);
+        _GPIO_OFF(DEBUG_P1);
+
+        // optimization because same far-register is read twice, event 2 & 3
+        const uint32_t iep_tmr_cmp_sts = iep_get_tmr_cmp_sts();
 
 		/* Check for timer interrupt from Linux host [Event1] */
 		if (read_r31() & HOST_INT_TIMESTAMP) {
@@ -208,10 +214,8 @@ int32_t event_loop(volatile struct SharedMem *const shared_mem)
 			/* Prepare and send control request to Linux host */
 			ctrl_req.old_period = CT_IEP.TMR_CMP0;
 
-			if (sync_state == WAIT_HOST_INT)
-				sync_state = REQUEST_PENDING;
-			else if (sync_state == IDLE)
-				sync_state = WAIT_IEP_WRAP;
+			if (sync_state == WAIT_HOST_INT)    sync_state = REQUEST_PENDING;
+			else if (sync_state == IDLE)        sync_state = WAIT_IEP_WRAP;
 			else {
                 fault_handler(shared_mem->shepherd_state,(uint8_t*)"Wrong state at host interrupt");
                 return 0;
@@ -219,11 +223,12 @@ int32_t event_loop(volatile struct SharedMem *const shared_mem)
 
 		}
 		/* Timer compare 0 handle [Event 2] */
-		if (iep_check_evt_cmp(IEP_CMP0)) {
+		else if (iep_check_evt_cmp_fast(iep_tmr_cmp_sts, IEP_CMP0))
+		{
 			/* Tell PRU0 to take the first sample of this block */
 			INTC_TRIGGER_EVENT(PRU_PRU_EVT_SAMPLE);
 			/* Clear Timer Compare 0 */
-			iep_clear_evt_cmp(IEP_CMP0);
+			iep_clear_evt_cmp(IEP_CMP0); // CT_IEP.TMR_CMP_STS.bit0
 
 			_GPIO_ON(DEBUG_P1);
 			_GPIO_ON(DEBUG_P0);
@@ -234,15 +239,12 @@ int32_t event_loop(volatile struct SharedMem *const shared_mem)
 			iep_enable_evt_cmp(IEP_CMP1);
 
 			last_sample_ticks = 0;
-			if (sync_state == WAIT_IEP_WRAP)
-				sync_state = REQUEST_PENDING;
-			else if (sync_state == IDLE)
-				sync_state = WAIT_HOST_INT;
+			if (sync_state == WAIT_IEP_WRAP)    sync_state = REQUEST_PENDING;
+			else if (sync_state == IDLE)        sync_state = WAIT_HOST_INT;
 			else {
                 fault_handler(shared_mem->shepherd_state, (uint8_t*)"Wrong state at timer wrap");
                 return 0;
             }
-
 
 			/* With wrap, we'll use next timestamp as base for GPIO timestamps */
 			current_timestamp_ns = shared_mem->next_timestamp_ns;
@@ -250,7 +252,8 @@ int32_t event_loop(volatile struct SharedMem *const shared_mem)
 			_GPIO_OFF(DEBUG_P0);
 		}
 		/* Timer compare 1 handle [Event 3] */
-		if (iep_check_evt_cmp(IEP_CMP1)) {
+		else if (iep_check_evt_cmp_fast(iep_tmr_cmp_sts, IEP_CMP1))
+		{
 			if (++sample_counter == SAMPLES_PER_BUFFER) {
 				/* Tell PRU0 to take the last sample in this block */
 				INTC_TRIGGER_EVENT(PRU_PRU_EVT_BLOCK_END);
@@ -314,6 +317,7 @@ int32_t event_loop(volatile struct SharedMem *const shared_mem)
 		}
 	}
 }
+
 void main(void)
 {
     volatile struct SharedMem *const shared_mememory =
