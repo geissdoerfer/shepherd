@@ -21,6 +21,8 @@ void iep_reset();
 inline void iep_start();
 inline void iep_stop();
 inline bool_ft iep_check_evt_cmp(uint8_ft compare_channel);
+inline uint32_t iep_get_tmr_cmp_sts();
+inline uint32_t iep_check_evt_cmp_fast(uint32_t tmr_cmp_sts, uint8_ft compare_channel);
 inline void iep_clear_evt_cmp(uint8_ft compare_channel);
 inline void iep_enable_evt_cmp(uint8_ft compare_channel);
 inline void iep_disable_evt_cmp(uint8_ft compare_channel);
