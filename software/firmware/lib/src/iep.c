@@ -43,6 +43,17 @@ inline bool_ft iep_check_evt_cmp(const uint8_ft compare_channel)
     return (CT_IEP.TMR_CMP_STS & (1U << compare_channel)) ? (bool_ft)1 : (bool_ft)0;
 }
 
+// allow to build external, faster iep_check_evt_cmp, for when this fn is called more often in a loop
+inline uint32_t iep_get_tmr_cmp_sts()
+{
+    return CT_IEP.TMR_CMP_STS;
+}
+
+inline uint32_t iep_check_evt_cmp_fast(const uint32_t tmr_cmp_sts, const uint8_ft compare_channel)
+{
+    return (tmr_cmp_sts & (1U << compare_channel));
+}
+
 inline void iep_clear_evt_cmp(const uint8_ft compare_channel)
 {
 	CT_IEP.TMR_CMP_STS |= (1U << compare_channel);
