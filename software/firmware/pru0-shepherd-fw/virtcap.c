@@ -4,7 +4,7 @@
 #include "commons.h"
 #include "gpio.h"
 #include "hw_config.h"
-#include "int_optimized.h"
+#include "stdint_optimized.h"
 
 /* ---------------------------------------------------------------------
  * VirtCap

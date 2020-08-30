@@ -2,7 +2,7 @@
 #define __SIMPLE_LOCK_H_
 
 #include <stdint.h>
-#include "int_optimized.h"
+#include "stdint_optimized.h"
 
 typedef struct {
     bool_ft lock_pru0;

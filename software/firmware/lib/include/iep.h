@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 #include <stdbool.h>
-#include "int_optimized.h"
+#include "stdint_optimized.h"
 
 #define IEP_CMP0    0U
 #define IEP_CMP1    1U

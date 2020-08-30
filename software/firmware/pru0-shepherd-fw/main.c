@@ -7,7 +7,7 @@
 #include <pru_intc.h>
 #include <rsc_types.h>
 
-#include "int_optimized.h"
+#include "stdint_optimized.h"
 #include "gpio.h"
 #include "intc.h"
 #include "resource_table_def.h"

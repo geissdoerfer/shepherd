@@ -5,6 +5,8 @@
 
   vars:
     shepherd_install_path: /opt/shepherd
+    # pru_support_path: '{{ ti_path }}/{{ pru_support_package }}'
+    pru_support_path: '{{ shepherd_install_path }}/software/firmware/_pssp57g' # TODO: just for debug
 
   vars_prompt:
     # these can be also passed as argument:  -e "refresh_source=True"
@@ -34,19 +36,29 @@
       target: clean
     environment:
       PRU_CGT: '{{ pru_cgt_path }}'
-      PRU_SUPPORT: '{{ ti_path }}/{{ pru_support_package }}'
-      #PRU_SUPPORT: '{{ shepherd_install_path }}/software/firmware/_pssp57g' # TODO: just for debug
+      PRU_SUPPORT: '{{ pru_support_path }}'
     with_items:
       - pru0
       - pru1
 
-  - name: Build and install PRU firmware
+  - name: Build PRU firmware
+    make:
+      chdir: "{{ shepherd_install_path }}/software/firmware/{{ item }}-shepherd-fw"
+      target: all
+    environment:
+      PRU_CGT: '{{ pru_cgt_path }}'
+      PRU_SUPPORT: '{{ pru_support_path }}'
+    with_items:
+      - pru0
+      - pru1
+
+  - name: install PRU firmware
     make:
       chdir: "{{ shepherd_install_path }}/software/firmware/{{ item }}-shepherd-fw"
       target: install
     environment:
       PRU_CGT: '{{ pru_cgt_path }}'
-      PRU_SUPPORT: '{{ ti_path }}/{{ pru_support_package }}'
+      PRU_SUPPORT: '{{ pru_support_path }}'
     with_items:
       - pru0
       - pru1

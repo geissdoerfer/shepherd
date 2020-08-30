@@ -4,7 +4,7 @@
 
 #include "simple_lock.h"
 #include "shepherd_config.h"
-#include "int_optimized.h"
+#include "stdint_optimized.h"
 
 
 #define HOST_PRU_EVT_TIMESTAMP          20U

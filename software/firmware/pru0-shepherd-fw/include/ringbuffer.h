@@ -1,7 +1,7 @@
 #ifndef RINGBUFFER_H_
 #define RINGBUFFER_H_
 
-#include "int_optimized.h"
+#include "stdint_optimized.h"
 
 #define RING_SIZE   64U
 

@@ -31,7 +31,7 @@
 
 #include "stdint.h"
 #include "printf.h"
-#include "int_optimized.h"
+#include "stdint_optimized.h"
 
 typedef void (*putcf) (void*, uint8_t);  // TODO: despite the datasheet char does not seem to be uint32_t on PRU, so it seems we need to go back
 
