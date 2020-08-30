@@ -56,11 +56,17 @@ MEMORY
 	UART1			: org = 0x48022000 len = 0x00000088	CREGISTER=11
 	UART2			: org = 0x48024000 len = 0x00000088	CREGISTER=12
 
-	RSVD10			: org = 0x48318000 len = 0x00000100	CREGISTER=10
+    /* TODO: disabled rsvd-regs below and borrowed their creg */
+	GPIO0           : org = 0x44E07000 len = 0x00000198 CREGISTER=10
+/*  GPIO0RSVD       : org = 0x44E08000 len = 0x00000198 CREGISTER=*/
+    GPIO1           : org = 0x4804C000 len = 0x00000198 CREGISTER=13
+/*  GPIO1RSVD       : org = 0x4804D000 len = 0x00000198 CREGISTER=*/
+
+/*	RSVD10			: org = 0x48318000 len = 0x00000100	CREGISTER=10
 	RSVD13			: org = 0x48310000 len = 0x00000100	CREGISTER=13
 	RSVD21			: org = 0x00032400 len = 0x00000100	CREGISTER=21
 	RSVD27			: org = 0x00032000 len = 0x00000100	CREGISTER=27
-
+*/
 }
 
 /* Specify the sections allocation into memory */
