@@ -277,8 +277,7 @@ int32_t event_loop(volatile struct SharedMem *const shared_mem)
 
 			/* If we are waiting for a reply from Linux kernel module */
 			if (sync_state == REPLY_PENDING) {
-                _GPIO_ON(DEBUG_P0);
-                _GPIO_ON(DEBUG_P1);
+                _GPIO_ON(DEBUG_P0 | DEBUG_P1);
 				if (check_control_reply(shared_mem->shepherd_state, ctrl_rep) > 0) {
                     uint32_t block_period;
 					/* The new timer period is the base period plus the correction calculated by the controller */
@@ -302,8 +301,7 @@ int32_t event_loop(volatile struct SharedMem *const shared_mem)
 					shared_mem->next_timestamp_ns =
 						ctrl_rep->next_timestamp_ns;
 				}
-                _GPIO_OFF(DEBUG_P0);
-                _GPIO_OFF(DEBUG_P1);
+                _GPIO_OFF(DEBUG_P0 | DEBUG_P1);
 			} else if (sync_state == REQUEST_PENDING) {
 				rpmsg_putraw(&ctrl_req, sizeof(struct CtrlReqMsg));
 
