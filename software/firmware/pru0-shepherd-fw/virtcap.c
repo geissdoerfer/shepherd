@@ -115,14 +115,11 @@ void virtcap_init(struct VirtCapSettings *const vcap_arg,
 	lookup_init();
 }
 
-void virtcap_update(int32_t output_current, int32_t output_voltage,
+void virtcap_update(int32_t output_current, const int32_t output_voltage,
 		    const int32_t input_current, const int32_t input_voltage) // TODO: why is out-volt not used?
 {
-	int32_t input_efficiency;
-	int32_t output_efficiency;
-
-	output_efficiency = lookup(vcap_cfg.lookup_output_efficiency, output_current);
-	input_efficiency = lookup(vcap_cfg.lookup_input_efficiency, input_current);
+    const int32_t output_efficiency = lookup(vcap_cfg.lookup_output_efficiency, output_current);
+    const int32_t input_efficiency = lookup(vcap_cfg.lookup_input_efficiency, input_current);
 
 	/* Calculate current (cin) flowing into the storage capacitor */
 	const int32_t input_power = input_current * input_voltage;
@@ -164,8 +161,7 @@ void virtcap_update(int32_t output_current, int32_t output_voltage,
 		} else if (!is_outputting &&(new_cap_voltage > vcap_cfg.upper_threshold_voltage)) {
 			is_outputting = 1U; // we have enough voltage to switch on again
             virtcap_set_output_state(1U);
-			new_cap_voltage = (new_cap_voltage >> 10) *
-					  outputcap_scale_factor;
+			new_cap_voltage = (new_cap_voltage >> 10) * outputcap_scale_factor;
 		}
 	}
 
