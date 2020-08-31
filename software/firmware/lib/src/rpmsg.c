@@ -91,13 +91,13 @@ void rpmsg_flush()
 	CT_INTC.SECR0 |= (1U << FROM_ARM_HOST);
 }
 
-int32_t rpmsg_get(uint8_t *const buffer)
+uint32_t rpmsg_get(uint8_t *const buffer)
 {
 	uint16_t src, dst, len;
-	int32_t ret = pru_rpmsg_receive(&transport, &src, &dst, buffer, &len);
+	const int32_t ret = pru_rpmsg_receive(&transport, &src, &dst, buffer, &len);
 	if(ret != PRU_RPMSG_SUCCESS)
 	{
-		return ret;
+		return 0U; // NOTE: this was returning (int ret), but its not useful, and expensive
 	}
-	return (int32_t) len;
+	return len;
 }

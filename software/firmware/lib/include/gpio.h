@@ -12,7 +12,7 @@ volatile register uint32_t __R31;
 #define write_r31(x)    __R31 = x
 #endif
 
-#if defined(PRU0)
+#if defined(PRU0) // TODO: would be more useful when already shifted
 
     #define P8_11   15U
     #define P8_12   14U
