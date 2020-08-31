@@ -71,9 +71,9 @@
       __overlay__ {
          bb_shprd_pins: pinmux_bb_shprd_pins {
             pinctrl-single,pins = <
-            /* TODO: could be translated to format (better human readable)
-                AM33XX_IOPAD(0x0834, PIN_OUTPUT_PULLDOWN | INPUT_EN | MUX_MODE7)
-                BONE_P8_11 MUX_MODE6
+            /* TODO: could be translated to format (better human readable)          */
+            /*  AM33XX_IOPAD(0x0834, PIN_OUTPUT_PULLDOWN | INPUT_EN | MUX_MODE7)    */
+            /*  BONE_P8_11 MUX_MODE6                                                */
             0x034 0x06  /* P8.11, pr1_pru0_pru_r30_15 */
             0x030 0x06  /* P8.12, pr1_pru0_pru_r30_14 */
             0x024 0x07  /* P8.13, gpio0[23] */
