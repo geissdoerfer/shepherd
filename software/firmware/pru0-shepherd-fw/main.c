@@ -35,7 +35,7 @@ static void send_message(const uint32_t msg_id, const uint32_t value)
 
 uint32_t handle_block_end(volatile struct SharedMem *const shared_mem,
         struct RingBuffer *const free_buffers_ptr,
-		struct SampleBuffer *const buffers,
+		struct SampleBuffer *const buffers_far,
 		const uint32_t current_buffer_idx,
         const uint32_t sample_idx)
 {
@@ -45,19 +45,10 @@ uint32_t handle_block_end(volatile struct SharedMem *const shared_mem,
 	/* Lock access to gpio_edges structure to avoid inconsistency */
 	simple_mutex_enter(&shared_mem->gpio_edges_mutex);
 
-	/* If we currently have a valid buffer, return it to host */
-	if (current_buffer_idx != NO_BUFFER) {
-		if (sample_idx != SAMPLES_PER_BUFFER)
-			send_message(MSG_DEP_ERR_INCMPLT, sample_idx);
-
-		(buffers + current_buffer_idx)->len = sample_idx;
-		send_message(MSG_DEP_BUF_FROM_PRU, current_buffer_idx);
-	}
-
 	/* Fetch new buffer from ring */
 	if (ring_get(free_buffers_ptr, &tmp_idx) > 0) {
-		next_buffer_idx = (unsigned int)tmp_idx;
-        struct SampleBuffer *const next_buffer = buffers + next_buffer_idx;
+		next_buffer_idx = (uint32_t)tmp_idx;
+        struct SampleBuffer *const next_buffer = buffers_far + next_buffer_idx;
 		next_buffer->timestamp_ns = shared_mem->next_timestamp_ns;
 		next_buffer->gpio_edges.idx = 0;
 		shared_mem->gpio_edges = &next_buffer->gpio_edges;
@@ -67,10 +58,22 @@ uint32_t handle_block_end(volatile struct SharedMem *const shared_mem,
 		send_message(MSG_DEP_ERR_NOFREEBUF, 0);
 	}
 	simple_mutex_exit(&shared_mem->gpio_edges_mutex);
+    _GPIO_OFF(USR_LED1);
+
+    /* If we currently have a valid buffer, return it to host */
+    // NOTE: this part came right after muter_enter, but it can wait and only blocks pru1 (5/6 of workload in this fn)
+    if (current_buffer_idx != NO_BUFFER) {
+        if (sample_idx != SAMPLES_PER_BUFFER)
+            send_message(MSG_DEP_ERR_INCMPLT, sample_idx);
+
+        (buffers_far + current_buffer_idx)->len = sample_idx;
+        send_message(MSG_DEP_BUF_FROM_PRU, current_buffer_idx);
+    }
 
 	return next_buffer_idx;
 }
 
+// fn emits a 0 on error, 1 on success
 bool_ft handle_rpmsg(struct RingBuffer *const free_buffers_ptr, const enum ShepherdMode mode,
 		 const enum ShepherdState state)
 {
@@ -84,8 +87,6 @@ bool_ft handle_rpmsg(struct RingBuffer *const free_buffers_ptr, const enum Sheph
 	 */
 	if (rpmsg_get((void *)&msg_in) != sizeof(struct DEPMsg))
 		return 1U;
-
-	_GPIO_TOGGLE(USR_LED1);
 
 	if ((mode == MODE_DEBUG) && (state == STATE_RUNNING)) {
         uint32_t res;
@@ -116,17 +117,17 @@ bool_ft handle_rpmsg(struct RingBuffer *const free_buffers_ptr, const enum Sheph
 
 void event_loop(volatile struct SharedMem *const shared_mem,
 		struct RingBuffer *const free_buffers_ptr,
-		struct SampleBuffer *const buffers)
+		struct SampleBuffer *const buffers_far)
 {
     uint32_t sample_idx = 0;
-    uint32_t buffer_idx = NO_BUFFER;
+    uint32_t ring_buf_idx = NO_BUFFER;
     static enum int_source_e { SIG_SAMPLE, SIG_BLOCK_END } int_source;
 
 	enum ShepherdMode shepherd_mode = (enum ShepherdMode)shared_mem->shepherd_mode;
 
 	while (1) {
 		/* Check if a sample was triggered by PRU1 */
-		if (read_r31() & (1U << 31)) {
+		if (read_r31() & (1U << 31U)) {
 			/* Important: We have to clear the interrupt here, to avoid missing interrupts */
 			if (INTC_CHECK_EVENT(PRU_PRU_EVT_BLOCK_END)) {
 				int_source = SIG_BLOCK_END;
@@ -139,32 +140,32 @@ void event_loop(volatile struct SharedMem *const shared_mem,
 			}
 
 			/* The actual sampling takes place here */
-			if (buffer_idx != NO_BUFFER) {
-				sample(buffers + buffer_idx, sample_idx++, shepherd_mode);
+			if (ring_buf_idx != NO_BUFFER) {
+			    _GPIO_ON(DEBUG_P0);
+				sample(buffers_far + ring_buf_idx, sample_idx++, shepherd_mode);
+                _GPIO_OFF(DEBUG_P0);
 			}
 
 			if (int_source == SIG_BLOCK_END) {
 				/* Did the Linux kernel module ask for reset? */
-				if (shared_mem->shepherd_state == STATE_RESET) {
-					return;
-				}
+				if (shared_mem->shepherd_state == STATE_RESET) return;
+                _GPIO_ON(DEBUG_P0 | USR_LED1);
 
 				/* We try to exchange a full buffer for a fresh one if we are running */
-				if ((shared_mem->shepherd_state ==
-				     STATE_RUNNING) &&
+				if ((shared_mem->shepherd_state == STATE_RUNNING) &&
 				    (shared_mem->shepherd_mode != MODE_DEBUG))
-					buffer_idx = handle_block_end(shared_mem, free_buffers_ptr, buffers, buffer_idx, sample_idx);
+                    ring_buf_idx = handle_block_end(shared_mem, free_buffers_ptr, buffers_far, ring_buf_idx, sample_idx);
 
 				sample_idx = 0;
-				_GPIO_OFF(USR_LED1);
+				_GPIO_OFF(DEBUG_P0 | USR_LED1);
 			}
 			/* We only handle rpmsg comms if we're not at the last sample */
 			else {
+                _GPIO_ON(USR_LED1);
 				handle_rpmsg(free_buffers_ptr,
-					     (enum ShepherdMode)
-						     shared_mem->shepherd_mode,
-					     (enum ShepherdState)shared_mem
-						     ->shepherd_state);
+					     (enum ShepherdMode)shared_mem->shepherd_mode,
+					     (enum ShepherdState)shared_mem->shepherd_state);
+                _GPIO_OFF(USR_LED1);
 			}
 		}
 	}
@@ -197,7 +198,7 @@ void main(void)
 	 * This memory is requested from remoteproc via a carveout resource request
 	 * in our resourcetable
 	 */
-	struct SampleBuffer *const buffers = (struct SampleBuffer *)resourceTable.shared_mem.pa;
+	struct SampleBuffer *const buffers_far = (struct SampleBuffer *)resourceTable.shared_mem.pa;
 
 	/* Allow OCP master port access by the PRU so the PRU can read external memories */
 	CT_CFG.SYSCFG_bit.STANDBY_INIT = 0;
@@ -210,11 +211,8 @@ void main(void)
 
 	rpmsg_init((uint8_t*)"rpmsg-pru");
 
-	_GPIO_OFF(USR_LED1);
-	_GPIO_OFF(DEBUG_P0);
-
 reset:
-    _GPIO_OFF(USR_LED1);
+    _GPIO_OFF(DEBUG_P0 | USR_LED1);
 
     if (shared_mememory->shepherd_mode == MODE_VIRTCAP)
         virtcap_init((struct VirtCapSettings *)&shared_mememory->virtcap_settings,
@@ -231,6 +229,6 @@ reset:
 
     shared_mememory->shepherd_state = STATE_IDLE;
 
-    event_loop(shared_mememory, &free_buffers, buffers);
+    event_loop(shared_mememory, &free_buffers, buffers_far);
     goto reset;
 }
