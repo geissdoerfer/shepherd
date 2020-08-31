@@ -21,8 +21,8 @@
 #define DAC_CMD_OFFSET  19U
 #define DAC_ADDR_OFFSET 16U
 
-extern uint32_t adc_readwrite(const uint32_t cs_pin, const uint32_t val);
-extern void dac_write(const uint32_t cs_pin, const uint32_t val);
+extern uint32_t adc_readwrite(uint32_t cs_pin, uint32_t val);
+extern void dac_write(uint32_t cs_pin, uint32_t val);
 
 static inline void sample_harvesting(struct SampleBuffer *const buffer, const uint32_t sample_idx)
 {
@@ -35,9 +35,9 @@ static inline void sample_harvesting(struct SampleBuffer *const buffer, const ui
 static inline void sample_load(struct SampleBuffer *const buffer, const uint32_t sample_idx)
 {
 	/* Read load current and select load voltage for next reading */
-	buffer->values_current[sample_idx] = adc_readwrite(SPI_CS_ADC, MAN_CH_SLCT | (ADC_CH_V_OUT << 10));
+	buffer->values_current[sample_idx] = adc_readwrite(SPI_CS_ADC, MAN_CH_SLCT | (ADC_CH_V_OUT << 10U));
 	/* Read load voltage and select load current for next reading */
-	buffer->values_voltage[sample_idx] = adc_readwrite(SPI_CS_ADC, MAN_CH_SLCT | (ADC_CH_A_OUT << 10));
+	buffer->values_voltage[sample_idx] = adc_readwrite(SPI_CS_ADC, MAN_CH_SLCT | (ADC_CH_A_OUT << 10U));
 }
 
 static inline void sample_emulation(struct SampleBuffer *const buffer, const uint32_t sample_idx)
@@ -49,26 +49,24 @@ static inline void sample_emulation(struct SampleBuffer *const buffer, const uin
 
 	/* read the load current value from ADC to buffer and select load voltage for
    * next reading */
-	buffer->values_current[sample_idx] = adc_readwrite(SPI_CS_ADC, MAN_CH_SLCT | (ADC_CH_V_OUT << 10));
+	buffer->values_current[sample_idx] = adc_readwrite(SPI_CS_ADC, MAN_CH_SLCT | (ADC_CH_V_OUT << 10U));
 	/* read the load voltage value from ADC to buffer and select load current for
    * next reading */
-	buffer->values_voltage[sample_idx] = adc_readwrite(SPI_CS_ADC, MAN_CH_SLCT | (ADC_CH_A_OUT << 10));
+	buffer->values_voltage[sample_idx] = adc_readwrite(SPI_CS_ADC, MAN_CH_SLCT | (ADC_CH_A_OUT << 10U));
 }
 
 static inline void sample_virtcap(struct SampleBuffer *const buffer, const uint32_t sample_idx)
 {
 	struct ADCReading read;
-	static int32_t under_sample_voltage_cntr = 0;
+	static uint8_ft under_sample_voltage_cntr = 0;
 	static int32_t last_voltage_measurement = 0;
 	static int32_t last_current_measurement = 0;
 
-	int32_t input_current;
-	int32_t input_voltage;
-
 	/* Get input current/voltage from shared memory buffer */
-	input_current = buffer->values_current[sample_idx] - ((1 << 17) - 1);
-	input_voltage = buffer->values_voltage[sample_idx];
+    const int32_t input_current = buffer->values_current[sample_idx] - ((1U << 17U) - 1);
+    const int32_t input_voltage = buffer->values_voltage[sample_idx];
 
+    // TODO: time budget would allow to read both values everytime
 	if (under_sample_voltage_cntr++ == 7) {
 		under_sample_voltage_cntr = 0;
 
@@ -76,25 +74,23 @@ static inline void sample_virtcap(struct SampleBuffer *const buffer, const uint3
 		buffer->values_current[sample_idx] = last_current_measurement;
 
 		/* Read load voltage and select load current for next reading */
-		read.voltage = adc_readwrite(
-			SPI_CS_ADC, MAN_CH_SLCT | (ADC_CH_A_OUT << 10));
+		read.voltage = adc_readwrite(SPI_CS_ADC, MAN_CH_SLCT | (ADC_CH_A_OUT << 10U));
+        last_voltage_measurement = read.voltage;
 		buffer->values_voltage[sample_idx] = read.voltage;
-		last_voltage_measurement = buffer->values_voltage[sample_idx];
+
 
 	} else if (under_sample_voltage_cntr == 6) {
 		/* Read load current and select load voltage for next reading */
-		read.current = adc_readwrite(
-			SPI_CS_ADC, MAN_CH_SLCT | (ADC_CH_V_OUT << 10));
+		read.current = adc_readwrite(SPI_CS_ADC, MAN_CH_SLCT | (ADC_CH_V_OUT << 10U));
+        last_current_measurement = read.current;
 		buffer->values_current[sample_idx] = read.current;
-		last_current_measurement = buffer->values_current[sample_idx];
 
 		read.voltage = last_voltage_measurement;
 		buffer->values_voltage[sample_idx] = last_voltage_measurement;
 
 	} else {
 		/* Read load current and select load current for next reading */
-		read.current = adc_readwrite(
-			SPI_CS_ADC, MAN_CH_SLCT | (ADC_CH_A_OUT << 10U));
+		read.current = adc_readwrite(SPI_CS_ADC, MAN_CH_SLCT | (ADC_CH_A_OUT << 10U));
 		buffer->values_current[sample_idx] = read.current;
 
 		read.voltage = last_voltage_measurement;
@@ -102,6 +98,7 @@ static inline void sample_virtcap(struct SampleBuffer *const buffer, const uint3
 	}
 
 	/* Execute virtcap algorithm */
+	// TODO: routine seems broken, there is no dac-output updated, and buffer->voltage gets into fn, but is not used
 	virtcap_update(buffer->values_current[sample_idx] - ((1U << 17U) - 1U),
 		       buffer->values_voltage[sample_idx], input_current,
 		       input_voltage);
@@ -113,23 +110,28 @@ static inline void sample_virtcap(struct SampleBuffer *const buffer, const uint3
 	 */
 	if (!virtcap_get_output_state())
 		buffer->values_voltage[sample_idx] = 0U;
+
+    // TODO: probably missing part - this is completely guessed - not tested:
+    //const int32_t cap_volt_logic = voltage_mv_to_logic(cap_voltage);
+    // dac_write(SPI_CS_DAC, cap_volt_logic | DAC_CH_V_ADDR);
 }
 
-void sample(struct SampleBuffer *const current_buffer, const uint32_t sample_idx,
+void sample(struct SampleBuffer *const current_buffer_far, const uint32_t sample_idx,
 	    const enum ShepherdMode mode)
 {
-	switch (mode) {
-	case MODE_HARVESTING:
-		sample_harvesting(current_buffer, sample_idx);
+	switch (mode) // reordered to prioritize longer routines
+	{
+    case MODE_EMULATION: // ~ 686 cycles
+        sample_emulation(current_buffer_far, sample_idx);
+        break;
+    case MODE_VIRTCAP: // ~ 422 cycles, TODO: the routine is strange, seems broken
+        sample_virtcap(current_buffer_far, sample_idx);
+        break;
+	case MODE_HARVESTING: // ~ 434 cycles
+        sample_harvesting(current_buffer_far, sample_idx);
 		break;
-	case MODE_LOAD:
-		sample_load(current_buffer, sample_idx);
-		break;
-	case MODE_EMULATION:
-		sample_emulation(current_buffer, sample_idx);
-		break;
-	case MODE_VIRTCAP:
-		sample_virtcap(current_buffer, sample_idx);
+	case MODE_LOAD: // ~ 434 cycles
+		sample_load(current_buffer_far, sample_idx);
 		break;
 	default:
 	    break;
@@ -151,26 +153,23 @@ void sample_dbg_dac(const uint32_t value)
 void sampling_init(const enum ShepherdMode mode, const uint32_t harvesting_voltage)
 {
 	/* Chip-Select signals are active low */
-	_GPIO_ON(SPI_CS_ADC);
-	_GPIO_ON(SPI_CS_DAC);
-
-	_GPIO_OFF(SPI_SCLK);
-	_GPIO_OFF(SPI_MOSI);
+	_GPIO_ON(SPI_CS_ADC | SPI_CS_DAC);
+	_GPIO_OFF(SPI_SCLK | SPI_MOSI);
 
 	/* Reset all registers (see DAC8562T datasheet Table 17) */
-	dac_write(SPI_CS_DAC, (0x5 << DAC_CMD_OFFSET) | (1U << 0U));
+	dac_write(SPI_CS_DAC, (0x5u << DAC_CMD_OFFSET) | (1U << 0U));
 	__delay_cycles(12);
 
 	/* Enable internal 2.5V reference (see DAC8562T datasheet Table 17) */
-	dac_write(SPI_CS_DAC, (0x7 << DAC_CMD_OFFSET) | (1U << 0U));
+	dac_write(SPI_CS_DAC, (0x7u << DAC_CMD_OFFSET) | (1U << 0U));
 	__delay_cycles(12);
 
 	/* GAIN=2 for DAC-B and GAIN=1 for DAC-A (see DAC8562T datasheet Table 17) */
-	dac_write(SPI_CS_DAC, (0x2 << DAC_ADDR_OFFSET) | (1U << 0U));
+	dac_write(SPI_CS_DAC, (0x2u << DAC_ADDR_OFFSET) | (1U << 0U));
 	__delay_cycles(12);
 
 	/* LDAC pin inactive for DAC-B and DAC-A (see DAC8562T datasheet Table 17) */
-	dac_write(SPI_CS_DAC, (0x6 << DAC_CMD_OFFSET) | (1U << 1U) | (1U << 0U));
+	dac_write(SPI_CS_DAC, (0x6u << DAC_CMD_OFFSET) | (1U << 1U) | (1U << 0U));
 	__delay_cycles(12);
 
 	/* Range 1.25*VREF: B9-15 select CH, B8 enables write, B0-4 select range*/
