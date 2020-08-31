@@ -97,7 +97,7 @@ uint32_t rpmsg_get(uint8_t *const buffer)
 	const int32_t ret = pru_rpmsg_receive(&transport, &src, &dst, buffer, &len);
 	if(ret != PRU_RPMSG_SUCCESS)
 	{
-		return 0U; // NOTE: this was returning (int ret), but its not useful, and expensive
+		return 0U; // NOTE: this was returning (int ret), but its expensive and not useful
 	}
 	return len;
 }
