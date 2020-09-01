@@ -12,22 +12,22 @@
 #define PRU_PRU_EVT_SAMPLE              30U
 #define PRU_PRU_EVT_BLOCK_END           31U
 
-#define PRU_SHARED_MEM_STRUCT_OFFSET    0x10000
+#define PRU_SHARED_MEM_STRUCT_OFFSET    0x10000u
 
 #define MAX_GPIO_EVT_PER_BUFFER         16384U
 
 
 /* Message IDs used in Data Exchange Protocol between PRU0 and user space */
 enum DEPMsgID {
-	MSG_DEP_ERROR = 0,
-	MSG_DEP_BUF_FROM_HOST = 1,
-	MSG_DEP_BUF_FROM_PRU = 2,
-	MSG_DEP_ERR_INCMPLT = 3,
-	MSG_DEP_ERR_INVLDCMD = 4,
-	MSG_DEP_ERR_NOFREEBUF = 5,
-	MSG_DEP_DBG_PRINT = 6,
-	MSG_DEP_DBG_ADC = 0xF0,
-	MSG_DEP_DBG_DAC = 0xF1
+	MSG_DEP_ERROR = 0u,
+	MSG_DEP_BUF_FROM_HOST = 1u,
+	MSG_DEP_BUF_FROM_PRU = 2u,
+	MSG_DEP_ERR_INCMPLT = 3u,
+	MSG_DEP_ERR_INVLDCMD = 4u,
+	MSG_DEP_ERR_NOFREEBUF = 5u,
+	MSG_DEP_DBG_PRINT = 6u,
+	MSG_DEP_DBG_ADC = 0xF0u,
+	MSG_DEP_DBG_DAC = 0xF1u
 };
 
 /* Message IDs used in Synchronization Protocol between PRU1 and kernel module */
