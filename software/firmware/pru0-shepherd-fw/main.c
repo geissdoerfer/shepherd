@@ -26,10 +26,7 @@
 
 static void send_message(const uint32_t msg_id, const uint32_t value)
 {
-	struct DEPMsg msg_out;
-
-	msg_out.msg_type = msg_id;
-	msg_out.value = value;
+	const struct DEPMsg msg_out = { .msg_type= msg_id, .value = value};
 	rpmsg_putraw((void *)&msg_out, sizeof(struct DEPMsg));
 }
 
@@ -50,8 +47,8 @@ uint32_t handle_block_end(volatile struct SharedMem *const shared_mem,
 		next_buffer_idx = (uint32_t)tmp_idx;
         struct SampleBuffer *const next_buffer = buffers_far + next_buffer_idx;
 		next_buffer->timestamp_ns = shared_mem->next_timestamp_ns;
-		next_buffer->gpio_edges.idx = 0;
 		shared_mem->gpio_edges = &next_buffer->gpio_edges;
+		shared_mem->gpio_edges->idx = 0;
 	} else {
 		next_buffer_idx = NO_BUFFER;
 		shared_mem->gpio_edges = NULL;
@@ -129,11 +126,11 @@ void event_loop(volatile struct SharedMem *const shared_mem,
 		/* Check if a sample was triggered by PRU1 */
 		if (read_r31() & (1U << 31U)) {
 			/* Important: We have to clear the interrupt here, to avoid missing interrupts */
-			const uint32_t intc_reg = INTC_GET_SECR0;
-			if (INTC_CHECK_EVENT_REG(intc_reg, PRU_PRU_EVT_BLOCK_END)) {
+			const uint32_t intc_reg = intc_get_secr0();
+			if (intc_check_event(intc_reg, PRU_PRU_EVT_BLOCK_END)) {
 				int_source = SIG_BLOCK_END;
 				INTC_CLEAR_EVENT(PRU_PRU_EVT_BLOCK_END);
-			} else if (INTC_CHECK_EVENT_REG(intc_reg, PRU_PRU_EVT_SAMPLE)) {
+			} else if (intc_check_event(intc_reg, PRU_PRU_EVT_SAMPLE)) {
 				int_source = SIG_SAMPLE;
 				INTC_CLEAR_EVENT(PRU_PRU_EVT_SAMPLE);
 			} else {
