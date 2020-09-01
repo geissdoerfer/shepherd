@@ -1,7 +1,7 @@
 #include "inttypes.h"
 #include "ringbuffer.h"
 
-void init_ring(struct RingBuffer *const buf)
+void ring_init(struct RingBuffer *const buf)
 {
 	buf->start=0U;
 	buf->end=0U;

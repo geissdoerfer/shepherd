@@ -13,7 +13,7 @@ struct RingBuffer
 	uint32_t active;
 };
 
-void init_ring(struct RingBuffer * buf);
+void ring_init(struct RingBuffer* const buf);
 void ring_put(struct RingBuffer * buf, uint8_t element);
 bool_ft ring_get(struct RingBuffer * buf, uint8_t * element);
 bool_ft ring_empty(const struct RingBuffer * buf);

@@ -216,7 +216,7 @@ reset:
         virtcap_init((struct VirtCapSettings *)&shared_mememory->virtcap_settings,
                  (struct CalibrationSettings *)&shared_mememory->calibration_settings);
 
-    init_ring(&free_buffers);
+    ring_init(&free_buffers);
     sampling_init((enum ShepherdMode)shared_mememory->shepherd_mode,
               shared_mememory->harvesting_voltage);
     shared_mememory->gpio_edges = NULL;
