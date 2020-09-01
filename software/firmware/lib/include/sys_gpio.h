@@ -1,5 +1,5 @@
 // driver to access gpio-registers from beaglebone-memory
-// based on SPRUH73Q Dec2019
+// based on SPRUH73Q Dec2019, TODO: could be added to pssp, but needs entry in .cmd file
 
 #ifndef PRU1_SYS_GPIO_H
 #define PRU1_SYS_GPIO_H
@@ -76,9 +76,15 @@ static volatile Gpio *__CT_GPIO0 = (void *)0x44E07000;
 #define CT_GPIO0	(*__CT_GPIO0)
 static volatile Gpio *__CT_GPIO1 = (void *)0x4804C000;
 #define CT_GPIO1	(*__CT_GPIO1)
+static volatile Gpio *__CT_GPIO2 = (void *)0x481AC000;
+#define CT_GPIO2	(*__CT_GPIO2)
+static volatile Gpio *__CT_GPIO3 = (void *)0x481AE000;
+#define CT_GPIO3	(*__CT_GPIO3)
 #else
 volatile __far Gpio CT_GPIO0 __attribute__((cregister("GPIO0", far), peripheral))
 volatile __far Gpio CT_GPIO1 __attribute__((cregister("GPIO1", far), peripheral))
+volatile __far Gpio CT_GPIO2 __attribute__((cregister("GPIO2", far), peripheral))
+volatile __far Gpio CT_GPIO3 __attribute__((cregister("GPIO3", far), peripheral))
 #endif
 
 #endif //PRU1_SYS_GPIO_H
