@@ -8,6 +8,23 @@
 #include "resource_table.h"
 #include "rpmsg.h"
 
+/*
+ TODO: virtqueue is an example of unoptimized code:
+ - lots of struct* in struct* in propably far/slow registers
+ 	- important far-reads get repeated in 3 lower fn
+ - instead of moves, the data (8 bytes) gets copied twice
+ -> results in 2000 us sends() and 550 - 4000 us receive() (depends on msg)
+
+ pru0/send_message() -> rpmsg_putraw() -> pru_rpmsg_send() 		|
+ pru0/handle_rpmsg() -> rpmsg_get() -> pru_rpmsg_receive() 		| both fn are similar
+ 	- pru_vq_get_avail_buf()
+ 	- memcpy()
+ 	- pru_vq_add_used_buf()
+ 	- pru_vq_kick()
+ todo: optimize for our 2x uint32 transfer, on receive fail early if nothing is there
+ */
+
+
 extern struct my_resource_table resourceTable;
 
 #ifdef __GNUC__
@@ -33,14 +50,14 @@ volatile register uint32_t __R30;
 	#define TO_ARM_HOST     18U
 	#define FROM_ARM_HOST   19U
 
-	#define CHAN_DESC		"Channel 1"
-	#define CHAN_PORT		1
+	#define CHAN_DESC		(uint8_t*)"Channel 1"
+	#define CHAN_PORT		1u
 #else
 	#error
 #endif
 
 /* Apparently this is the RPMSG address of the ARM core */
-#define RPMSG_DST   0x0400
+#define RPMSG_DST   0x0400u
 #define RPMSG_SRC   CHAN_PORT
 
 /*
