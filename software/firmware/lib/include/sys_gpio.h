@@ -3,7 +3,7 @@
 
 #ifndef PRU1_SYS_GPIO_H
 #define PRU1_SYS_GPIO_H
-#include "inttypes.h"
+#include <stdint.h>
 
 // GPIO Registers, ch25.4
 typedef struct{
@@ -39,6 +39,7 @@ typedef struct{
     uint32_t RSVD0Cx[4]; // C0h
     uint32_t RSVD0Dx[4]; // D0h
     uint32_t RSVD0Ex[4]; // E0h
+    uint32_t RSVD0Fx[4]; // F0h
     // 100h
     uint32_t RSVD10x[4];
     // 110h
@@ -70,16 +71,20 @@ typedef struct{
     uint32_t GPIO_SETDATAOUT;
 } Gpio;
 
+// pseudo-assertion to test for correct struct-size
+extern uint32_t CHECK_STRUCT_Gpio__[1/(sizeof(Gpio) == 0x0198)];
+
+
 // Memory Map, p182
 #ifdef __GNUC__
-volatile Gpio *__CT_GPIO0 = (void *)0x44E07000;
-#define CT_GPIO0	(*__CT_GPIO0)
-volatile Gpio *__CT_GPIO1 = (void *)0x4804C000;
-#define CT_GPIO1	(*__CT_GPIO1)
-volatile Gpio *__CT_GPIO2 = (void *)0x481AC000;
-#define CT_GPIO2	(*__CT_GPIO2)
-volatile Gpio *__CT_GPIO3 = (void *)0x481AE000;
-#define CT_GPIO3	(*__CT_GPIO3)
+volatile Gpio *CT_GPIO0__ = (void *)0x44E07000; // TODO: the other gnu-definitions in pssp should also not use __X
+#define CT_GPIO0	(*CT_GPIO0__)
+volatile Gpio *CT_GPIO1__ = (void *)0x4804C000;
+#define CT_GPIO1	(*CT_GPIO1__)
+volatile Gpio *CT_GPIO2__ = (void *)0x481AC000;
+#define CT_GPIO2	(*CT_GPIO2__)
+volatile Gpio *CT_GPIO3__ = (void *)0x481AE000;
+#define CT_GPIO3	(*CT_GPIO3__)
 #else
 volatile __far Gpio CT_GPIO0 __attribute__((cregister("GPIO0", far), peripheral));
 volatile __far Gpio CT_GPIO1 __attribute__((cregister("GPIO1", far), peripheral));
