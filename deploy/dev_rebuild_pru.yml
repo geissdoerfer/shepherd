@@ -54,7 +54,8 @@
     with_items:
       - pru0
       - pru1
-
+    become: false
+    
   - name: install PRU firmware
     make:
       chdir: "{{ shepherd_install_path }}/software/firmware/{{ item }}-shepherd-fw"
@@ -65,7 +66,6 @@
     with_items:
       - pru0
       - pru1
-    become: false
 
   - name: Stop PRU0
     command: echo "stop" > /sys/class/remoteproc/remoteproc1/state
