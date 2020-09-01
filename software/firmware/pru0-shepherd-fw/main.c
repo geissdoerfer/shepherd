@@ -60,7 +60,7 @@ uint32_t handle_block_end(volatile struct SharedMem *const shared_mem,
     /* If we currently have a valid buffer, return it to host */
     // NOTE: this part came right after muter_enter, but it can wait and only blocks pru1 (5/6 of workload in this fn)
     if (current_buffer_idx != NO_BUFFER) {
-        if (sample_idx != SAMPLES_PER_BUFFER)
+        if (sample_idx != ADC_SAMPLES_PER_BUFFER)
             send_message(MSG_DEP_ERR_INCMPLT, sample_idx);
 
         (buffers_far + current_buffer_idx)->len = sample_idx;
@@ -184,7 +184,7 @@ void main(void)
     shared_mememory->mem_size = resourceTable.shared_mem.len;
 
     shared_mememory->n_buffers = RING_SIZE;
-    shared_mememory->samples_per_buffer = SAMPLES_PER_BUFFER;
+    shared_mememory->samples_per_buffer = ADC_SAMPLES_PER_BUFFER;
     shared_mememory->buffer_period_ns = BUFFER_PERIOD_NS;
 
     shared_mememory->harvesting_voltage = 0;
