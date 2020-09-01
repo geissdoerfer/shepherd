@@ -4,10 +4,11 @@
 #include <pru_cfg.h>
 #include <pru_intc.h>
 #include <pru_iep.h>
+#include <sys_gpio.h>
+#include <gpio.h>
 
 #include "rpmsg.h"
 #include "iep.h"
-#include "gpio.h"
 #include "intc.h"
 
 #include "commons.h"
@@ -113,6 +114,24 @@ static inline void check_gpio(volatile struct SharedMem *const shared_mem,
         shared_mem->gpio_edges->idx = cIDX + 1;
 		simple_mutex_exit(&shared_mem->gpio_edges_mutex);
 	}
+}
+
+/* Monitor GPIO from System, also in Linux:
+    sudo su
+    cd /sys/class/gpio
+    echo 81 > export
+    cd gpio81
+    echo in > direction
+    cat value
+
+ */
+static inline void check_gpio_debug()
+{
+    _GPIO_OFF(DEBUG_P0);
+    const uint32_t gpio_reg = CT_GPIO2.GPIO_DATAIN;
+    // test for shepherd sense-button, P8_34, gpio2[17], 81
+    if (gpio_reg & (1U << 17U)) _GPIO_ON(DEBUG_P0);
+    else                        _GPIO_OFF(DEBUG_P0);
 }
 
 /*
@@ -249,8 +268,7 @@ int32_t event_loop(volatile struct SharedMem *const shared_mem)
 
                     CT_IEP.TMR_CMP0 = block_period;
                     sync_state = IDLE;
-                    shared_mem->next_timestamp_ns =
-                            ctrl_rep->next_timestamp_ns;
+                    shared_mem->next_timestamp_ns =  ctrl_rep->next_timestamp_ns;
                 }
                 _GPIO_OFF(DEBUG_P0 | DEBUG_P1);
             } else if (sync_state == REQUEST_PENDING) {
@@ -285,6 +303,7 @@ int32_t event_loop(volatile struct SharedMem *const shared_mem)
 
             /* With wrap, we'll use next timestamp as base for GPIO timestamps */
             current_timestamp_ns = shared_mem->next_timestamp_ns;
+            // TODO: shouldn't it always be the shared_mem timestamp? timestamping could be wrong after buffer exchange, but before this update
 
             _GPIO_OFF(DEBUG_P1);
         }
