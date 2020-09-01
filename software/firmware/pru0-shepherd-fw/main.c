@@ -7,7 +7,7 @@
 #include <pru_intc.h>
 #include <rsc_types.h>
 
-#include "stdint_optimized.h"
+#include "stdint_fast.h"
 #include "gpio.h"
 #include "intc.h"
 #include "resource_table_def.h"
@@ -129,10 +129,11 @@ void event_loop(volatile struct SharedMem *const shared_mem,
 		/* Check if a sample was triggered by PRU1 */
 		if (read_r31() & (1U << 31U)) {
 			/* Important: We have to clear the interrupt here, to avoid missing interrupts */
-			if (INTC_CHECK_EVENT(PRU_PRU_EVT_BLOCK_END)) {
+			const uint32_t intc_reg = INTC_GET_SECR0;
+			if (INTC_CHECK_EVENT_REG(intc_reg, PRU_PRU_EVT_BLOCK_END)) {
 				int_source = SIG_BLOCK_END;
 				INTC_CLEAR_EVENT(PRU_PRU_EVT_BLOCK_END);
-			} else if (INTC_CHECK_EVENT(PRU_PRU_EVT_SAMPLE)) {
+			} else if (INTC_CHECK_EVENT_REG(intc_reg, PRU_PRU_EVT_SAMPLE)) {
 				int_source = SIG_SAMPLE;
 				INTC_CLEAR_EVENT(PRU_PRU_EVT_SAMPLE);
 			} else {

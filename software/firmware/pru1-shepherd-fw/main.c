@@ -12,7 +12,7 @@
 
 #include "commons.h"
 #include "shepherd_config.h"
-#include "stdint_optimized.h"
+#include "stdint_fast.h"
 
 /* The Arm to Host interrupt for the timestamp event is mapped to Host interrupt 0 -> Bit 30 (see resource_table.h) */
 #define HOST_INT_TIMESTAMP (1U << 30U)
@@ -193,9 +193,9 @@ int32_t event_loop(volatile struct SharedMem *const shared_mem)
 
 	while (1) {
         // TODO: take timestamp here and do statistics, min, max, mean
-        //_GPIO_ON(DEBUG_P1);
+        _GPIO_ON(DEBUG_P1);
 	    check_gpio(shared_mem, current_timestamp_ns, sample_counter, last_sample_ticks);
-        //_GPIO_OFF(DEBUG_P1);
+        _GPIO_OFF(DEBUG_P1);
 
         // optimization because same far-register is read twice, event 2 & 3
         const uint32_t iep_tmr_cmp_sts = iep_get_tmr_cmp_sts();
