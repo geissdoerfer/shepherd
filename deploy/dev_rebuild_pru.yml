@@ -67,6 +67,16 @@
       - pru0
       - pru1
 
+  - name: clean shepherd device tree
+    make:
+      chdir: "{{ shepherd_install_path }}/software/firmware/device-tree"
+      target: clean
+
+  - name: build and install shepherd device tree
+    make:
+      chdir: "{{ shepherd_install_path }}/software/firmware/device-tree"
+      target: install
+
   - name: Stop PRU0
     command: echo "stop" > /sys/class/remoteproc/remoteproc1/state
 
