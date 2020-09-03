@@ -3,16 +3,17 @@
 
 #include "gpio.h"
 
-#define SPI_CS_ADC          P9_25
-#define SPI_CS_DAC          P9_31
+// asm-routine needs unshifted bit positions
+#define SPI_CS_ADC_PIN      P9_25
+#define SPI_CS_DAC_PIN      P9_31
 
-#define SPI_SCLK            P9_28
-#define SPI_MOSI            P9_30
-#define SPI_MISO            P9_27
+#define SPI_SCLK            PIN_SHIFT(P9_28)
+#define SPI_MOSI            PIN_SHIFT(P9_30)
+#define SPI_MISO            PIN_SHIFT(P9_27)
 
-#define DEBUG_P0            P8_11
+#define DEBUG_P0            PIN_SHIFT(P8_11)
 
-#define USR_LED1            P8_12
+#define USR_LED1            PIN_SHIFT(P8_12)
 
 #define VIRTCAP_OUT_PIN     P9_29
 
