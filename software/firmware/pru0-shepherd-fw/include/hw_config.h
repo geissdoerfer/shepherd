@@ -4,7 +4,9 @@
 #include "gpio.h"
 
 // asm-routine needs unshifted bit positions
+#define SPI_CS_ADC_REG      PIN_SHIFT(P9_25)
 #define SPI_CS_ADC_PIN      P9_25
+#define SPI_CS_DAC_REG      PIN_SHIFT(P9_31)
 #define SPI_CS_DAC_PIN      P9_31
 
 #define SPI_SCLK            PIN_SHIFT(P9_28)

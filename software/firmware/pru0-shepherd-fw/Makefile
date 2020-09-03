@@ -12,7 +12,7 @@ SOURCES += printf.c
 SOURCES += rpmsg.c
 SOURCES += simple_lock.c
 
-ASM_SOURCES = spi_transfer.asm
+ASM_SOURCES = spi_transfer_pru.asm
 
 BASE_PATH ?= ./..
 

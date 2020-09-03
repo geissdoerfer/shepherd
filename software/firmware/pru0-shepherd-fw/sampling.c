@@ -153,7 +153,7 @@ void sample_dbg_dac(const uint32_t value)
 void sampling_init(const enum ShepherdMode mode, const uint32_t harvesting_voltage)
 {
 	/* Chip-Select signals are active low */
-	_GPIO_ON(SPI_CS_ADC_PIN | SPI_CS_DAC_PIN);
+	_GPIO_ON(SPI_CS_ADC_REG | SPI_CS_DAC_REG);
 	_GPIO_OFF(SPI_SCLK | SPI_MOSI);
 
 	/* Reset all registers (see DAC8562T datasheet Table 17) */
