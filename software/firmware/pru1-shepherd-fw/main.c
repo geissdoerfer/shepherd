@@ -18,8 +18,8 @@
 /* The Arm to Host interrupt for the timestamp event is mapped to Host interrupt 0 -> Bit 30 (see resource_table.h) */
 #define HOST_INT_TIMESTAMP (1U << 30U)
 
-#define DEBUG_P0            P8_41
-#define DEBUG_P1            P8_42
+#define DEBUG_P0            PIN_SHIFT(P8_41)
+#define DEBUG_P1            PIN_SHIFT(P8_42)
 
 /* The IEP is clocked with 200 MHz -> 5 nanoseconds per tick */
 #define TIMER_TICK_NS       5U

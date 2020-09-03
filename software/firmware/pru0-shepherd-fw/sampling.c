@@ -27,32 +27,32 @@ extern void dac_write(uint32_t cs_pin, uint32_t val);
 static inline void sample_harvesting(struct SampleBuffer *const buffer, const uint32_t sample_idx)
 {
 	/* Read current  and select channel 0 (voltage) for the read after! */
-	buffer->values_current[sample_idx] = adc_readwrite(SPI_CS_ADC, MAN_CH_SLCT | (ADC_CH_V_IN << 10U));
+	buffer->values_current[sample_idx] = adc_readwrite(SPI_CS_ADC_PIN, MAN_CH_SLCT | (ADC_CH_V_IN << 10U));
 	/* Read voltage and select channel 2 (current) for the read after! */
-	buffer->values_voltage[sample_idx] = adc_readwrite(SPI_CS_ADC, MAN_CH_SLCT | (ADC_CH_A_IN << 10U));
+	buffer->values_voltage[sample_idx] = adc_readwrite(SPI_CS_ADC_PIN, MAN_CH_SLCT | (ADC_CH_A_IN << 10U));
 }
 
 static inline void sample_load(struct SampleBuffer *const buffer, const uint32_t sample_idx)
 {
 	/* Read load current and select load voltage for next reading */
-	buffer->values_current[sample_idx] = adc_readwrite(SPI_CS_ADC, MAN_CH_SLCT | (ADC_CH_V_OUT << 10U));
+	buffer->values_current[sample_idx] = adc_readwrite(SPI_CS_ADC_PIN, MAN_CH_SLCT | (ADC_CH_V_OUT << 10U));
 	/* Read load voltage and select load current for next reading */
-	buffer->values_voltage[sample_idx] = adc_readwrite(SPI_CS_ADC, MAN_CH_SLCT | (ADC_CH_A_OUT << 10U));
+	buffer->values_voltage[sample_idx] = adc_readwrite(SPI_CS_ADC_PIN, MAN_CH_SLCT | (ADC_CH_A_OUT << 10U));
 }
 
 static inline void sample_emulation(struct SampleBuffer *const buffer, const uint32_t sample_idx)
 {
 	/* write the emulation voltage value from buffer to DAC */
-	dac_write(SPI_CS_DAC, buffer->values_current[sample_idx] | DAC_CH_A_ADDR);
+	dac_write(SPI_CS_DAC_PIN, buffer->values_current[sample_idx] | DAC_CH_A_ADDR);
 	/* write the emulation current value from buffer to DAC */
-	dac_write(SPI_CS_DAC, buffer->values_voltage[sample_idx] | DAC_CH_V_ADDR);
+	dac_write(SPI_CS_DAC_PIN, buffer->values_voltage[sample_idx] | DAC_CH_V_ADDR);
 
 	/* read the load current value from ADC to buffer and select load voltage for
    * next reading */
-	buffer->values_current[sample_idx] = adc_readwrite(SPI_CS_ADC, MAN_CH_SLCT | (ADC_CH_V_OUT << 10U));
+	buffer->values_current[sample_idx] = adc_readwrite(SPI_CS_ADC_PIN, MAN_CH_SLCT | (ADC_CH_V_OUT << 10U));
 	/* read the load voltage value from ADC to buffer and select load current for
    * next reading */
-	buffer->values_voltage[sample_idx] = adc_readwrite(SPI_CS_ADC, MAN_CH_SLCT | (ADC_CH_A_OUT << 10U));
+	buffer->values_voltage[sample_idx] = adc_readwrite(SPI_CS_ADC_PIN, MAN_CH_SLCT | (ADC_CH_A_OUT << 10U));
 }
 
 static inline void sample_virtcap(struct SampleBuffer *const buffer, const uint32_t sample_idx)
@@ -74,14 +74,14 @@ static inline void sample_virtcap(struct SampleBuffer *const buffer, const uint3
 		buffer->values_current[sample_idx] = last_current_measurement;
 
 		/* Read load voltage and select load current for next reading */
-		read.voltage = adc_readwrite(SPI_CS_ADC, MAN_CH_SLCT | (ADC_CH_A_OUT << 10U));
+		read.voltage = adc_readwrite(SPI_CS_ADC_PIN, MAN_CH_SLCT | (ADC_CH_A_OUT << 10U));
         last_voltage_measurement = read.voltage;
 		buffer->values_voltage[sample_idx] = read.voltage;
 
 
 	} else if (under_sample_voltage_cntr == 6) {
 		/* Read load current and select load voltage for next reading */
-		read.current = adc_readwrite(SPI_CS_ADC, MAN_CH_SLCT | (ADC_CH_V_OUT << 10U));
+		read.current = adc_readwrite(SPI_CS_ADC_PIN, MAN_CH_SLCT | (ADC_CH_V_OUT << 10U));
         last_current_measurement = read.current;
 		buffer->values_current[sample_idx] = read.current;
 
@@ -90,7 +90,7 @@ static inline void sample_virtcap(struct SampleBuffer *const buffer, const uint3
 
 	} else {
 		/* Read load current and select load current for next reading */
-		read.current = adc_readwrite(SPI_CS_ADC, MAN_CH_SLCT | (ADC_CH_A_OUT << 10U));
+		read.current = adc_readwrite(SPI_CS_ADC_PIN, MAN_CH_SLCT | (ADC_CH_A_OUT << 10U));
 		buffer->values_current[sample_idx] = read.current;
 
 		read.voltage = last_voltage_measurement;
@@ -140,52 +140,52 @@ void sample(struct SampleBuffer *const current_buffer_far, const uint32_t sample
 
 uint32_t sample_dbg_adc(const uint32_t channel_no)
 {
-	adc_readwrite(SPI_CS_ADC, MAN_CH_SLCT | (channel_no << 10U));
-    const uint32_t result = adc_readwrite(SPI_CS_ADC, MAN_CH_SLCT | (channel_no << 10U));
+	adc_readwrite(SPI_CS_ADC_PIN, MAN_CH_SLCT | (channel_no << 10U));
+    const uint32_t result = adc_readwrite(SPI_CS_ADC_PIN, MAN_CH_SLCT | (channel_no << 10U));
 	return result;
 }
 
 void sample_dbg_dac(const uint32_t value)
 {
-	dac_write(SPI_CS_DAC, value);
+	dac_write(SPI_CS_DAC_PIN, value);
 }
 
 void sampling_init(const enum ShepherdMode mode, const uint32_t harvesting_voltage)
 {
 	/* Chip-Select signals are active low */
-	_GPIO_ON(SPI_CS_ADC | SPI_CS_DAC);
+	_GPIO_ON(SPI_CS_ADC_PIN | SPI_CS_DAC_PIN);
 	_GPIO_OFF(SPI_SCLK | SPI_MOSI);
 
 	/* Reset all registers (see DAC8562T datasheet Table 17) */
-	dac_write(SPI_CS_DAC, (0x5u << DAC_CMD_OFFSET) | (1U << 0U));
+	dac_write(SPI_CS_DAC_PIN, (0x5u << DAC_CMD_OFFSET) | (1U << 0U));
 	__delay_cycles(12);
 
 	/* Enable internal 2.5V reference (see DAC8562T datasheet Table 17) */
-	dac_write(SPI_CS_DAC, (0x7u << DAC_CMD_OFFSET) | (1U << 0U));
+	dac_write(SPI_CS_DAC_PIN, (0x7u << DAC_CMD_OFFSET) | (1U << 0U));
 	__delay_cycles(12);
 
 	/* GAIN=2 for DAC-B and GAIN=1 for DAC-A (see DAC8562T datasheet Table 17) */
-	dac_write(SPI_CS_DAC, (0x2u << DAC_ADDR_OFFSET) | (1U << 0U));
+	dac_write(SPI_CS_DAC_PIN, (0x2u << DAC_ADDR_OFFSET) | (1U << 0U));
 	__delay_cycles(12);
 
 	/* LDAC pin inactive for DAC-B and DAC-A (see DAC8562T datasheet Table 17) */
-	dac_write(SPI_CS_DAC, (0x6u << DAC_CMD_OFFSET) | (1U << 1U) | (1U << 0U));
+	dac_write(SPI_CS_DAC_PIN, (0x6u << DAC_CMD_OFFSET) | (1U << 1U) | (1U << 0U));
 	__delay_cycles(12);
 
 	/* Range 1.25*VREF: B9-15 select CH, B8 enables write, B0-4 select range*/
-	adc_readwrite(SPI_CS_ADC, ((ADC_CH_V_IN + 5U) << 9U) | (1U << 8U) | (1U << 2U) | (1U << 1U));
-	adc_readwrite(SPI_CS_ADC, ((ADC_CH_V_OUT + 5U) << 9U) | (1U << 8U) | (1U << 2U) | (1U << 1U));
+	adc_readwrite(SPI_CS_ADC_PIN, ((ADC_CH_V_IN + 5U) << 9U) | (1U << 8U) | (1U << 2U) | (1U << 1U));
+	adc_readwrite(SPI_CS_ADC_PIN, ((ADC_CH_V_OUT + 5U) << 9U) | (1U << 8U) | (1U << 2U) | (1U << 1U));
 
 	/* Range +/-0.625*VREF */
-	adc_readwrite(SPI_CS_ADC, ((ADC_CH_A_IN + 5U) << 9U) | (1U << 8U) | (1U << 1U));
-	adc_readwrite(SPI_CS_ADC, ((ADC_CH_A_OUT + 5U) << 9U) | (1U << 8U) | (1U << 1U));
+	adc_readwrite(SPI_CS_ADC_PIN, ((ADC_CH_A_IN + 5U) << 9U) | (1U << 8U) | (1U << 1U));
+	adc_readwrite(SPI_CS_ADC_PIN, ((ADC_CH_A_OUT + 5U) << 9U) | (1U << 8U) | (1U << 1U));
 
 	/* Initialize ADC for correct channel */
 	if (mode == MODE_HARVESTING) {
 		/* Select harvesting current for first reading */
-		adc_readwrite(SPI_CS_ADC, MAN_CH_SLCT | (ADC_CH_A_IN << 10U));
-		dac_write(SPI_CS_DAC, harvesting_voltage | DAC_CH_V_ADDR);
+		adc_readwrite(SPI_CS_ADC_PIN, MAN_CH_SLCT | (ADC_CH_A_IN << 10U));
+		dac_write(SPI_CS_DAC_PIN, harvesting_voltage | DAC_CH_V_ADDR);
 	} else
 		/* Select load current for first reading */
-		adc_readwrite(SPI_CS_ADC, MAN_CH_SLCT | (ADC_CH_A_OUT << 10U));
+		adc_readwrite(SPI_CS_ADC_PIN, MAN_CH_SLCT | (ADC_CH_A_OUT << 10U));
 }
