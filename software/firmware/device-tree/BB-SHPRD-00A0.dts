@@ -102,9 +102,9 @@
             0x1a8 0x27	/* P9_41B, gpio3[20] */
             0x1a0 0x07	/* P9_42B, gpio3[18] */
 
-            /* SPI0-Test - more readable Style */
-            P9_17(MUX_MODE0)    /* spi0_cs0 */
-            P9_18(MUX_MODE0)    /* spi0_d1 */
+            /* SPI1-Test - more readable Style */
+            /*P9_17(MUX_MODE0)    /* spi0_cs0 */ /* Collision with I2C1 */
+            /*P9_18(MUX_MODE0)    /* spi0_d1 */
             P9_21(MUX_MODE0)    /* spi0_d0 */
             P9_22(MUX_MODE0)    /* spi0_sck */
             >;
