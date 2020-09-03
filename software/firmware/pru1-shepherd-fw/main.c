@@ -4,7 +4,6 @@
 #include <pru_cfg.h>
 #include <pru_intc.h>
 #include <pru_iep.h>
-#include <sys_gpio.h>
 #include <gpio.h>
 
 #include "rpmsg.h"
@@ -116,23 +115,6 @@ static inline void check_gpio(volatile struct SharedMem *const shared_mem,
 	}
 }
 
-/* Monitor GPIO from System, also in Linux:
-    sudo su
-    cd /sys/class/gpio
-    echo 81 > export
-    cd gpio81
-    echo in > direction
-    cat value
-
- */
-static inline void check_gpio_debug()
-{
-    _GPIO_OFF(DEBUG_P0);
-    const uint32_t gpio_reg = CT_GPIO2.GPIO_DATAIN;
-    // test for shepherd sense-button, P8_34, gpio2[17], 81
-    if (gpio_reg & (1U << 17U)) _GPIO_ON(DEBUG_P0);
-    else                        _GPIO_OFF(DEBUG_P0);
-}
 
 /*
  * The firmware for synchronization/sample timing is based on a simple

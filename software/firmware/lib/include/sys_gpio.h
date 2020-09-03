@@ -4,6 +4,8 @@
 #ifndef PRU1_SYS_GPIO_H
 #define PRU1_SYS_GPIO_H
 #include <stdint.h>
+#include "gpio.h"
+
 
 // GPIO Registers, ch25.4
 typedef struct{
@@ -91,5 +93,26 @@ volatile __far Gpio CT_GPIO1 __attribute__((cregister("GPIO1", far), peripheral)
 volatile __far Gpio CT_GPIO2 __attribute__((cregister("GPIO2", far), peripheral));
 volatile __far Gpio CT_GPIO3 __attribute__((cregister("GPIO3", far), peripheral));
 #endif
+
+
+/* Monitor GPIO from System / Linux:
+    sudo su
+    cd /sys/class/gpio
+    echo 81 > export
+    cd gpio81
+    echo in > direction
+    cat value
+ */
+
+
+static inline void check_gpio_test()
+{
+    _GPIO_OFF(BIT_SHIFT(P8_11));
+    const uint32_t gpio_reg = CT_GPIO2.GPIO_DATAIN;
+    // test for shepherd sense-button, P8_34, gpio2[17], 81
+    if (gpio_reg & (1U << 17U)) _GPIO_ON(BIT_SHIFT(P8_11));
+    else                        _GPIO_OFF(BIT_SHIFT(P8_11));
+}
+
 
 #endif //PRU1_SYS_GPIO_H
