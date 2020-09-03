@@ -1,16 +1,9 @@
 /dts-v1/;
 /plugin/;
-
-/*
-// future-reference, gpio.h contains: BONE_P8_03, etc
-#include <dt-bindings/gpio/gpio.h>
-// future-reference, omap.h contains: MUX_MODE#, PULL_UP, INPUT_EN, AM33XX_IOPAD, AM33XX_PADCONF, etc
-#include <dt-bindings/pinctrl/omap.h>
-*/
-
+#include "am335x_pinctrl.h"
 
 / {
-   // note: (older) "ti,beaglebone" types seem to working as well for v4.19.x-ti
+   // note: (older) "ti,beaglebone" types seem to be working as well for v4.19.x-ti, but this is more future-proof
    compatible = "ti,am335x-bone", "ti,am335x-bone-black", "ti,am335x-bone-green";
 
    part-number = "BB-SHPRD";
@@ -44,6 +37,12 @@
         "P9.31", /* SPI CS DAC */
         "P9.41", /* SWDIO */
         "P9.42", /* SWDCLK */
+        /* SPI0-Test */
+        "P9.17",
+        "P9.18",
+        "P9.21",
+        "P9.22",
+        /* Realtime Units */
         "pru0",
         "pru1";
    /* Check Table 9-60 in am335x TRM */
@@ -59,7 +58,7 @@
 
          chosen {
             overlays {
-               BB-SHPRD-00A0 = "12345678";
+               BB-SHPRD-00A0 = __TIMESTAMP__;
             };
          };
       };
@@ -71,9 +70,10 @@
       __overlay__ {
          bb_shprd_pins: pinmux_bb_shprd_pins {
             pinctrl-single,pins = <
-            /* TODO: could be translated to format (better human readable)          */
-            /*  AM33XX_IOPAD(0x0834, PIN_OUTPUT_PULLDOWN | INPUT_EN | MUX_MODE7)    */
-            /*  BONE_P8_11 MUX_MODE6                                                */
+            /* TODO: could be translated to format (better human readable), see below */
+            /* 0x37 is MODE7 | PULL_UP | RX_ACTIVE */
+            /* 0x26 is MODE6 | RX_ACTIVE */
+            /* 0x2F is MODE7 | PULL_DISABLE | RX_ACTIVE */
             0x034 0x06  /* P8.11, pr1_pru0_pru_r30_15 */
             0x030 0x06  /* P8.12, pr1_pru0_pru_r30_14 */
             0x024 0x07  /* P8.13, gpio0[23] */
@@ -101,6 +101,12 @@
             0x190 0x05	/* P9_31, pr1_pru0_pru_r30_0 */
             0x1a8 0x27	/* P9_41B, gpio3[20] */
             0x1a0 0x07	/* P9_42B, gpio3[18] */
+
+            /* SPI0-Test - more readable Style */
+            P9_17(MUX_MODE0)    /* spi0_cs0 */
+            P9_18(MUX_MODE0)    /* spi0_d1 */
+            P9_21(MUX_MODE0)    /* spi0_d0 */
+            P9_22(MUX_MODE0)    /* spi0_sck */
             >;
          };
       };

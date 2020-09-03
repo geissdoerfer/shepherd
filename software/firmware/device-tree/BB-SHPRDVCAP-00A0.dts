@@ -1,9 +1,10 @@
-/* TODO: copy changes from first DTS */
 /dts-v1/;
 /plugin/;
+#include "am335x_pinctrl.h"
 
 / {
-   compatible = "ti,beaglebone", "ti,beaglebone-black";
+   // note: (older) "ti,beaglebone" types seem to be working as well for v4.19.x-ti, but this is more future-proof
+   compatible = "ti,am335x-bone", "ti,am335x-bone-black", "ti,am335x-bone-green";
 
    part-number = "BB-SHPRD";
    version = "00A0";
@@ -15,8 +16,8 @@
         "P8.13", /* ENABLE HARVESTER */
         "P8.28", /* ADC RST/PDN */
         "P8.30", /* LED2 USER SPACE */
-        "P8.33", /* GENERAL PURPOSE BUTTON */
-        "P8.34", /* GENERAL PURPOSE LED */
+        "P8.33", /* GENERAL PURPOSE LED */
+        "P8.34", /* GENERAL PURPOSE BUTTON */
         "P8.36", /* ENABLE LEVEL CONVERTER */
         "P8.41", /* DEBUG PIN0 PRU1 */
         "P8.42", /* DEBUG PIN1 PRU1 */
@@ -40,8 +41,24 @@
         "pru1";
    /* Check Table 9-60 in am335x TRM */
 
-
+   /* Helper to show loaded overlays under: /proc/device-tree/chosen/overlays/  */
+   /* Note:
+        - root-path and "chosen" seem to produce a warning with dtc, internet is not helpful
+        - this is the reference solution choosen by: https://github.com/RobertCNelson/bb.org-overlays
+   */
    fragment@0 {
+      target-path="/";
+      __overlay__ {
+
+         chosen {
+            overlays {
+               BB-SHPRD-00A0 = __TIMESTAMP__;
+            };
+         };
+      };
+   };
+
+   fragment@1 {
       target = <&am33xx_pinmux>;
       __overlay__ {
          bb_shprd_pins: pinmux_bb_shprd_pins {
@@ -51,8 +68,8 @@
             0x024 0x07  /* P8.13, gpio0[23] */
             0x0e8 0x07	/* P8.28, gpio2[24] */
             0x0ec 0x07	/* P8.30, gpio2[25] */
-            0x0d4 0x37	/* P8.33, gpio0[9] */
-            0x0cc 0x07	/* P8.34, gpio2[17] */
+            0x0d4 0x07	/* P8.33, gpio0[9] */
+            0x0cc 0x37	/* P8.34, gpio2[17] */
             0x0c8 0x07	/* P8.36, gpio2[16] */
             0x0b0 0x05	/* P8.41, pr1_pru1_pru_r30_4 */
             0x0b4 0x05	/* P8.42, pr1_pru1_pru_r30_5 */
@@ -78,14 +95,14 @@
       };
    };
 
-   fragment@1 {
+   fragment@2 {
        target = <&pruss>;
        __overlay__ {
            status = "okay";
             pinctrl-names = "default";
             pinctrl-0 = <&bb_shprd_pins>;
             shepherd{
-               compatible = "shepherd";
+               compatible = "tud,shepherd";
                prusses = <&pruss>;
             };	
        };
