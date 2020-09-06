@@ -107,6 +107,7 @@ volatile __far Gpio CT_GPIO3 __attribute__((cregister("GPIO3", far), peripheral)
 
 static inline void check_gpio_test()
 {
+    // relates external shepherd-button to pru-debug-gpio
     _GPIO_OFF(BIT_SHIFT(P8_11));
     const uint32_t gpio_reg = CT_GPIO2.GPIO_DATAIN;
     // test for shepherd sense-button, P8_34, gpio2[17], 81

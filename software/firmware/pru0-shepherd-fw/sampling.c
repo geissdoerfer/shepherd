@@ -121,16 +121,16 @@ void sample(struct SampleBuffer *const current_buffer_far, const uint32_t sample
 {
 	switch (mode) // reordered to prioritize longer routines
 	{
-    case MODE_EMULATION: // ~ 686 cycles
+    case MODE_EMULATION: // ~ 6860 ns
         sample_emulation(current_buffer_far, sample_idx);
         break;
-    case MODE_VIRTCAP: // ~ 422 cycles, TODO: the routine is strange, seems broken
+    case MODE_VIRTCAP: // ~ 4220 ns, TODO: the routine is strange, seems broken
         sample_virtcap(current_buffer_far, sample_idx);
         break;
-	case MODE_HARVESTING: // ~ 434 cycles
+	case MODE_HARVESTING: // ~ 4340 ns
         sample_harvesting(current_buffer_far, sample_idx);
 		break;
-	case MODE_LOAD: // ~ 434 cycles
+	case MODE_LOAD: // ~ 4340 ns
 		sample_load(current_buffer_far, sample_idx);
 		break;
 	default:
