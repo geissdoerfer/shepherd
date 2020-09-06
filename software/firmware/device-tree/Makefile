@@ -2,7 +2,6 @@
 all: BB-SHPRD-00A0.dtbo BB-SHPRDVCAP-00A0.dtbo
 
 BB-SHPRD-00A0.dtbo: BB-SHPRD-00A0.dtsp
-
 	dtc -W no-unit_address_vs_reg -@ -I dts -O dtb -o $@ $<
 
 BB-SHPRDVCAP-00A0.dtbo: BB-SHPRDVCAP-00A0.dtsp
