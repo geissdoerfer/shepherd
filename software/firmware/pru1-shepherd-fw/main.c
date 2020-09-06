@@ -13,6 +13,7 @@
 #include "commons.h"
 #include "shepherd_config.h"
 #include "stdint_fast.h"
+#include "debug_routines.h"
 
 /* The Arm to Host interrupt for the timestamp event is mapped to Host interrupt 0 -> Bit 30 (see resource_table.h) */
 #define HOST_INT_TIMESTAMP (1U << 30U)
@@ -33,7 +34,7 @@ enum SyncState {
 	REPLY_PENDING
 };
 
-void fault_handler(const uint32_t shepherd_state, const uint8_t * err_msg)
+static void fault_handler(const uint32_t shepherd_state, const uint8_t * err_msg)
 {
 	/* If shepherd is not running, we can recover from the fault */
 	if (shepherd_state != STATE_RUNNING) {
@@ -47,6 +48,8 @@ void fault_handler(const uint32_t shepherd_state, const uint8_t * err_msg)
         __delay_cycles(2000000000U);
     }
 }
+
+
 
 static inline bool_ft check_control_reply(const uint32_t shepherd_state, struct CtrlRepMsg *const ctrl_rep)
 {
@@ -93,7 +96,8 @@ static inline void check_gpio(volatile struct SharedMem *const shared_mem,
 
 	if (diff > 0)
 	{
-        // TODO: reading from ram/far is slow, idx should be stored locally, potentially unsafe,
+        DEBUG_GPIO_STATE_2;
+	    // TODO: reading from ram/far is slow, idx should be stored locally, potentially unsafe,
         const uint32_t cIDX = shared_mem->gpio_edges->idx; // reduces reads to far-ram to current minimum
         /* Each buffer can only store a limited number of events */
         if (cIDX >= MAX_GPIO_EVT_PER_BUFFER) return;
@@ -193,10 +197,13 @@ int32_t event_loop(volatile struct SharedMem *const shared_mem)
 	iep_start();
 
 	while (1) {
-        // TODO: take timestamp here and do statistics, min, max, mean
-        //_GPIO_ON(DEBUG_P1);
+        #if DEBUG_LOOP_EN
+        debug_loop_delays(shared_mem->shepherd_state);
+        #endif
+
+        DEBUG_GPIO_STATE_1;
 	    check_gpio(shared_mem, current_timestamp_ns, analog_sample_counter, last_sample_ticks);
-        //_GPIO_OFF(DEBUG_P1);
+        DEBUG_GPIO_STATE_0;
 
         // optimization because same far-register is read twice, event 2 & 3
         const uint32_t iep_tmr_cmp_sts = iep_get_tmr_cmp_sts();
@@ -229,7 +236,7 @@ int32_t event_loop(volatile struct SharedMem *const shared_mem)
 
             /* If we are waiting for a reply from Linux kernel module */
             if (sync_state == REPLY_PENDING) {
-                _GPIO_ON(DEBUG_P0 | DEBUG_P1);
+                DEBUG_EVENT_STATE_3;
                 if (check_control_reply(shared_mem->shepherd_state, ctrl_rep) > 0) {
                     uint32_t block_period;
                     /* The new timer period is the base period plus the correction calculated by the controller */
@@ -252,7 +259,7 @@ int32_t event_loop(volatile struct SharedMem *const shared_mem)
                     sync_state = IDLE;
                     shared_mem->next_timestamp_ns =  ctrl_rep->next_timestamp_ns;
                 }
-                _GPIO_OFF(DEBUG_P0 | DEBUG_P1);
+                DEBUG_EVENT_STATE_0;
             } else if (sync_state == REQUEST_PENDING) {
                 rpmsg_putraw(&ctrl_req, sizeof(struct CtrlReqMsg));
                 sync_state = REPLY_PENDING;
@@ -262,10 +269,9 @@ int32_t event_loop(volatile struct SharedMem *const shared_mem)
         /* Timer compare 0 handle [Event 2] */
         if (iep_check_evt_cmp_fast(iep_tmr_cmp_sts, IEP_CMP0))     // TODO: could be further optimized, E2 & E3
         {
+            DEBUG_EVENT_STATE_2;
             /* Tell PRU0 to take the first sample of this block */
             INTC_TRIGGER_EVENT(PRU_PRU_EVT_SAMPLE);
-
-            _GPIO_ON(DEBUG_P1);
 
             /* Clear Timer Compare 0 */
             iep_clear_evt_cmp(IEP_CMP0); // CT_IEP.TMR_CMP_STS.bit0
@@ -287,7 +293,7 @@ int32_t event_loop(volatile struct SharedMem *const shared_mem)
             current_timestamp_ns = shared_mem->next_timestamp_ns;
             // TODO: shouldn't it always be the shared_mem timestamp? timestamping could be wrong after buffer exchange, but before this update
 
-            _GPIO_OFF(DEBUG_P1);
+            DEBUG_EVENT_STATE_0;
         }
 
 		/* Check for timer interrupt from Linux host [Event1] */
@@ -297,7 +303,7 @@ int32_t event_loop(volatile struct SharedMem *const shared_mem)
 
 			/* Take timestamp of IEP */
 			ctrl_req.ticks_iep = CT_IEP.TMR_CNT;
-            _GPIO_ON(DEBUG_P0);
+            DEBUG_EVENT_STATE_1;
 			/* Clear interrupt */
 			INTC_CLEAR_EVENT(HOST_PRU_EVT_TIMESTAMP);
 
@@ -310,10 +316,8 @@ int32_t event_loop(volatile struct SharedMem *const shared_mem)
                 fault_handler(shared_mem->shepherd_state,(uint8_t*)"Wrong state at host interrupt");
                 return 0;
             }
-            _GPIO_OFF(DEBUG_P0);
+            DEBUG_EVENT_STATE_0;
 		}
-
-
 	}
 }
 
