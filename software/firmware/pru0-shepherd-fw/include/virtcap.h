@@ -40,9 +40,9 @@ void virtcap_update(int32_t current_measured, int32_t voltage_measured,
 
 bool_ft virtcap_get_output_state();
 
-int32_t voltage_mv_to_logic(int32_t voltage);
-int32_t current_ua_to_logic(int32_t current);
+static inline int32_t voltage_mv_to_logic(int32_t voltage);
+static inline int32_t current_ua_to_logic(int32_t current);
 //int32_t current_ma_to_logic(int32_t current);
 
-int32_t lookup(int32_t table[const][9], int32_t current);
-void lookup_init();
+static int32_t lookup(int32_t table[const][9], int32_t current);
+static void lookup_init();

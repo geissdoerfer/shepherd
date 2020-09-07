@@ -26,7 +26,7 @@
  * ----------------------------------------------------------------------
  */
 
-#define SHIFT   26U
+#define SHIFT_LUT   26U
 
 /* Values for converter efficiency lookup table */ // TODO: deglobalize, can't it be unsigned?
 static int32_t max_t1;
@@ -74,17 +74,17 @@ static struct CalibrationSettings cali_cfg = {
 void virtcap_init(struct VirtCapSettings *const vcap_arg,
 		  struct CalibrationSettings *const cali_arg)
 {
-    vcap_cfg = *vcap_arg; // TODO: does that really copy the whole struct?
+    vcap_cfg = *vcap_arg; // copies content of whole struct
 	cali_cfg = *cali_arg;
 
 	_GPIO_OFF(VIRTCAP_OUT_PIN);
 
-    cali_arg->adc_load_current_gain = ADC_LOAD_CURRENT_GAIN; // TODO: why is the fn-arg changed?
+    cali_arg->adc_load_current_gain = ADC_LOAD_CURRENT_GAIN; // TODO: why overwriting values provided by system?
     cali_arg->adc_load_current_offset = ADC_LOAD_CURRENT_OFFSET;
 	cali_arg->adc_load_voltage_gain = ADC_LOAD_VOLTAGE_GAIN;
 	cali_arg->adc_load_voltage_offset = ADC_LOAD_VOLTAGE_OFFSET;
 
-	*vcap_arg = kBQ25570Settings; // TODO: weird config in 3 Steps
+	*vcap_arg = kBQ25570Settings; // TODO: weird config in 3 Steps, why overwriting values provided by system?
 
 	// convert voltages and currents to logic values
     vcap_cfg.upper_threshold_voltage =	voltage_mv_to_logic(vcap_arg->upper_threshold_voltage);
@@ -96,7 +96,9 @@ void virtcap_init(struct VirtCapSettings *const vcap_arg,
     vcap_cfg.leakage_current = current_ua_to_logic(vcap_arg->leakage_current);
 
 	/* Calculate how much output cap should be discharged when turning on, based
-   * on the storage capacitor and output capacitor size */
+    * on the storage capacitor and output capacitor size */
+	// TODO: seems wrong, even the formular mentioned in thesis, it assumes C_out gets only V_cap...
+	// base: C_cap * V_cap_new^2 / 2 = C_cap * V_cap_old^2 / 2 - C_out * V_out^2 / 2
 	const int32_t scale =	((vcap_cfg.capacitance_uf - vcap_cfg.output_cap_uf) << 20U) / vcap_cfg.capacitance_uf;
 	outputcap_scale_factor = SquareRootRounded(scale);
 
@@ -113,55 +115,53 @@ void virtcap_init(struct VirtCapSettings *const vcap_arg,
 	output_multiplier = vcap_cfg.dc_output_voltage / (avg_cap_voltage >> SHIFT_VOLT);
 
 	lookup_init();
+	// TODO: add tests for valid ranges
 }
 
 void virtcap_update(int32_t output_current, const int32_t output_voltage,
-		    const int32_t input_current, const int32_t input_voltage) // TODO: why is out-volt not used?
+		    const int32_t input_current, const int32_t input_voltage) // TODO: out-volt not needed here, even remove spi-read from calling fn
 {
     const int32_t output_efficiency = lookup(vcap_cfg.lookup_output_efficiency, output_current);
     const int32_t input_efficiency = lookup(vcap_cfg.lookup_input_efficiency, input_current);
 
 	/* Calculate current (cin) flowing into the storage capacitor */
-	const int32_t input_power = input_current * input_voltage;
-	int32_t cin = input_power / (cap_voltage >> SHIFT_VOLT);
+	const int32_t input_power = input_current * input_voltage; // TODO: data could already be preprocessed by system fpu
+	int32_t cin = input_power / (cap_voltage >> SHIFT_VOLT); // TODO: cin, cout are dI_in, dI_out
 	cin *= input_efficiency;
 	cin = cin >> SHIFT_VOLT;
 
 	/* Calculate current (cout) flowing out of the storage capacitor*/
-	if (!is_outputting) {
-		output_current = 0;
-	}
-	int32_t cout = (output_current * output_multiplier) >> SHIFT_VOLT;
-	cout *= output_efficiency;
-	cout = cout >> SHIFT_VOLT;
+	if (!is_outputting) output_current = 0;
+
+	int32_t cout = (output_current * output_multiplier) >> SHIFT_VOLT; // TODO: crude simplification here, brings error of +-5%
+	cout *= output_efficiency; // TODO: efficiency should be divided for the output, LUT seems to do that, but name confuses
+	cout = cout >> SHIFT_VOLT; // TODO: shift should be some kind of DIV4096() or the real thing, it will get optimized (probably)
 	cout += vcap_cfg.leakage_current;
 
 	/* Calculate delta V*/
 	const int32_t delta_i = cin - cout;
-	const int32_t delta_v = (delta_i * harvest_multiplier) >> SHIFT_VOLT;
-	int32_t new_cap_voltage = cap_voltage + delta_v;
+	const int32_t delta_v = (delta_i * harvest_multiplier) >> SHIFT_VOLT; // TODO: looks wrong, harvest mult is specific for V*A ADC-Gains, but for OUT we have no Volt, and for leakage neither
+	int32_t new_cap_voltage = cap_voltage + delta_v; // TODO: var can already be the original cap_voltage
 
 	// Make sure the voltage does not go beyond it's boundaries
-	if (new_cap_voltage >= vcap_cfg.max_cap_voltage) {
-		new_cap_voltage = vcap_cfg.max_cap_voltage;
-	} else if (new_cap_voltage < vcap_cfg.min_cap_voltage) {
-		new_cap_voltage = vcap_cfg.min_cap_voltage;
-	}
+	if (new_cap_voltage > vcap_cfg.max_cap_voltage)         new_cap_voltage = vcap_cfg.max_cap_voltage;
+	else if (new_cap_voltage < vcap_cfg.min_cap_voltage)    new_cap_voltage = vcap_cfg.min_cap_voltage;
+
+	// TODO: there is another effect of the converter -> every 16 seconds it optimizes power-draw, is it already in the data-stream?
 
 	// only update output every 'discretize' time
-	discretize_cntr++;
-	if (discretize_cntr >= vcap_cfg.discretize) {
+	if (++discretize_cntr >= vcap_cfg.discretize) {
 		discretize_cntr = 0;
 
 		// determine whether we should be in a new state
 		if (is_outputting &&
 		    (new_cap_voltage < vcap_cfg.lower_threshold_voltage)) {
 			is_outputting = 0U; // we fall under our threshold
-            virtcap_set_output_state(0U);
+            virtcap_set_output_state(0U); // TODO: is_outputting and this fn each keep the same state ...
 		} else if (!is_outputting &&(new_cap_voltage > vcap_cfg.upper_threshold_voltage)) {
 			is_outputting = 1U; // we have enough voltage to switch on again
             virtcap_set_output_state(1U);
-			new_cap_voltage = (new_cap_voltage >> 10) * outputcap_scale_factor;
+			new_cap_voltage = (new_cap_voltage >> 10) * outputcap_scale_factor; // TODO: magic numbers ... could be replaced by matching FN, analog to scale-calculation in init()
 		}
 	}
 
@@ -194,7 +194,7 @@ uint32_t SquareRootRounded(const uint32_t a_nInput)
 	return res;
 }
 
-int32_t voltage_mv_to_logic(const int32_t voltage)
+static inline int32_t voltage_mv_to_logic(const int32_t voltage)
 {
 	/* Compenesate for adc gain and offset, division for mv is split to optimize
    * accuracy */
@@ -203,28 +203,27 @@ int32_t voltage_mv_to_logic(const int32_t voltage)
 	return logic_voltage << SHIFT_VOLT;
 }
 
-int32_t current_ua_to_logic(const int32_t current)
+static inline int32_t current_ua_to_logic(const int32_t current)
 {
 	/* Compensate for adc gain and offset, division for ua is split to optimize
    * accuracy */
-	int32_t logic_current =
-		current * (cali_cfg.adc_load_current_gain / 1000) / 1000;
+	int32_t logic_current = current * (cali_cfg.adc_load_current_gain / 1000) / 1000;
 	/* Add 2^17 because current is defined around zero, not 2^17 */
 	logic_current += cali_cfg.adc_load_current_offset + (1U << 17U);
 	return logic_current;
 }
 
-void lookup_init()
+static void lookup_init()
 {
 	max_t1 = current_ua_to_logic(0.1 * 1e3);
 	max_t2 = current_ua_to_logic(1 * 1e3);
 	max_t3 = current_ua_to_logic(10 * 1e3);
 	max_t4 = current_ua_to_logic(100 * 1e3);
 
-	scale_index_t1 = 9 * (1U << SHIFT) / max_t1;
-	scale_index_t2 = 9 * (1U << SHIFT) / max_t2;
-	scale_index_t3 = 9 * (1U << SHIFT) / max_t3;
-	scale_index_t4 = 9 * (1U << SHIFT) / max_t4;
+	scale_index_t1 = 9 * (1U << SHIFT_LUT) / max_t1;
+	scale_index_t2 = 9 * (1U << SHIFT_LUT) / max_t2;
+	scale_index_t3 = 9 * (1U << SHIFT_LUT) / max_t3;
+	scale_index_t4 = 9 * (1U << SHIFT_LUT) / max_t4;
 }
 
 /*
@@ -238,19 +237,19 @@ void lookup_init()
  * https://www.ti.com/lit/ds/symlink/bq25570.pdf shows how those 4 sections are
  * defined.
  */
-int32_t lookup(int32_t table[const][9], const int32_t current)
+static int32_t lookup(int32_t table[const][9], const int32_t current)
 {
 	if (current < max_t1) {
-		const int32_t index = current * scale_index_t1 >> SHIFT;    // TODO: this looks wrong! int with bitshift, to index?
+		const int32_t index = current * scale_index_t1 >> SHIFT_LUT;    // TODO: this looks wrong! int with bitshift, to index?
 		return table[0][index];
 	} else if (current < max_t2) {
-        const int32_t index = current * scale_index_t2 >> SHIFT;
+        const int32_t index = current * scale_index_t2 >> SHIFT_LUT;
 		return table[1][index];
 	} else if (current < max_t3) {
-        const int32_t index = current * scale_index_t3 >> SHIFT;
+        const int32_t index = current * scale_index_t3 >> SHIFT_LUT;
 		return table[2][index];
 	} else if (current < max_t4) {
-        const int32_t index = current * scale_index_t4 >> SHIFT;
+        const int32_t index = current * scale_index_t4 >> SHIFT_LUT;
 		return table[3][index];
 	} else {
 		// Should never get here
