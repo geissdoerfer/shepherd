@@ -59,9 +59,9 @@ static void virtcap_set_output_state(bool_ft value);
 // Global vars to access in update function
 static struct VirtCapSettings vcap_cfg;
 
-#define ADC_LOAD_CURRENT_GAIN       (int32_t)(2.0 * 50.25 / (0.625 * 4.096) * ((1U << 17U) - 1))
-#define ADC_LOAD_CURRENT_OFFSET     -(1U << 17U)
-#define ADC_LOAD_VOLTAGE_GAIN       (int32_t)(1.0 / (1.25 * 4.096) * ((1U << 18U) - 1))
+#define ADC_LOAD_CURRENT_GAIN       (int32_t)(((1U << 17U) - 1) * 2.0 * 50.25 / (0.625 * 4.096))
+#define ADC_LOAD_CURRENT_OFFSET     -(1U << 17U)  // TODO: should be positive
+#define ADC_LOAD_VOLTAGE_GAIN       (int32_t)(((1U << 18U) - 1) / (1.25 * 4.096))
 #define ADC_LOAD_VOLTAGE_OFFSET     0
 
 static struct CalibrationSettings cali_cfg = {
@@ -121,9 +121,12 @@ void virtcap_init(struct VirtCapSettings *const vcap_arg,
 void virtcap_update(int32_t output_current, const int32_t output_voltage,
 		    const int32_t input_current, const int32_t input_voltage) // TODO: out-volt not needed here, even remove spi-read from calling fn
 {
+    // TODO: explain design goals and limitations... why does the code looks that way
+
     const int32_t output_efficiency = lookup(vcap_cfg.lookup_output_efficiency, output_current);
     const int32_t input_efficiency = lookup(vcap_cfg.lookup_input_efficiency, input_current);
 
+    // TODO: whole model should be transformed to unsigned, values don't change sign (except sum of dV_cap), we get more resolution, cleaner bit-shifts and safer array access
 	/* Calculate current (cin) flowing into the storage capacitor */
 	const int32_t input_power = input_current * input_voltage; // TODO: data could already be preprocessed by system fpu
 	int32_t cin = input_power / (cap_voltage >> SHIFT_VOLT); // TODO: cin, cout are dI_in, dI_out
@@ -136,7 +139,7 @@ void virtcap_update(int32_t output_current, const int32_t output_voltage,
 	int32_t cout = (output_current * output_multiplier) >> SHIFT_VOLT; // TODO: crude simplification here, brings error of +-5%
 	cout *= output_efficiency; // TODO: efficiency should be divided for the output, LUT seems to do that, but name confuses
 	cout = cout >> SHIFT_VOLT; // TODO: shift should be some kind of DIV4096() or the real thing, it will get optimized (probably)
-	cout += vcap_cfg.leakage_current;
+	cout += vcap_cfg.leakage_current; // TODO: ESR could also be considered
 
 	/* Calculate delta V*/
 	const int32_t delta_i = cin - cout;
@@ -175,10 +178,10 @@ uint32_t SquareRootRounded(const uint32_t a_nInput)
 	uint32_t one = 1uL << 30U;
 
 	while (one > op) {
-		one >>= 2;
+		one >>= 2u;
 	}
 
-	while (one != 0) {
+	while (one != 0u) {
 		if (op >= res + one) {
 			op = op - (res + one);
 			res = res + 2U * one;
@@ -196,8 +199,7 @@ uint32_t SquareRootRounded(const uint32_t a_nInput)
 
 static inline int32_t voltage_mv_to_logic(const int32_t voltage)
 {
-	/* Compenesate for adc gain and offset, division for mv is split to optimize
-   * accuracy */
+	/* Compensate for adc gain and offset, division for mv is split to optimize accuracy */
 	int32_t logic_voltage = voltage * (cali_cfg.adc_load_voltage_gain / 100) / 10;
 	logic_voltage += cali_cfg.adc_load_voltage_offset;
 	return logic_voltage << SHIFT_VOLT;
@@ -205,17 +207,16 @@ static inline int32_t voltage_mv_to_logic(const int32_t voltage)
 
 static inline int32_t current_ua_to_logic(const int32_t current)
 {
-	/* Compensate for adc gain and offset, division for ua is split to optimize
-   * accuracy */
+	/* Compensate for adc gain and offset, division for ua is split to optimize accuracy */
 	int32_t logic_current = current * (cali_cfg.adc_load_current_gain / 1000) / 1000;
 	/* Add 2^17 because current is defined around zero, not 2^17 */
-	logic_current += cali_cfg.adc_load_current_offset + (1U << 17U);
+	logic_current += cali_cfg.adc_load_current_offset + (1U << 17U); // TODO: why first remove 1<<17 and then add it again?
 	return logic_current;
 }
 
 static void lookup_init()
 {
-	max_t1 = current_ua_to_logic(0.1 * 1e3);
+	max_t1 = current_ua_to_logic(0.1 * 1e3); // TODO: these hardcoded values should be part of the config
 	max_t2 = current_ua_to_logic(1 * 1e3);
 	max_t3 = current_ua_to_logic(10 * 1e3);
 	max_t4 = current_ua_to_logic(100 * 1e3);
@@ -240,7 +241,7 @@ static void lookup_init()
 static int32_t lookup(int32_t table[const][9], const int32_t current)
 {
 	if (current < max_t1) {
-		const int32_t index = current * scale_index_t1 >> SHIFT_LUT;    // TODO: this looks wrong! int with bitshift, to index?
+		const int32_t index = current * scale_index_t1 >> SHIFT_LUT;    // TODO: this looks wrong! int with bitshift, to index? without sign-test, without brackets to make precedence obvious
 		return table[0][index];
 	} else if (current < max_t2) {
         const int32_t index = current * scale_index_t2 >> SHIFT_LUT;

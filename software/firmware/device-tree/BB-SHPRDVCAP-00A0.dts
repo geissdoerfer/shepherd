@@ -32,7 +32,7 @@
         "P9.25", /* SPI CS ADC */
         "P9.27", /* SPI MISO */
         "P9.28", /* SPI SCLK */
-        "P9.29", /* SELECT LOAD PRU */
+        "P9.29", /* SELECT LOAD PRU, VCAP Change, controlled by PRU now*/
         "P9.30", /* SPI MOSI */
         "P9.31", /* SPI CS DAC */
         "P9.41", /* SWDIO */
