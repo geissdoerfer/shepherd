@@ -124,7 +124,7 @@ void sample(struct SampleBuffer *const current_buffer_far, const uint32_t sample
     case MODE_EMULATION: // ~ 6860 ns
         sample_emulation(current_buffer_far, sample_idx);
         break;
-    case MODE_VIRTCAP: // ~ 4220 ns, TODO: the routine is strange, seems broken
+    case MODE_VIRTCAP: // ~ 4220 ns, TODO: but routine is not completed
         sample_virtcap(current_buffer_far, sample_idx);
         break;
 	case MODE_HARVESTING: // ~ 4340 ns
@@ -136,6 +136,8 @@ void sample(struct SampleBuffer *const current_buffer_far, const uint32_t sample
 	default:
 	    break;
 	}
+
+	// TODO: at least ADC supports power-down mode, useful for battery-based setup during waiting
 }
 
 uint32_t sample_dbg_adc(const uint32_t channel_no)
