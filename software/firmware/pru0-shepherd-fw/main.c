@@ -7,6 +7,8 @@
 #include <pru_intc.h>
 #include <rsc_types.h>
 
+#include "iep.h"
+
 #include "stdint_fast.h"
 #include "gpio.h"
 #include "intc.h"
@@ -20,6 +22,7 @@
 #include "sampling.h"
 #include "shepherd_config.h"
 #include "virtcap.h"
+#include "spi_transfer_sys.h"
 
 /* Used to signal an invalid buffer index */
 #define NO_BUFFER 0xFFFFFFFF
@@ -123,6 +126,16 @@ void event_loop(volatile struct SharedMem *const shared_mem,
 	enum ShepherdMode shepherd_mode = (enum ShepherdMode)shared_mem->shepherd_mode;
 
 	while (1) {
+
+        //if (iep_check_evt_cmp_fast(iep_get_tmr_cmp_sts(), IEP_CMP1))
+        if (0)
+        {
+            _GPIO_ON(DEBUG_P0);
+            __delay_cycles(1);
+            _GPIO_OFF(DEBUG_P0);
+        }
+
+
 		/* Check if a sample was triggered by PRU1 */
 		if (read_r31() & (1U << 31U)) {
 			/* Important: We have to clear the interrupt here, to avoid missing interrupts */
@@ -159,12 +172,16 @@ void event_loop(volatile struct SharedMem *const shared_mem,
 			}
 			/* We only handle rpmsg comms if we're not at the last sample */
 			else {
-                _GPIO_ON(USR_LED1);
+                _GPIO_ON(DEBUG_P0);
 				handle_rpmsg(free_buffers_ptr,
 					     (enum ShepherdMode)shared_mem->shepherd_mode,
 					     (enum ShepherdState)shared_mem->shepherd_state);
-                _GPIO_OFF(USR_LED1);
+                _GPIO_OFF(DEBUG_P0);
 			}
+
+			// TODO: Test-Area at the end
+            sys_adc_readwrite(DEBUG_P0, sample_idx);
+
 		}
 	}
 }
@@ -208,6 +225,9 @@ void main(void)
 	CT_INTC.EISR_bit.EN_SET_IDX = PRU_PRU_EVT_BLOCK_END;
 
 	rpmsg_init((uint8_t*)"rpmsg-pru");
+
+    // TODO: Test-Area at the end
+    sys_spi_init();
 
 reset:
     _GPIO_OFF(DEBUG_P0 | USR_LED1);

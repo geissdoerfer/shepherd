@@ -11,6 +11,8 @@ SOURCES = $(notdir $(wildcard ./*.c))
 SOURCES += printf.c
 SOURCES += rpmsg.c
 SOURCES += simple_lock.c
+# TODO: test
+SOURCES += iep.c
 
 ASM_SOURCES = spi_transfer_pru.asm
 
