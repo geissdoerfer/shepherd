@@ -23,7 +23,7 @@ else()
     message("   Detected NON-Linux: provide some mockup for editor")
     add_definitions(-D__PRU__)    #can be replaced by add_compile_definitions(var=value) when cmake gets updated ~3.17
     add_definitions(-D__TI_LLVM__)
-    add_definitions(-D__delay_cycles=uint32_t)  #some harmless definition
+    add_definitions(-D__delay_cycles=(uint32_t))  #some harmless definition
     include_directories(
             ${CMAKE_CURRENT_LIST_DIR}/_cgt233/include
             ${CMAKE_CURRENT_LIST_DIR}/_cgt233/lib
@@ -41,30 +41,47 @@ project(PRU1 C)
 set(CMAKE_C_STANDARD 99)
 
 # TODO: the following 40 lines are hideous, but allow fast testing
-set(SOURCE
-        ${SOURCE}
+set(SRC_PRU0
+        ${CMAKE_CURRENT_LIST_DIR}/pru0-shepherd-fw/ringbuffer.c
+        ${CMAKE_CURRENT_LIST_DIR}/pru0-shepherd-fw/spi_transfer_pru.asm
+        ${CMAKE_CURRENT_LIST_DIR}/pru0-shepherd-fw/sampling.c
+        ${CMAKE_CURRENT_LIST_DIR}/pru0-shepherd-fw/virtcap.c
+        )
+set(HDR_PRU0
+        ${CMAKE_CURRENT_LIST_DIR}/pru0-shepherd-fw/include/hw_config.h
+        ${CMAKE_CURRENT_LIST_DIR}/pru0-shepherd-fw/include/resource_table.h
+        ${CMAKE_CURRENT_LIST_DIR}/pru0-shepherd-fw/include/resource_table_def.h
+        ${CMAKE_CURRENT_LIST_DIR}/pru0-shepherd-fw/include/ringbuffer.h
+        ${CMAKE_CURRENT_LIST_DIR}/pru0-shepherd-fw/include/sampling.h
+        ${CMAKE_CURRENT_LIST_DIR}/pru0-shepherd-fw/include/virtcap.h
+        )
+
+set(HDR_SHARED
+        ${CMAKE_CURRENT_LIST_DIR}/include/commons.h
+        ${CMAKE_CURRENT_LIST_DIR}/include/shepherd_config.h
+        )
+
+set(SRC_LIB
         ${CMAKE_CURRENT_LIST_DIR}/lib/src/iep.c
         ${CMAKE_CURRENT_LIST_DIR}/lib/src/printf.c
         ${CMAKE_CURRENT_LIST_DIR}/lib/src/rpmsg.c
         ${CMAKE_CURRENT_LIST_DIR}/lib/src/simple_lock.c
-
-        ${CMAKE_CURRENT_LIST_DIR}/_pssp57g/lib/src/rpmsg_lib/pru_rpmsg.c
-        ${CMAKE_CURRENT_LIST_DIR}/_pssp57g/lib/src/rpmsg_lib/pru_virtqueue.c
         )
-
-set(HEADERS
-        ${HEADERS}
-        ${CMAKE_CURRENT_LIST_DIR}/include/commons.h
-        ${CMAKE_CURRENT_LIST_DIR}/include/shepherd_config.h
-
+set(HDR_LIB
         ${CMAKE_CURRENT_LIST_DIR}/lib/include/gpio.h
         ${CMAKE_CURRENT_LIST_DIR}/lib/include/iep.h
-        ${CMAKE_CURRENT_LIST_DIR}/lib/include/int_optimized.h
+        ${CMAKE_CURRENT_LIST_DIR}/lib/include/stdint_fast.h
         ${CMAKE_CURRENT_LIST_DIR}/lib/include/intc.h
         ${CMAKE_CURRENT_LIST_DIR}/lib/include/printf.h
         ${CMAKE_CURRENT_LIST_DIR}/lib/include/rpmsg.h
         ${CMAKE_CURRENT_LIST_DIR}/lib/include/simple_lock.h
+        )
 
+set(SRC_SUP
+        ${CMAKE_CURRENT_LIST_DIR}/_pssp57g/lib/src/rpmsg_lib/pru_rpmsg.c
+        ${CMAKE_CURRENT_LIST_DIR}/_pssp57g/lib/src/rpmsg_lib/pru_virtqueue.c
+        )
+set(HDR_SUP
         ${CMAKE_CURRENT_LIST_DIR}/_pssp57g/include/pru_rpmsg.h
         ${CMAKE_CURRENT_LIST_DIR}/_pssp57g/include/pru_types.h
         ${CMAKE_CURRENT_LIST_DIR}/_pssp57g/include/pru_virtqueue.h
@@ -80,30 +97,55 @@ set(HEADERS
         ${CMAKE_CURRENT_LIST_DIR}/_pssp57g/include/am335x/sys_tscAdcSs.h
         )
 
-
 # add the executable
 add_executable(PRU0
-        ${CMAKE_CURRENT_LIST_DIR}/pru0-shepherd-fw/main.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/pru0-shepherd-fw/main.c
+        lib/include/sys_gpio.h pru0-shepherd-fw/spi_transfer_sys.c pru0-shepherd-fw/include/spi_transfer_sys.h)
+
+target_sources(PRU0
+        PUBLIC
+            ${HDR_SUP}
+            ${HDR_LIB}
+            ${HDR_SHARED}
+            ${SRC_SUP}
+            ${SRC_LIB}
+        #PRIVATE
+            ${HDR_PRU0}
+            ${SRC_PRU0}
+        )
+
+
+
+target_include_directories(PRU0
+        PUBLIC
+            $<INSTALL_INTERFACE:include>
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/pru0-shepherd-fw>
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/pru0-shepherd-fw/include>
+        #PRIVATE
+            ${CMAKE_CURRENT_SOURCE_DIR}/pru0-shepherd-fw/include
+            ${CMAKE_CURRENT_SOURCE_DIR}/include
+            ${CMAKE_CURRENT_SOURCE_DIR}/lib/include
+            ${CMAKE_CURRENT_SOURCE_DIR}/_pssp57g/include
+            ${CMAKE_CURRENT_SOURCE_DIR}/_pssp57g/include/am335x
+        )
+
+set(TEMPEPE
         ${CMAKE_CURRENT_LIST_DIR}/pru0-shepherd-fw/ringbuffer.c
-        ${CMAKE_CURRENT_LIST_DIR}/pru0-shepherd-fw/spi_transfer.asm
+        ${CMAKE_CURRENT_LIST_DIR}/pru0-shepherd-fw/spi_transfer_pru.asm
         ${CMAKE_CURRENT_LIST_DIR}/pru0-shepherd-fw/sampling.c
         ${CMAKE_CURRENT_LIST_DIR}/pru0-shepherd-fw/virtcap.c
-        ${CMAKE_CURRENT_LIST_DIR}/pru0-shepherd-fw/include/hw_config.h
-        ${CMAKE_CURRENT_LIST_DIR}/pru0-shepherd-fw/include/resource_table.h
-        ${CMAKE_CURRENT_LIST_DIR}/pru0-shepherd-fw/include/resource_table_def.h
-        ${CMAKE_CURRENT_LIST_DIR}/pru0-shepherd-fw/include/ringbuffer.h
-        ${CMAKE_CURRENT_LIST_DIR}/pru0-shepherd-fw/include/sampling.h
-        ${CMAKE_CURRENT_LIST_DIR}/pru0-shepherd-fw/include/virtcap.h
+
         ${SOURCE}
         ${HEADERS}
         )
 
 add_executable(PRU1
+        ${HEADERS}
         ${CMAKE_CURRENT_LIST_DIR}/pru1-shepherd-fw/main.c
         ${CMAKE_CURRENT_LIST_DIR}/pru1-shepherd-fw/include/resource_table.h
         ${SOURCE}
         ${HEADERS}
-        )
+        lib/include/sys_gpio.h)
 
 target_compile_definitions(PRU0 PRIVATE PRU0)
 target_compile_definitions(PRU1 PRIVATE PRU1)
@@ -118,7 +160,8 @@ add_compile_options(-isystem include)
 #add_compile_options(-minrt)
 
 target_compile_options(PRU0 PUBLIC -v -g -Os -Wall -Wextra -isystem include -mmcu=am335x.pru0)
-target_compile_options(PRU1 PRIVATE -mmcu=am335x.pru1)
+#target_compile_options(PRU1 PRIVATE -mmcu=am335x.pru1)
+target_compile_options(PRU1 PUBLIC -v -g -Os -Wall -Wextra -isystem include -mmcu=am335x.pru1)
 
 # shared includes
 include_directories(
