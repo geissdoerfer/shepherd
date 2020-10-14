@@ -6,6 +6,7 @@
   vars:
     default_user: ubuntu
     default_password: temppwd
+	# TODO: convert these two vars to inputs, for BBAI debian seems more reasonable
 
   tasks:
 

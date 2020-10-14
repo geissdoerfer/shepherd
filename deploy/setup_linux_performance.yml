@@ -27,6 +27,11 @@
       state: stopped
       daemon_reload: yes
 
+  - name: Uname - Get Kernel-Version
+    command: uname --kernel-release
+    register: kernelrelease
+    changed_when: False
+
   - name: CFG - Optimize Boot by removing outdated initrd
     file:
       path: '/boot/initrd.img-{{ kernelrelease.stdout.strip() }}'

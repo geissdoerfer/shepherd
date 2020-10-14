@@ -7,11 +7,12 @@
     # shepherd firmware expects a certain branch!
     default_kernel_branch: lts-4_19
     timezone: Europe/Berlin
-    # potentially dangerous:
+    # potentially dangerous / improve security:
     non_essential_packages_a: ['dnsmasq', 'dnsmasq-*', 'nginx', 'nginx-*']
     # old kernel data
-    non_essential_packages_b: ['linux-image-5.4.*', 'linux-image-4.15.*', 'linux-image-4.14.*']
-    non_essential_packages_c: ['linux-headers-5.4.*', 'linux-headers-4.15.*', 'linux-headers-4.14.*']
+    non_essential_packages_b: ['linux-image-4.15.*', 'linux-image-4.14.*']
+    non_essential_packages_c: ['linux-headers-4.15.*', 'linux-headers-4.14.*']
+    # todo: soon add linux-*-4.19.*
     # not needed drivers / packages Todo: rf-drivers could become important later
     non_essential_packages_d: ['alsa-utils', 'wireless-*', 'wpasupplicant', 'ofono', 'bluez', 'bluetooth', 'rfkill']
     non_essential_packages_e: ['seeed-modules-*', 'rtl8723bu-*', 'rtl8821cu-*', 'can-utils', 'libasound*']
@@ -21,13 +22,13 @@
   vars_prompt:
     # these can be also passed as argument:  -e "update_kernel=True"
     - name: update_kernel
-      prompt: "Do you want to update the Kernel? [yN]"
+      prompt: "Do you want to update the Kernel? [yesNO]"
       private: no
       default: "no"
       when: update_kernel is not defined
 
     - name: update_bootloader
-      prompt: "Do you want to update the Bootloader? [yN]"
+      prompt: "Do you want to update the Bootloader? [yesNO]"
       private: no
       default: "no"
       when: update_bootloader is not defined
@@ -91,10 +92,9 @@
 
   - name: APT - Uninstall non-essential Packages
     apt:
-      name: "{{ item }}"
+      name: "{{ non_essential_pckgs }}"
       state: absent
       purge: yes
-    with_list: non_essential_pckgs
 
   - name: APT - Remove useless Packages from the Cache
     apt:
@@ -118,3 +118,6 @@
       delay: 15
       timeout: 300
     become: no
+	
+  - name: CFG - Set CPU Governor to more relaxed state (powersave)
+    shell: 
