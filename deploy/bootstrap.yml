@@ -3,18 +3,30 @@
   hosts: all
   become: true
   gather_facts: no
-  vars:
-    default_user: ubuntu
-    default_password: temppwd
+
+  vars_prompt:
+  
+    # these can be also passed as argument:  -e "default_user=debian"
+    - name: default_user
+      prompt: "Do you want to modify current default user?"
+      private: no
+      default: "ubuntu"
+      when: default_user is not defined
+	  
+    - name: default_password
+      prompt: "Do you want to modify current default password?"
+      private: no
+      default: "temppwd"
+      when: default_password is not defined
 
   tasks:
 
   - set_fact:
-    new_user: "{{ ansible_user }}"
-    # special internal variables:
-    ansible_user: "{{ default_user }}"
-    ansible_password: "{{ default_password }}"
-    ansible_become_password: "{{ default_password }}"
+      new_user: "{{ ansible_user }}"
+      # special internal variables:
+      ansible_user: "{{ default_user }}"
+      ansible_password: "{{ default_password }}"
+      ansible_become_password: "{{ default_password }}"
 
   - name: Set hostname
     hostname:

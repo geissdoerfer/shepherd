@@ -34,7 +34,7 @@
       - {regex: '^.*ChallengeResponseAuthentication.*$', line: 'ChallengeResponseAuthentication no'}
       - {regex: '^.*X11Forwarding.*$', line: 'X11Forwarding no'}
       - {regex: '^.*AllowUsers.*$', line: 'AllowUsers {{ ansible_user }}'}
-      # select good or exclude weak algorithms:
+      # select good AND exclude weak algorithms:
       - {regex: '^.*KexAlgorithms.*$', line: 'KexAlgorithms -ecdh-sha2*,diffie-hellman-group-exchange*,diffie-hellman-group14-sha1'}
       - {regex: '^.*HostKeyAlgorithms.*$', line: 'HostKeyAlgorithms -ecda-sha2*,ecdsa-sha2*'}
       - {regex: '^.*Ciphers.*$', line: 'Ciphers chacha20-poly1305@openssh.com,aes128-ctr,aes192-ctr,aes256-ctr'}
@@ -48,12 +48,18 @@
       force: yes
       mode: u=rw
 
+  - name: INIT - Check if "message of the day" exists
+    stat:
+      path: /etc/default/motd-news
+    register: motd_result
+
   - name: CFG - Disable "message of the day"-Service (motd)
     lineinfile:
       dest: /etc/default/motd-news
       regexp: '^.*ENABLED.*$'
       line: 'ENABLED=0'
       state: present
+    when: motd_result.stat.exists 
 
   - name: CFG - Disable motd-news.timer
     command: systemctl disable motd-news.timer

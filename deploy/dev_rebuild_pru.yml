@@ -5,6 +5,9 @@
 
   vars:
     shepherd_install_path: /opt/shepherd
+    # pru_support_path: '{{ ti_path }}/{{ pru_support_package }}'
+    pru_support_path: '{{ shepherd_install_path }}/software/firmware/_pssp57g' # TODO: just for debug
+    rebuild_kernel_module: false
 
   vars_prompt:
     # these can be also passed as argument:  -e "refresh_source=True"
@@ -24,6 +27,7 @@
       version: master
       force: yes
     when: refresh_source|bool
+    become: false
 
   - name: Stop Kernel Module
     command: modprobe -r shepherd
@@ -34,35 +38,60 @@
       target: clean
     environment:
       PRU_CGT: '{{ pru_cgt_path }}'
-      PRU_SUPPORT: '{{ ti_path }}/{{ pru_support_package }}'
+      PRU_SUPPORT: '{{ pru_support_path }}'
     with_items:
       - pru0
       - pru1
+    become: false
 
-  - name: Build and install PRU firmware
+  - name: Build PRU firmware
+    make:
+      chdir: "{{ shepherd_install_path }}/software/firmware/{{ item }}-shepherd-fw"
+      target: all
+    environment:
+      PRU_CGT: '{{ pru_cgt_path }}'
+      PRU_SUPPORT: '{{ pru_support_path }}'
+    with_items:
+      - pru0
+      - pru1
+    become: false
+    
+  - name: install PRU firmware
     make:
       chdir: "{{ shepherd_install_path }}/software/firmware/{{ item }}-shepherd-fw"
       target: install
     environment:
       PRU_CGT: '{{ pru_cgt_path }}'
-      PRU_SUPPORT: '{{ ti_path }}/{{ pru_support_package }}'
+      PRU_SUPPORT: '{{ pru_support_path }}'
     with_items:
       - pru0
       - pru1
 
+  - name: clean shepherd device tree
+    make:
+      chdir: "{{ shepherd_install_path }}/software/firmware/device-tree"
+      target: clean
+
+  - name: build and install shepherd device tree
+    make:
+      chdir: "{{ shepherd_install_path }}/software/firmware/device-tree"
+      target: install
+
   - name: Stop PRU0
-    command: echo "stop" > /sys/class/remoterproc/remoteproc1/state
+    command: echo "stop" > /sys/class/remoteproc/remoteproc1/state
 
   - name: Stop PRU1
-    command: echo "stop" > /sys/class/remoterproc/remoteproc2/state
+    command: echo "stop" > /sys/class/remoteproc/remoteproc2/state
 
   - name: Build and install kernel module
     make:
       chdir: "{{ shepherd_install_path }}/software/kernel-module/src"
       target: install
+    when: rebuild_kernel_module|bool
 
   - name: Reload kernel modules
     command: depmod -a
+    when: rebuild_kernel_module|bool
 
   - name: Load Shepherd-Module
     command: modprobe -a shepherd

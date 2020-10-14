@@ -5,7 +5,7 @@
 
   vars_prompt:
     - name: ptp
-      prompt: "Do you want to install ptp? [yN]"
+      prompt: "Do you want to install ptp? [yesNo]"
       private: no
       default: "no"
       when: ptp is not defined
@@ -37,7 +37,7 @@
     apt:
       name: shepherd-ptp
       state: latest
-    when: ptp|default(false)|bool == true
+    when: ptp|default(false)|bool
 
   - name: restart device
     shell: sleep 2 && shutdown -r now "Ansible restart"
