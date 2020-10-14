@@ -134,5 +134,3 @@ dmypy.json
 
 # IDE
 .idea/
-# personalized file in inventory should get ignored
-inventory/
