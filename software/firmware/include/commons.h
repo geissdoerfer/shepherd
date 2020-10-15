@@ -1,29 +1,33 @@
 #ifndef __COMMONS_H_
 #define __COMMONS_H_
+// NOTE: a similar version of this definition-file exists for the kernel module (copy changes by hand)
 
 #include "simple_lock.h"
 #include "shepherd_config.h"
+#include "stdint_fast.h"
 
-#define HOST_PRU_EVT_TIMESTAMP 20
 
-#define PRU_PRU_EVT_SAMPLE 30
-#define PRU_PRU_EVT_BLOCK_END 31
+#define HOST_PRU_EVT_TIMESTAMP          20U
 
-#define PRU_SHARED_MEM_STRUCT_OFFSET 0x10000
+#define PRU_PRU_EVT_SAMPLE              30U
+#define PRU_PRU_EVT_BLOCK_END           31U
 
-#define MAX_GPIO_EVT_PER_BUFFER 16384
+#define PRU_SHARED_MEM_STRUCT_OFFSET    0x10000u
+
+#define MAX_GPIO_EVT_PER_BUFFER         16384U
+
 
 /* Message IDs used in Data Exchange Protocol between PRU0 and user space */
 enum DEPMsgID {
-	MSG_DEP_ERROR = 0,
-	MSG_DEP_BUF_FROM_HOST = 1,
-	MSG_DEP_BUF_FROM_PRU = 2,
-	MSG_DEP_ERR_INCMPLT = 3,
-	MSG_DEP_ERR_INVLDCMD = 4,
-	MSG_DEP_ERR_NOFREEBUF = 5,
-	MSG_DEP_DBG_PRINT = 6,
-	MSG_DEP_DBG_ADC = 0xF0,
-	MSG_DEP_DBG_DAC = 0xF1
+	MSG_DEP_ERROR = 0u,
+	MSG_DEP_BUF_FROM_HOST = 1u,
+	MSG_DEP_BUF_FROM_PRU = 2u,
+	MSG_DEP_ERR_INCMPLT = 3u,
+	MSG_DEP_ERR_INVLDCMD = 4u,
+	MSG_DEP_ERR_NOFREEBUF = 5u,
+	MSG_DEP_DBG_PRINT = 6u,
+	MSG_DEP_DBG_ADC = 0xF0u,
+	MSG_DEP_DBG_DAC = 0xF1u
 };
 
 /* Message IDs used in Synchronization Protocol between PRU1 and kernel module */
@@ -48,14 +52,14 @@ enum ShepherdState {
 struct GPIOEdges {
 	uint32_t idx;
 	uint64_t timestamp_ns[MAX_GPIO_EVT_PER_BUFFER];
-	char bitmask[MAX_GPIO_EVT_PER_BUFFER];
+    uint8_t  bitmask[MAX_GPIO_EVT_PER_BUFFER];
 } __attribute__((packed));
 
 struct SampleBuffer {
 	uint32_t len;
 	uint64_t timestamp_ns;
-	uint32_t values_voltage[SAMPLES_PER_BUFFER];
-	uint32_t values_current[SAMPLES_PER_BUFFER];
+	uint32_t values_voltage[ADC_SAMPLES_PER_BUFFER];
+	uint32_t values_current[ADC_SAMPLES_PER_BUFFER];
 	struct GPIOEdges gpio_edges;
 } __attribute__((packed));
 
@@ -129,19 +133,19 @@ struct SharedMem {
 /* Format of RPMSG message sent from PRU1 to kernel module */
 struct CtrlReqMsg {
 	/* This is used to identify message type at receiver */
-	char identifier;
+    uint8_t identifier;
 	/* Number of ticks passed on the PRU's IEP timer */
 	uint32_t ticks_iep;
 	/* Previous buffer period in IEP ticks */
 	uint32_t old_period;
-} __attribute__((packed));
+} __attribute__((packed)); // TODO: should be aligned with memory, (bytes)mod4
 
 /* Format of RPMSG message sent from kernel module to PRU1 */
 struct CtrlRepMsg {
-	char identifier;
+    uint8_t identifier;
 	int32_t clock_corr;
 	uint64_t next_timestamp_ns;
-} __attribute__((packed));
+} __attribute__((packed)); // TODO: should be aligned with memory, (bytes)mod4
 
 struct ADCReading {
 	int32_t current;
