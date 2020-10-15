@@ -63,7 +63,7 @@ uint32_t handle_block_end(volatile struct SharedMem *const shared_mem,
 		send_message(MSG_DEP_ERR_NOFREEBUF, 0);
 	}
 	simple_mutex_exit(&shared_mem->gpio_edges_mutex);
-    GPIO_OFF(USR_LED1);
+    //GPIO_OFF(USR_LED1);
 
     /* If we currently have a valid buffer, return it to host */
     // NOTE: this part came right after muter_enter, but it can wait, only blocks mutex / pru1 (80% of workload in this fn)
@@ -168,15 +168,19 @@ void event_loop(volatile struct SharedMem *const shared_mem,
 			if (int_source == SIG_BLOCK_END) {
 				/* Did the Linux kernel module ask for reset? */
 				if (shared_mem->shepherd_state == STATE_RESET) return;
-                GPIO_ON(DEBUG_P0 | USR_LED1);
+                GPIO_ON(DEBUG_P0);
 
 				/* We try to exchange a full buffer for a fresh one if we are running */
 				if ((shared_mem->shepherd_state == STATE_RUNNING) &&
 				    (shared_mem->shepherd_mode != MODE_DEBUG))
+                {
                     ring_buf_idx = handle_block_end(shared_mem, free_buffers_ptr, buffers_far, ring_buf_idx, sample_idx);
+                    GPIO_TOGGLE(USR_LED1); // NOTE: desired user-feedback
+                }
+
 
 				sample_idx = 0;
-				GPIO_OFF(DEBUG_P0 | USR_LED1);
+				GPIO_OFF(DEBUG_P0);
 			}
 			/* We only handle rpmsg comms if we're not at the last sample */
 			else {
