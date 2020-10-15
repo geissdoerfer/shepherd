@@ -8,10 +8,31 @@
 #include "resource_table.h"
 #include "rpmsg.h"
 
+/*
+ TODO: virtqueue is an example of unoptimized code:
+ - lots of struct* in struct* in propably far/slow registers
+ 	- important far-reads get repeated in 3 lower fn
+ - instead of moves, the data (8 bytes) gets copied twice
+ -> results in 2000 us sends() and 550 - 4000 us receive() (depends on msg)
+
+ pru0/send_message() -> rpmsg_putraw() -> pru_rpmsg_send() 		|
+ pru0/handle_rpmsg() -> rpmsg_get() -> pru_rpmsg_receive() 		| both fn are similar
+ 	- pru_vq_get_avail_buf()
+ 	- memcpy()
+ 	- pru_vq_add_used_buf()
+ 	- pru_vq_kick()
+ todo: optimize for our 2x uint32 transfer, on receive fail early if nothing is there
+ */
+
+
 extern struct my_resource_table resourceTable;
 
+#ifdef __GNUC__
+#include <pru/io.h>
+#else
 volatile register uint32_t __R31;
 volatile register uint32_t __R30;
+#endif
 
 
 /* The PRU-ICSS system events used for RPMsg are defined in the Linux device tree
@@ -19,60 +40,61 @@ volatile register uint32_t __R30;
  * PRU1 uses system event 18 (To ARM) and 19 (From ARM)
  */
 #if defined(PRU0)
-	#define TO_ARM_HOST 16
-	#define FROM_ARM_HOST 17
+	#define TO_ARM_HOST     16U
+	#define FROM_ARM_HOST   17U
 
-	#define CHAN_DESC			"Channel 0"
-	#define CHAN_PORT			0
+	#define CHAN_DESC		"Channel 0"
+	#define CHAN_PORT		0U
 
 #elif defined(PRU1)
-	#define TO_ARM_HOST 18
-	#define FROM_ARM_HOST 19
+	#define TO_ARM_HOST     18U
+	#define FROM_ARM_HOST   19U
 
-	#define CHAN_DESC			"Channel 1"
-	#define CHAN_PORT			1
-
+	#define CHAN_DESC		(uint8_t*)"Channel 1"
+	#define CHAN_PORT		1u
 #else
 	#error
 #endif
 
 /* Apparently this is the RPMSG address of the ARM core */
-#define RPMSG_DST 0x0400
-#define RPMSG_SRC CHAN_PORT
+#define RPMSG_DST   0x0400u
+#define RPMSG_SRC   CHAN_PORT
 
 /*
  * Used to make sure the Linux drivers are ready for RPMsg communication
  * Found at linux-x.y.z/include/uapi/linux/virtio_config.h
  */
-#define VIRTIO_CONFIG_S_DRIVER_OK	4
-struct pru_rpmsg_transport transport;
+#define VIRTIO_CONFIG_S_DRIVER_OK	4U
+static struct pru_rpmsg_transport transport;
 
-static char print_buffer[RPMSG_BUF_SIZE];
+static uint8_t print_buffer[RPMSG_BUF_SIZE];
 
-void rpmsg_putraw(void * data, unsigned int len)
+// void rpmsg_putraw(const void *const data, const uint32_t len) // TODO: use when pssp gets changed
+void rpmsg_putraw(void * data, const uint32_t len)
 {
 	pru_rpmsg_send(&transport, RPMSG_SRC, RPMSG_DST, data, len);
 }
 
-void rpmsg_printf(char *fmt, ...)
+//void rpmsg_printf(const char * fmt, ...)  // TODO: fmt should be const char *const, but underlying fn don't allow atm
+void rpmsg_printf(char * fmt, ...)
 {
 	va_list va;
 	va_start(va,fmt);
-	char * s = print_buffer;
-	tfp_format(&s, putcp, fmt, va);
-	putcp(&s, 0);
-	rpmsg_putraw(print_buffer, strlen(print_buffer) + 1);
+    uint8_t * dst_ptr = print_buffer;
+    tfp_format(&dst_ptr, put_copy, fmt, va);
+    put_copy(&dst_ptr, 0U);
+	rpmsg_putraw(print_buffer, strlen((char*)print_buffer) + 1U);
 	va_end(va);
 }
 
+//void rpmsg_init(const char *const chan_name) // TODO: use when pssp gets changed
 void rpmsg_init(char * chan_name)
 {
-	volatile uint8_t *status;
 	/* Clear the status of the PRU-ICSS system event that the ARM will use to 'kick' us */
 	CT_INTC.SICR_bit.STS_CLR_IDX = FROM_ARM_HOST;
 
 	/* Make sure the Linux drivers are ready for RPMsg communication */
-	status = &resourceTable.rpmsg_vdev.status;
+    volatile uint8_t *const status = &resourceTable.rpmsg_vdev.status;
 	while (!(*status & VIRTIO_CONFIG_S_DRIVER_OK));
 
 	/* Initialize the RPMsg transport structure */
@@ -80,25 +102,22 @@ void rpmsg_init(char * chan_name)
 
 	/* Create the RPMsg channel between the PRU and ARM user space using the transport structure. */
 	while (pru_rpmsg_channel(RPMSG_NS_CREATE, &transport, chan_name, CHAN_DESC, CHAN_PORT) != PRU_RPMSG_SUCCESS);
-
-
-
 }
 
 void rpmsg_flush()
 {
 	uint16_t src, dst, len;
 	while(pru_rpmsg_receive(&transport, &src, &dst, print_buffer, &len) == PRU_RPMSG_SUCCESS){};
-	CT_INTC.SECR0 |= (1 << FROM_ARM_HOST);
+	CT_INTC.SECR0 |= (1U << FROM_ARM_HOST);
 }
 
-int rpmsg_get(char * s)
+uint32_t rpmsg_get(uint8_t *const buffer)
 {
 	uint16_t src, dst, len;
-	int ret = pru_rpmsg_receive(&transport, &src, &dst, s, &len);
+	const int32_t ret = pru_rpmsg_receive(&transport, &src, &dst, buffer, &len);
 	if(ret != PRU_RPMSG_SUCCESS)
 	{
-		return ret;
+		return 0U; // NOTE: this was returning (int ret), but its expensive and not useful
 	}
-	return (int) len;
+	return len;
 }
