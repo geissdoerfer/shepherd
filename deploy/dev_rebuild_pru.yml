@@ -12,7 +12,7 @@
   vars_prompt:
     # these can be also passed as argument:  -e "refresh_source=True"
     - name: refresh_source
-      prompt: "Do you want to (forcefully) git pull the Shepherd-Source on Nodes? [yN]"
+      prompt: "Do you want to (forcefully) git pull the Shepherd-Source on Nodes? [yesNo]"
       private: no
       default: "no"
       when: refresh_source is not defined

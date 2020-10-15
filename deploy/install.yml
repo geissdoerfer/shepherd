@@ -5,7 +5,7 @@
 
   vars_prompt:
     - name: ptp
-      prompt: "Do you want to install ptp? [yesNo]"
+      prompt: "Do you want to install ptp? Useful for synching a bunch of shepherd nodes. [yesNo]"
       private: no
       default: "no"
       when: ptp is not defined

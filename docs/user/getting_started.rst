@@ -139,3 +139,4 @@ Further playbooks:
     - ``setup-dev-nfs.yml`` establish a local network file system ``/opt/shepherd-dev`` for the nodes to access
     - ``setup-ext-storage.yml`` will format and automount sd-card to ''/var/shepherd/recordings''
     - ``deploy.yml`` offers faster and easier way to test updates in shepherd-code-base
+    - ``dev_rebuild_pru.yml`` hot-swaps pru-firmware by compiling and flashing without restart
