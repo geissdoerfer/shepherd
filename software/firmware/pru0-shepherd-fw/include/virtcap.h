@@ -4,8 +4,8 @@
 #include <stdbool.h>
 #include "commons.h"
 
-#define SHIFT_VOLT 12
-#define EFFICIENCY_RANGE (1 << 12)
+#define SHIFT_VOLT          12U
+#define EFFICIENCY_RANGE    (1U << 12U)
 
 static const struct VirtCapSettings kBQ25570Settings = {
   .upper_threshold_voltage = 3500,
@@ -33,16 +33,16 @@ static const struct VirtCapSettings kBQ25570Settings = {
   }
 };
 
-void virtcap_init(struct VirtCapSettings *settings_arg,
-		  struct CalibrationSettings *calib);
+void virtcap_init(struct VirtCapSettings *vcap_arg,
+		  struct CalibrationSettings *calib_arg);
 void virtcap_update(int32_t current_measured, int32_t voltage_measured,
 		    int32_t input_current, int32_t input_voltage);
 
-bool virtcap_get_output();
+bool_ft virtcap_get_output_state();
 
-int32_t voltage_mv_to_logic(int32_t voltage);
-int32_t current_ua_to_logic(int32_t current);
-int32_t current_ma_to_logic(int32_t current);
+static inline int32_t voltage_mv_to_logic(int32_t voltage);
+static inline int32_t current_ua_to_logic(int32_t current);
+//int32_t current_ma_to_logic(int32_t current);
 
-int32_t lookup(int32_t table[][9], int32_t current);
-void lookup_init();
+static int32_t lookup(int32_t table[const][9], int32_t current);
+static void lookup_init();
