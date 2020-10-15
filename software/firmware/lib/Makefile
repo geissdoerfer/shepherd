@@ -1,14 +1,10 @@
-# PRU_CGT environment variable must point to the TI PRU code gen tools directory. E.g.:
-#(Desktop Linux) export PRU_CGT=/path/to/pru/code/gen/tools/ti-cgt-pru_2.1.2
-#(Windows) set PRU_CGT=C:/path/to/pru/code/gen/tools/ti-cgt-pru_2.1.2
-#(ARM Linux*) export PRU_CGT=/usr/share/ti/cgt-pru
-#
-# *ARM Linux also needs to create a symbolic link to the /usr/bin/ directory in
-# order to use the same Makefile
-#(ARM Linux) ln -s /usr/bin/ /usr/share/ti/cgt-pru/bin
+# contains most "magic" for cgt-compiling the pru-code
 
+.DEFAULT_GOAL := all
+
+ifeq ($(MAKECMDGOALS),all)
 ifndef PRU_CGT
-define ERROR_BODY
+define CGT_ERROR_BODY
 
 *******************************************************************************
 PRU_CGT environment variable is not set. Examples given:
@@ -22,8 +18,23 @@ order to use the same Makefile
 *******************************************************************************
 
 endef
-$(error $(ERROR_BODY))
+$(error $(CGT_ERROR_BODY))
 endif
+ifndef PRU_SUPPORT
+define SUP_ERROR_BODY
+
+*******************************************************************************
+PRU_SUPPORT environment variable is not set. Examples given:
+(Desktop Linux) export PRU_SUPPORT=/path/to/ti/pru-software-support-package-5.7.0
+(Windows) set PRU_SUPPORT=C:/path/to/ti/pru-software-support-package-5.7.0
+(ARM Linux) export PRU_SUPPORT=/usr/share/ti/pru-software-support-package-5.7.0
+*******************************************************************************
+
+endef
+$(error $(SUP_ERROR_BODY))
+endif
+endif
+
 
 PRU_NUM ?= 0
 REMOTEPROC_NUM = $(shell expr $(PRU_NUM) + 1 )
@@ -43,12 +54,28 @@ HEAP_SIZE=0x100
 GEN_DIR=gen
 
 #Common compiler and linker flags (Defined in 'PRU Optimizing C/C++ Compiler User's Guide)
-CFLAGS=-v3 -O2 --display_error_number --endian=little --hardware_mac=on --obj_directory=$(GEN_DIR) --pp_directory=$(GEN_DIR) -ppd -ppa --c99
+# PRU-Hardware
+CFLAGS = -v3 --endian=little --hardware_mac=on
+# Compile Options
+CFLAGS += --c99 --float_operations_allowed=none --symdebug:none --plain_char=unsigned --fp_mode=relaxed
+CFLAGS += --obj_directory=$(GEN_DIR) --pp_directory=$(GEN_DIR) -ppd -ppa
+# Compile Optimization
+CFLAGS += -O4
+# Compile Feedback
+CFLAGS += --issue_remarks --display_error_number
+
+# -O2 -> old default for shepherd
+# -O3 ->
+# -O4 -> link time optimization, 30-40% smaller code
+
 #Linker flags (Defined in 'PRU Optimizing C/C++ Compiler User's Guide)
-LFLAGS=--reread_libs --warn_sections --stack_size=$(STACK_SIZE) --heap_size=$(HEAP_SIZE)
+LFLAGS=--reread_libs --warn_sections --stack_size=$(STACK_SIZE) --heap_size=$(HEAP_SIZE) #--ram_model
 
 TARGET=$(GEN_DIR)/pru$(PRU_NUM)-$(FW_NAME).out
 MAP=$(GEN_DIR)/pru$(PRU_NUM)-$(FW_NAME).map
+
+TARGET_PATH := $(folder_path)$(TARGET)
+TARGET_SIZE := $(shell stat -L -c %s $(TARGET_PATH))
 
 VPATH = $(BASE_PATH)/lib/src
 
@@ -70,7 +97,7 @@ printEnd:
 	@echo ''
 	@echo 'Output files can be found in the "$(GEN_DIR)" directory'
 	@echo ''
-	@echo 'Finished building project: $(PROJ_NAME)'
+	@echo 'Finished building project: $(PROJ_NAME), in $(TARGET_PATH) [$(TARGET_SIZE) bytes]'
 	@echo '************************************************************'
 	@echo ''
 
@@ -80,7 +107,7 @@ $(TARGET): $(OBJECTS) $(LINKER_COMMAND_FILE)
 	@echo 'Building target: $@'
 	@echo 'Invoking: PRU Linker'
 	$(PRU_CGT)/bin/clpru $(CFLAGS) -z -i$(PRU_CGT)/lib -i$(PRU_CGT)/include $(LFLAGS) -o $(TARGET) $(OBJECTS) -m$(MAP) $(LINKER_COMMAND_FILE) --library=libc.a $(LIBS)
-	@echo 'Finished building target: $@'
+	@echo 'Finished building target: $@ [$$(shell stat -L -c %s $(TARGET_PATH)) bytes]' # TODO: not working yet
 
 # Invokes the compiler on all c files in the directory to create the object files
 $(GEN_DIR)/%.object: %.c
@@ -112,7 +139,7 @@ clean:
 	@echo ''
 
 .PHONY: install
-install: all
+install:
 	@echo ''
 	@echo '************************************************************'
 	@echo 'Installing project: $(PROJ_NAME)'
