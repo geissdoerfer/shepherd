@@ -112,6 +112,7 @@ Now run the *bootstrap* `Ansible playbook <https://docs.ansible.com/ansible/late
 .. note::
 
     The non-existing nodes from `example.yaml` will show failure to connect. This error can be ignored. `example.yml` inventory can be safely removed.
+    Initial default user and password can be changed on script-startup, this is only needed for non-ubuntu-images.
 
 To streamline the installation and upgrading process, the shepherd software is packaged and distributed as debian packages.
 Installing is as easy as adding the shepherd repository to the aptitude sources and installing the shepherd metapackage.
@@ -121,7 +122,7 @@ The *install* playbook allows to easily automate this process on a group of node
 
     ansible-playbook deploy/install.yml
 
-To install and configure PTP for time-synchronization, you can set the `ptp` variable on the command line, alternatively you get asked on script-start:
+To install and configure PTP for time-synchronizing a bunch of shepherd-nodes, you can set the `ptp` variable on the command line, alternatively you get asked on script-start:
 
 .. code-block:: bash
 
@@ -132,6 +133,7 @@ On success, the nodes will reboot and should be ready for use, for example, usin
 
 Further playbooks:
     - ``setup_linux_configuration.yml`` will handle updates, some configuration, remove clutter, improve ram-usage and boot-duration
+    - ``setup_linux_performance.yml`` handles additional speed-improving changes
     - ``setup_linux_security.yml`` will close system so that nodes can be distributed safely in open spaces (basic steps against getting into system)
     - ``fetch-hostkeys.yml`` will copy keys from nodes, handy for reflashing image, while keeping keys
     - ``setup-dev-nfs.yml`` establish a local network file system ``/opt/shepherd-dev`` for the nodes to access
