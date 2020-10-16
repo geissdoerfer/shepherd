@@ -131,3 +131,4 @@ The following people have contributed to *shepherd*:
  - [Marco Zimmerling](https://wwwpub.zih.tu-dresden.de/~mzimmerl/)
  - [Justus Paulick](https://github.com/kugelbit)
  - [Boris Blokland](https://github.com/borro0)
+ - [Ingmar Splitt](https://github.com/orgua)
