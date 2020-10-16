@@ -5,6 +5,7 @@ import matplotlib
 from pathlib import Path
 import click
 from scipy.signal import decimate
+import downsampling
 
 
 def ds_to_phys(dataset: h5py.Dataset):
@@ -21,13 +22,21 @@ def extract_hdf(hdf_file: Path, ds_factor: int = 1):
         for var in ["voltage", "current"]:
             sig_phys = ds_to_phys(hf["data"][var])
             if ds_factor > 1:
-                sig_phys = decimate(sig_phys, ds_factor, ftype="fir")
-            data[var] = sig_phys
+                data[var] = downsampling.downsample_signal(sig_phys, ds_factor)
+            else:
+                data[var] = sig_phys
 
         if ds_factor > 1:
-            data["time"] = times[::ds_factor] - times[0]
+            data["time"] = downsampling.downsample_time(times, ds_factor)
         else:
-            data["time"] = times - times[0]
+            data["time"] = times
+        data_len = min(
+            [len(data["time"]), len(data["voltage"]), len(data["current"])]
+        )
+        data["time"] = data["time"][:data_len]
+        data["current"] = data["current"][:data_len]
+        data["voltage"] = data["voltage"][:data_len]
+        print("HDF extracted..")
 
     return data
 
@@ -48,8 +57,8 @@ def cli(directory, filename, sampling_rate, limit):
         if not hdf_file.exists():
             raise click.FileError(str(hdf_file), hint="File not found")
         data = extract_hdf(hdf_file, ds_factor=ds_factor)
-        axes[0].plot(data["time"], data["voltage"])
-        axes[1].plot(data["time"], data["current"] * 1e6)
+        axes[0].plot(data["time"] - data["time"][0], data["voltage"])
+        axes[1].plot(data["time"] - data["time"][0], data["current"] * 1e6)
     else:
         data = dict()
         pl_dir = Path(directory)
@@ -68,13 +77,17 @@ def cli(directory, filename, sampling_rate, limit):
                 raise click.FileError(str(hdf_file), hint="File not found")
             hostname = child.stem
             data[hostname] = extract_hdf(hdf_file, ds_factor=ds_factor)
+
+        ts_start = min([data[hostname]["time"][0] for hostname in active_nodes])
+
+        for hostname in active_nodes:
             axes[0].plot(
-                data[hostname]["time"],
+                data[hostname]["time"] - ts_start,
                 data[hostname]["voltage"],
                 label=hostname,
             )
             axes[1].plot(
-                data[hostname]["time"],
+                data[hostname]["time"] - ts_start,
                 data[hostname]["current"] * 1e6,
                 label=hostname,
             )
