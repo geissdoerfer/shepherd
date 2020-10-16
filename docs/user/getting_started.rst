@@ -79,6 +79,7 @@ Clone the shepherd repository to your machine:
 
 
 Add an inventory file in the `inventory` folder in the repository, assigning hostnames to the IP addresses of the shepherd nodes.
+Just start by editing the provided `inventory/herd.yml` example.
 Pick a username that you want to use to login to the nodes and assign as `ansible_user` variable.
 
 .. code-block:: yaml
@@ -108,10 +109,6 @@ Now run the *bootstrap* `Ansible playbook <https://docs.ansible.com/ansible/late
 .. code-block:: bash
 
     ansible-playbook deploy/bootstrap.yml
-
-.. note::
-
-    The non-existing nodes from `example.yaml` will show failure to connect. This error can be ignored. `example.yml` inventory can be safely removed.
 
 To streamline the installation and upgrading process, the shepherd software is packaged and distributed as debian packages.
 Installing is as easy as adding the shepherd repository to the aptitude sources and installing the shepherd metapackage.
