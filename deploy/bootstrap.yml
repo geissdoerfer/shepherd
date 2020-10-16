@@ -97,7 +97,7 @@
       timeout: 300
     become: no
 
-  - name: Update all packages to the latest version
+  - name: Upgrade all packages to the latest version
     apt:
       upgrade: dist
       update_cache: yes
