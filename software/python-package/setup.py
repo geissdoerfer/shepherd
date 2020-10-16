@@ -9,6 +9,7 @@ requirements = [
     "zerorpc",
     "invoke",
     "h5py",
+    "dbus-python",
 ]
 
 setup(
