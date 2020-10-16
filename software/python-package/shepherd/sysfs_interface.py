@@ -74,6 +74,7 @@ def start(start_time: int = None):
         start_time (int): Desired start time in unix time
     """
     current_state = get_state()
+    logger.debug(f"current state of shepherd kernel module: {current_state}")
     if current_state != "idle":
         raise SysfsInterfaceException(
             f"Cannot start from state { current_state }"
@@ -81,6 +82,7 @@ def start(start_time: int = None):
 
     with open(str(sysfs_path / "state"), "w") as f:
         if start_time is None:
+            logger.debug(f"writing 'start' to sysfs")
             f.write("start")
         else:
             f.write(f"{ start_time }")

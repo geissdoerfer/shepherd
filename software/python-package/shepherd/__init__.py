@@ -93,7 +93,6 @@ class Recorder(ShepherdIO):
         elif self.mode == "harvesting":
             self.set_harvester(True)
             if self.ldo_voltage > 0.0:
-                logger.debug(f"Setting LDO to {self.ldo_voltage}V")
                 self.set_ldo_voltage(self.ldo_voltage)
                 if self.ldo_mode == "pre-charge":
                     time.sleep(1)

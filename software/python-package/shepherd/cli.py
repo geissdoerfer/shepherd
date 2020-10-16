@@ -184,7 +184,6 @@ def record(
     start_time,
     warn_only,
 ):
-
     run_record(
         Path(output),
         mode,
