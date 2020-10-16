@@ -87,11 +87,17 @@ Record two minutes of data:
 ```
 shepherd-herd record -l 120 -o recording.h5
 ```
-
-Retrieve the data to analyze it on your local machine:
+The command starts the recording asynchronously and returns after all nodes have started recording.
+While the nodes are still recording (indicated by blinking of LED 1 and 2), prepare a directory on your local machine:
 
 ```
-shepherd-herd retrieve recording.h5 local_dir/
+mkdir ~/shepherd_recordings
+```
+
+After the nodes stop blinking, you can retrieve the data to analyze it on your local machine:
+
+```
+shepherd-herd retrieve recording.h5 ~/shepherd_recordings
 ```
 
 For a detailed description of the [HDF5](https://en.wikipedia.org/wiki/Hierarchical_Data_Format) based data format, refer to the [corresponding documentation](https://shepherd-testbed.readthedocs.io/en/latest/user/data_format.html).
