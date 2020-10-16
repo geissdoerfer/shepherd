@@ -153,11 +153,11 @@ class Emulator(ShepherdIO):
         if virtcap is None:
             shepherd_mode = "emulation"
             self.ldo_voltage = ldo_voltage
+            super().__init__(shepherd_mode, load)
         else:
             shepherd_mode = "virtcap"
             self.ldo_voltage = virtcap["dc_output_voltage"] / 1000
-
-        super().__init__(shepherd_mode, "artificial")
+            super().__init__(shepherd_mode, "artificial")
 
         if calibration_emulation is None:
             calibration_emulation = CalibrationData.from_default()
