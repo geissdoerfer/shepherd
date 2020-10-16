@@ -405,6 +405,7 @@ class ShepherdIO(object):
             start_time (int): Desired start time in unix time
             wait_blocking (bool): If true, block until start has completed
         """
+        logger.debug(f"asking kernel module for start at {start_time}")
         sysfs_interface.start(start_time)
         if wait_blocking:
             self.wait_for_start(1000000)
@@ -644,7 +645,7 @@ class ShepherdIO(object):
         """
         while True:
             msg_type, value = self._get_msg(timeout)
-
+            logger.debug(f"received msg type {msg_type}")
             if msg_type == commons.MSG_DEP_DBG_PRINT:
                 logger.info(f"Received print: {value}")
                 continue
