@@ -11,7 +11,7 @@ requirements = ["click", "fabric", "numpy", "pyYAML", "click-config-file"]
 
 setup(
     name="shepherd_herd",
-    version="0.2.0",
+    version="0.2.1",
     description="Synchronized Energy Harvesting Emulator and Recorder CLI",
     long_description=README,
     long_description_content_type="text/markdown",
