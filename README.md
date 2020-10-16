@@ -32,7 +32,7 @@ You can install it to SD-card or the on-board EMMC flash, following [the officia
 Make sure to follow the instructions for **BeagleBone**.
 
 The following instructions describe how to install the *shepherd* software on a group of *shepherd* nodes connected to an Ethernet network.
-We assume that you know the IP address of each node and that your local machine is connected to the same network.
+We assume that your local machine is connected to the same network, that the nodes have internet access and that you know the IP address of each node.
 
 If you haven't done it yet, clone this repository to your local machine:
 
@@ -50,10 +50,9 @@ Install the tools using `pip`:
 pip3 install ansible shepherd-herd
 ```
 
-The `inventory/example.yml` file shows an example of how to provide the host names and known IP addresses of your BeagleBones.
-Add yours in similar fashion as a new file `inventory/<name>.yml`.
+The `inventory/herd.yml` file shows an example of how to provide the host names and known IP addresses of your BeagleBones.
+Adjust it to reflect your setup.
 You can arbitrarily choose and assign the hostnames (sheep0, sheep1, in this example) and the ansible_user (jane in this example).
-Afterwards, you can remove the `example.yml`.
 
 ```
 sheep:
@@ -92,7 +91,7 @@ shepherd-herd record -l 120 -o recording.h5
 Retrieve the data to analyze it on your local machine:
 
 ```
-shepherd-herd -i inventory/example.yml retrieve recording.h5 local_dir/
+shepherd-herd retrieve recording.h5 local_dir/
 ```
 
 For a detailed description of the [HDF5](https://en.wikipedia.org/wiki/Hierarchical_Data_Format) based data format, refer to the [corresponding documentation](https://shepherd-testbed.readthedocs.io/en/latest/user/data_format.html).
@@ -100,8 +99,10 @@ For a detailed description of the [HDF5](https://en.wikipedia.org/wiki/Hierarchi
 Finally, replay the previously recorded data to the attached sensor nodes, recording their power consumption:
 
 ```
-shepherd-herd -i inventory/example.yml emulate -o consumption.h5 recording.h5
+shepherd-herd emulate -o consumption.h5 recording.h5
 ```
+
+Try `shepherd-herd --help` or check out the documentation [here](https://shepherd-testbed.readthedocs.io/en/latest/user/cli.html#shepherd-herd) for a list of all options.
 
 ## Problems and Questions
 

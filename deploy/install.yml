@@ -2,7 +2,7 @@
 - name: Install/Upgrade shepherd
   hosts: all
   become: true
- 
+
   tasks:
 
   - name: Get kernel version
