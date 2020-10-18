@@ -1,3 +1,4 @@
+import os
 from setuptools import setup
 
 requirements = [
@@ -9,8 +10,14 @@ requirements = [
     "zerorpc",
     "invoke",
     "h5py",
-    "dbus-python",
 ]
+
+# We are installing the DBUS module to build the docs, but the C libraries
+# required to build dbus aren't available on RTD, so we need to exclude it
+# from the installed dependencies here, and mock it for import in docs/conf.py
+# using the autodoc_mock_imports parameter:
+if not os.getenv("READTHEDOCS"):
+    requirements.append("dbus-python")
 
 setup(
     name="shepherd",
