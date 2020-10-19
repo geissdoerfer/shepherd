@@ -217,5 +217,5 @@ module_platform_driver(shepherd_driver);
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Kai Geissdoerfer");
 MODULE_DESCRIPTION("Shepherd time synchronization kernel module");
-MODULE_VERSION("0.2.1");
+MODULE_VERSION("0.2.2");
 MODULE_ALIAS("rpmsg:rpmsg-shprd");
