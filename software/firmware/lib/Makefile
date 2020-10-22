@@ -43,7 +43,8 @@ MKFILE_PATH := $(abspath $(lastword $(MAKEFILE_LIST)))
 CURRENT_DIR := $(notdir $(patsubst %/,%,$(dir $(MKFILE_PATH))))
 
 LINKER_COMMAND_FILE=$(BASE_PATH)/lib/AM335x_PRU.cmd
-LIBS=--library=${PRU_SUPPORT}/lib/rpmsg_lib.lib
+LIBS= --library=${PRU_SUPPORT}/lib/rpmsg_lib.lib --library=libc.a
+# NOTE: libc.a will be replaced during compile-time by fitting run-time-system (RTS) -> rtspruv3.lib
 
 INCLUDE += --include_path=${PRU_SUPPORT}/include
 INCLUDE += --include_path=${PRU_SUPPORT}/include/am335x
@@ -57,19 +58,22 @@ GEN_DIR=gen
 # PRU-Hardware
 CFLAGS = -v3 --endian=little --hardware_mac=on
 # Compile Options
-CFLAGS += --c99 --float_operations_allowed=none --symdebug:none --plain_char=unsigned --fp_mode=relaxed
+CFLAGS += --c99 --float_operations_allowed=none --fp_mode=relaxed
+#--plain_char=unsigned --symdebug:none
 CFLAGS += --obj_directory=$(GEN_DIR) --pp_directory=$(GEN_DIR) -ppd -ppa
 # Compile Optimization
-CFLAGS += -O4
+CFLAGS += -O2
 # Compile Feedback
 CFLAGS += --issue_remarks --display_error_number
 
 # -O2 -> old default for shepherd
 # -O3 ->
 # -O4 -> link time optimization, 30-40% smaller code
+# TODO: with optimization <4 and no debug symbols the firmware does not work (60/54 kB, against 101/92 kB)?!?
 
 #Linker flags (Defined in 'PRU Optimizing C/C++ Compiler User's Guide)
-LFLAGS=--reread_libs --warn_sections --stack_size=$(STACK_SIZE) --heap_size=$(HEAP_SIZE) #--ram_model
+LFLAGS=--reread_libs --warn_sections --stack_size=$(STACK_SIZE) --heap_size=$(HEAP_SIZE)
+#--ram_model
 
 TARGET=$(GEN_DIR)/pru$(PRU_NUM)-$(FW_NAME).out
 MAP=$(GEN_DIR)/pru$(PRU_NUM)-$(FW_NAME).map
@@ -106,7 +110,7 @@ $(TARGET): $(OBJECTS) $(LINKER_COMMAND_FILE)
 	@echo ''
 	@echo 'Building target: $@'
 	@echo 'Invoking: PRU Linker'
-	$(PRU_CGT)/bin/clpru $(CFLAGS) -z -i$(PRU_CGT)/lib -i$(PRU_CGT)/include $(LFLAGS) -o $(TARGET) $(OBJECTS) -m$(MAP) $(LINKER_COMMAND_FILE) --library=libc.a $(LIBS)
+	$(PRU_CGT)/bin/clpru $(CFLAGS) -z -i$(PRU_CGT)/lib -i$(PRU_CGT)/include $(LFLAGS) -o $(TARGET) $(OBJECTS) -m$(MAP) $(LINKER_COMMAND_FILE) $(LIBS)
 	@echo 'Finished building target: $@ [$$(shell stat -L -c %s $(TARGET_PATH)) bytes]' # TODO: not working yet
 
 # Invokes the compiler on all c files in the directory to create the object files
