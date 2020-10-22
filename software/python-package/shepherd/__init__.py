@@ -93,7 +93,6 @@ class Recorder(ShepherdIO):
         elif self.mode == "harvesting":
             self.set_harvester(True)
             if self.ldo_voltage > 0.0:
-                logger.debug(f"Setting LDO to {self.ldo_voltage}V")
                 self.set_ldo_voltage(self.ldo_voltage)
                 if self.ldo_mode == "pre-charge":
                     time.sleep(1)
@@ -153,11 +152,11 @@ class Emulator(ShepherdIO):
         if virtcap is None:
             shepherd_mode = "emulation"
             self.ldo_voltage = ldo_voltage
+            super().__init__(shepherd_mode, load)
         else:
             shepherd_mode = "virtcap"
             self.ldo_voltage = virtcap["dc_output_voltage"] / 1000
-
-        super().__init__(shepherd_mode, "artificial")
+            super().__init__(shepherd_mode, "artificial")
 
         if calibration_emulation is None:
             calibration_emulation = CalibrationData.from_default()

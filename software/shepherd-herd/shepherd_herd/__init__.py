@@ -125,7 +125,7 @@ def start_shepherd(
     "--inventory",
     "-i",
     type=str,
-    default="inventory/example.yml",
+    default="inventory/herd.yml",
     help="List of target hosts as comma-separated string or path to ansible-style yaml file",
 )
 @click.option(

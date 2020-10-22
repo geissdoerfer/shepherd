@@ -3,3 +3,4 @@ ti_path: /usr/share/ti
 pru_cgt_path: /usr/share/ti/cgt-pru
 pru_cgt_installer: http://software-dl.ti.com/codegen/esd/cgt_public_sw/PRU/2.3.3/ti_cgt_pru_2.3.3_armlinuxa8hf_busybox_installer.sh
 pru_support_package: pru-software-support-package-5.7.0
+ansible_python_interpreter: /usr/bin/python3

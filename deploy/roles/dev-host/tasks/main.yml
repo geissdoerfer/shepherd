@@ -20,6 +20,7 @@
   get_url:
     url: '{{ pru_cgt_installer }}'
     dest: /tmp/
+    timeout: 45
   register: get_url_ret
   tags:
     - pru-tools

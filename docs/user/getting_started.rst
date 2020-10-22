@@ -79,6 +79,7 @@ Clone the shepherd repository to your machine:
 
 
 Add an inventory file in the `inventory` folder in the repository, assigning hostnames to the IP addresses of the shepherd nodes.
+Just start by editing the provided `inventory/herd.yml` example.
 Pick a username that you want to use to login to the nodes and assign as `ansible_user` variable.
 
 .. code-block:: yaml

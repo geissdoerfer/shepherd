@@ -87,3 +87,20 @@ Change into the `software/python-package` directory and run:
 .. code-block:: bash
 
     sudo python3 setup.py test --addopts "-vv"
+
+Releasing
+---------
+
+Once you have a clean stable version of code, you should decide if your release is a patch, minor or major (see `Semantic Versioning <https://semver.org/>`_).
+Make sure you're on the master branch and have a clean working direcory.
+Use `bump2version` to update the version number across the repository:
+
+.. code-block:: bash
+
+    bump2version --tag patch
+
+Finally, push the changes and the tag to trigger the CI pipeline to build and deploy new debian packages to the server:
+
+.. code-block:: bash
+
+    git push origin master --tags
