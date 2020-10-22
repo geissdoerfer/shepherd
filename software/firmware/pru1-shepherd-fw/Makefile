@@ -8,6 +8,7 @@ FW_NAME = shepherd
 INCLUDE = --include_path=./include --include_path=../include
 
 SOURCES = $(notdir $(wildcard ./*.c))
+# also add external files (./lib/src/)
 SOURCES += printf.c
 SOURCES += rpmsg.c
 SOURCES += iep.c

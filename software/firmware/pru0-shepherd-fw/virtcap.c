@@ -60,7 +60,7 @@ static void virtcap_set_output_state(bool_ft value);
 static struct VirtCapSettings vcap_cfg;
 
 #define ADC_LOAD_CURRENT_GAIN       (int32_t)(((1U << 17U) - 1) * 2.0 * 50.25 / (0.625 * 4.096))
-#define ADC_LOAD_CURRENT_OFFSET     -(1U << 17U)  // TODO: should be positive
+#define ADC_LOAD_CURRENT_OFFSET     (-(1U << 17U))  // TODO: should be positive
 #define ADC_LOAD_VOLTAGE_GAIN       (int32_t)(((1U << 18U) - 1) / (1.25 * 4.096))
 #define ADC_LOAD_VOLTAGE_OFFSET     0
 

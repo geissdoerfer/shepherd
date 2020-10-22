@@ -28,7 +28,7 @@
 #define NO_BUFFER 0xFFFFFFFF
 
 #define SPI_SYS_TEST_EN     0
-#if SPI_SYS_TEST_EN // NOTE: code is currently in extended pssp (not mainline)
+#if SPI_SYS_TEST_EN > 0 // NOTE: code is currently in extended pssp (not mainline)
 #include "spi_transfer_sys.h"
 #endif
 

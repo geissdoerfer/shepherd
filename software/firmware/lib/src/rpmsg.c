@@ -44,7 +44,7 @@ volatile register uint32_t __R30;
 	#define FROM_ARM_HOST   17U
 
 	#define CHAN_DESC		"Channel 0"
-	#define CHAN_PORT		0U
+	#define CHAN_PORT		0
 
 #elif defined(PRU1)
 	#define TO_ARM_HOST     18U
