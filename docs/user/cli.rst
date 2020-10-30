@@ -69,6 +69,8 @@ Finally, to replay previously recorded data from the file `rec.h5` in the shephe
 
     shepherd-herd -i hosts emulate -o load.h5 rec.h5
 
+.. _shepherd-sheep-cli:
+
 shepherd-sheep
 --------------
 
