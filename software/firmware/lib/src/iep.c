@@ -92,7 +92,7 @@ void iep_init()
 	CT_IEP.TMR_GLB_CFG_bit.CNT_EN = 0;
 
 	/* Reset Count register */
-	CT_IEP.TMR_CNT = 0; // TODO: should be 0xFFFFFFFF;
+	CT_IEP.TMR_CNT = 0xFFFFFFFF;
 
 	/* Clear overflow status register */
 	CT_IEP.TMR_GLB_STS_bit.CNT_OVF = 0x1;
@@ -103,7 +103,7 @@ void iep_init()
 	/* Enable CMP0 */
 	CT_IEP.TMR_CMP_CFG_bit.CMP_EN = 0x1;
 
-	/* Enable reset on CMP0 event */
+	/* Enable counter-reset on CMP0 event */
 	CT_IEP.TMR_CMP_CFG_bit.CMP0_RST_CNT_EN = 0x1;
 
 	/* Increment by one */
