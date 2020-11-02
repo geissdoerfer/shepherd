@@ -121,13 +121,13 @@
       state: absent
       purge: yes
 
-  - name: APT - Remove useless Packages from the Cache
-    apt:
-      autoclean: yes
-
   - name: APT - Remove Dependencies that are no longer required
     apt:
       autoremove: yes
+      
+  - name: APT - Remove useless Packages from the Cache
+    apt:
+      autoclean: yes
 
   - name: CFG - Set timezone to "{{ timezone }}"
     timezone:

@@ -112,8 +112,7 @@ Now run the *bootstrap* `Ansible playbook <https://docs.ansible.com/ansible/late
 
 .. note::
 
-    The non-existing nodes from `example.yaml` will show failure to connect. This error can be ignored. `example.yml` inventory can be safely removed.
-    Initial default user and password can be changed on script-startup, this is only needed for non-ubuntu-images.
+   Initial default user and password can be changed on script-startup, this is only needed for non-ubuntu-images.
 
 To streamline the installation and upgrading process, the shepherd software is packaged and distributed as debian packages.
 Installing is as easy as adding the shepherd repository to the aptitude sources and installing the shepherd metapackage.
