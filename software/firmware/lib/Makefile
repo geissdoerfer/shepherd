@@ -50,30 +50,49 @@ INCLUDE += --include_path=${PRU_SUPPORT}/include
 INCLUDE += --include_path=${PRU_SUPPORT}/include/am335x
 INCLUDE += --include_path=$(BASE_PATH)/lib/include
 
-STACK_SIZE=0x200
-HEAP_SIZE=0x100
-GEN_DIR=gen
+STACK_SIZE 	= 0x200 # 512 byte
+HEAP_SIZE 	= 0x100 # 256 byte
+GEN_DIR		= gen
 
-#Common compiler and linker flags (Defined in 'PRU Optimizing C/C++ Compiler User's Guide)
-# PRU-Hardware
-CFLAGS = -v3 --endian=little --hardware_mac=on
+### Common compiler and linker flags (Defined in 'PRU Optimizing C/C++ Compiler User's Guide)
+## PRU-Hardware
+CFLAGS = -v3 #                              silicon version
+CFLAGS += --endian=little #                 for data and code, both (big, little) is possible
+CFLAGS += --hardware_mac=on #               use Multiply and Accumulate Unit (no division though)
+
 # Compile Options
-CFLAGS += --c99 --float_operations_allowed=none --fp_mode=relaxed
-#--plain_char=unsigned --symdebug:none
-CFLAGS += --obj_directory=$(GEN_DIR) --pp_directory=$(GEN_DIR) -ppd -ppa
-# Compile Optimization
-CFLAGS += -O2
-# Compile Feedback
-CFLAGS += --issue_remarks --display_error_number
+CFLAGS += --c99 #                           C-Standard
+CFLAGS += --float_operations_allowed=none # usage of FP results in compile-error
+CFLAGS += --fp_mode=relaxed
+CFLAGS += --symdebug:none #                 debug symbols -> remove
+CFLAGS += --plain_char=unsigned    #        explicit define underlying datatype for char
+CFLAGS += --obj_directory=$(GEN_DIR)
+CFLAGS += --pp_directory=$(GEN_DIR)
+CFLAGS += -ppd #                            perform preprocessing only [but]
+CFLAGS += -ppa #                            continue preprocessing with compilation
 
+# Compile Optimization
+CFLAGS += -O4
 # -O2 -> old default for shepherd
 # -O3 ->
 # -O4 -> link time optimization, 30-40% smaller code
 # TODO: with optimization <4 and no debug symbols the firmware does not work (60/54 kB, against 101/92 kB)?!?
 
-#Linker flags (Defined in 'PRU Optimizing C/C++ Compiler User's Guide)
-LFLAGS=--reread_libs --warn_sections --stack_size=$(STACK_SIZE) --heap_size=$(HEAP_SIZE)
-#--ram_model
+# Compile Feedback
+CFLAGS += --issue_remarks #                 non-serious warnings
+CFLAGS += --display_error_number #          supplies diagnostic identifier
+
+
+# Linker flags (Defined in 'PRU Optimizing C/C++ Compiler User's Guide)
+LFLAGS = --reread_libs #                    reread until references are resolved
+LFLAGS += --warn_sections #                 warn when undefined output section is created
+LFLAGS += --stack_size=$(STACK_SIZE) #      default is 256 byte
+LFLAGS += --heap_size=$(HEAP_SIZE)
+
+# Init-Model -> you MUST SPECIFY ONE one of both (otherwise program-entry-point missing -> undefined behaviour)
+#     ram: var-init at load-time, enhanced performance, reduced boot time, save memory used by the initialization tables
+#     rom: var-init at run-time, default method of auto-initialization
+LFLAGS += --ram_model
 
 TARGET=$(GEN_DIR)/pru$(PRU_NUM)-$(FW_NAME).out
 MAP=$(GEN_DIR)/pru$(PRU_NUM)-$(FW_NAME).map
