@@ -64,6 +64,11 @@ inline void iep_enable_evt_cmp(const uint8_ft compare_channel)
 	CT_IEP.TMR_CMP_CFG_bit.CMP_EN |= (1U << compare_channel);
 }
 
+inline bool_ft iep_enable_status_evt_cmp(const uint8_ft compare_channel)
+{
+	return (CT_IEP.TMR_CMP_CFG_bit.CMP_EN & (1U << compare_channel));
+}
+
 inline void iep_disable_evt_cmp(const uint8_ft compare_channel)
 {
 	CT_IEP.TMR_CMP_CFG_bit.CMP_EN &= ~(1U << compare_channel);
@@ -87,7 +92,7 @@ void iep_init()
 	CT_IEP.TMR_GLB_CFG_bit.CNT_EN = 0;
 
 	/* Reset Count register */
-	CT_IEP.TMR_CNT = 0x0;
+	CT_IEP.TMR_CNT = 0; // TODO: should be 0xFFFFFFFF;
 
 	/* Clear overflow status register */
 	CT_IEP.TMR_GLB_STS_bit.CNT_OVF = 0x1;
