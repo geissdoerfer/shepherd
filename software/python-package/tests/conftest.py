@@ -44,7 +44,7 @@ def pytest_addoption(parser):
         help="run fake hardware tests",
     )
     parser.addoption(
-        "--eeprom-wp",
+        "--eeprom-wp",  # TODO: this could be made clearer -> name suggests wp is active when using it
         action="store_true",
         default=False,
         help="run tests that require to disable eeprom write protect",
