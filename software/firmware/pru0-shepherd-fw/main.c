@@ -38,14 +38,22 @@ static void send_message(const uint32_t msg_id, const uint32_t value)
 	rpmsg_putraw((void *)&msg_out, sizeof(struct DEPMsg));
 }
 
-uint32_t handle_block_end(volatile struct SharedMem *const shared_mem,
-        struct RingBuffer *const free_buffers_ptr,
-		struct SampleBuffer *const buffers_far,
-		const uint32_t current_buffer_idx,
-        const uint32_t sample_idx)
+uint32_t handle_block_end(volatile struct SharedMem *const shared_mem, struct RingBuffer *const free_buffers_ptr,
+			  struct SampleBuffer *const buffers_far, const uint32_t current_buffer_idx, const uint32_t analog_sample_idx)
 {
-    uint32_t next_buffer_idx;
-    uint8_t tmp_idx;
+	uint32_t next_buffer_idx;
+	uint8_t tmp_idx;
+
+	/* If we currently have a valid buffer, return it to host */
+	// NOTE1: this must come first or else python-backend gets confused
+	// NOTE2: was in mutex-state before, but it does not need to, only blocks gpio-sampling / pru1 (80% of workload is in this fn)
+	if (current_buffer_idx != NO_BUFFER) {
+		if (analog_sample_idx != ADC_SAMPLES_PER_BUFFER) // TODO: could be removed in future, not possible anymore
+			send_message(MSG_DEP_ERR_INCMPLT, analog_sample_idx);
+
+		(buffers_far + current_buffer_idx)->len = analog_sample_idx;
+		send_message(MSG_DEP_BUF_FROM_PRU, current_buffer_idx);
+	}
 
 	/* Lock access to gpio_edges structure to avoid inconsistency */
 	simple_mutex_enter(&shared_mem->gpio_edges_mutex);
@@ -53,7 +61,7 @@ uint32_t handle_block_end(volatile struct SharedMem *const shared_mem,
 	/* Fetch new buffer from ring */
 	if (ring_get(free_buffers_ptr, &tmp_idx) > 0) {
 		next_buffer_idx = (uint32_t)tmp_idx;
-        struct SampleBuffer *const next_buffer = buffers_far + next_buffer_idx;
+        	struct SampleBuffer *const next_buffer = buffers_far + next_buffer_idx;
 		next_buffer->timestamp_ns = shared_mem->next_timestamp_ns;
 		shared_mem->gpio_edges = &next_buffer->gpio_edges;
 		shared_mem->gpio_edges->idx = 0;
@@ -63,17 +71,6 @@ uint32_t handle_block_end(volatile struct SharedMem *const shared_mem,
 		send_message(MSG_DEP_ERR_NOFREEBUF, 0);
 	}
 	simple_mutex_exit(&shared_mem->gpio_edges_mutex);
-    //GPIO_OFF(USR_LED1);
-
-    /* If we currently have a valid buffer, return it to host */
-    // NOTE: this part came right after muter_enter, but it can wait, only blocks mutex / pru1 (80% of workload in this fn)
-    if (current_buffer_idx != NO_BUFFER) {
-        if (sample_idx != ADC_SAMPLES_PER_BUFFER)
-            send_message(MSG_DEP_ERR_INCMPLT, sample_idx);
-
-        (buffers_far + current_buffer_idx)->len = sample_idx;
-        send_message(MSG_DEP_BUF_FROM_PRU, current_buffer_idx);
-    }
 
 	return next_buffer_idx;
 }
@@ -124,75 +121,79 @@ void event_loop(volatile struct SharedMem *const shared_mem,
 		struct RingBuffer *const free_buffers_ptr,
 		struct SampleBuffer *const buffers_far)
 {
-    uint32_t sample_idx = 0;
-    uint32_t ring_buf_idx = NO_BUFFER;
-    static enum int_source_e { SIG_SAMPLE, SIG_BLOCK_END } int_source;
-
+	uint32_t ring_buf_idx = NO_BUFFER;
+	//shared_mem->analog_sample_counter = 0;
+	uint32_t analog_sample_idx = 0; // usually one behind counter, needed for stopping emulation during debug
 	enum ShepherdMode shepherd_mode = (enum ShepherdMode)shared_mem->shepherd_mode;
 
-	while (1) {
+	while (1)
+	{
+		// take a snapshot of current triggers -> ensures prioritized handling
+		// edge case: sample0 @cnt=0, cmp0&1 trigger, but cmp0 needs to get handled before cmp1
+		const uint32_t iep_tmr_cmp_sts = iep_get_tmr_cmp_sts();
 
-	    // TODO: important change in irq-handling:
-	    //  - currently the pru1 gets irq and triggers sampling on pru0 -> unnecessary jitter, delay
-	    //  - future: pru0 manages the irq, but pru0 reacts to it directly
-        //if (iep_check_evt_cmp_fast(iep_get_tmr_cmp_sts(), IEP_CMP1))  // Test works
-        if (0)
-        {
-            GPIO_ON(DEBUG_P0);
-            __delay_cycles(1);
-            GPIO_OFF(DEBUG_P0);
-        }
+		// this stack ensures low overhead to event loop AND full buffer before switching
+		if ((shared_mem->cmp0_handled_by_pru0 == 0) && (iep_check_evt_cmp_fast(iep_tmr_cmp_sts, IEP_CMP0) || (shared_mem->cmp0_handled_by_pru1 == 1)))
+		{
+			GPIO_TOGGLE(USR_LED1);
+			shared_mem->cmp0_handled_by_pru0 = 1;
+			shared_mem->analog_sample_counter = 0;
+			analog_sample_idx = 0;
+			// dirty hack incoming :(
+			// TODO: the cmp0-reset seems to do more than setting count-register to 0 -> trigger at same time of cmp0 or after seem impossible
+			shared_mem->cmp1_handled_by_pru1 = 1;
+			/* Did the Linux kernel module ask for reset? */
+			if (shared_mem->shepherd_state == STATE_RESET) return;
+			GPIO_TOGGLE(USR_LED1);
+		}
 
+		// pru0 manages the irq, but pru0 reacts to it directly -> less jitter
+		if ((shared_mem->cmp1_handled_by_pru0 == 0) && (iep_check_evt_cmp_fast(iep_tmr_cmp_sts, IEP_CMP1) || (shared_mem->cmp1_handled_by_pru1 == 1)))
+		{
+			shared_mem->cmp1_handled_by_pru0 = 1;
 
-		/* Check if a sample was triggered by PRU1 */
-		if (read_r31() & (1U << 31U)) {
-			/* Important: We have to clear the interrupt here, to avoid missing interrupts */
-			const uint32_t intc_reg = intc_get_secr0();
-			if (intc_check_event(intc_reg, PRU_PRU_EVT_BLOCK_END)) {
-				int_source = SIG_BLOCK_END;
-				INTC_CLEAR_EVENT(PRU_PRU_EVT_BLOCK_END);
-			} else if (intc_check_event(intc_reg, PRU_PRU_EVT_SAMPLE)) {
-				int_source = SIG_SAMPLE;
-				INTC_CLEAR_EVENT(PRU_PRU_EVT_SAMPLE);
-			} else {
-				continue;
-			}
+			shared_mem->analog_sample_counter++;
 
 			/* The actual sampling takes place here */
-			if (ring_buf_idx != NO_BUFFER) {
-			    GPIO_ON(DEBUG_P0);
-				sample(buffers_far + ring_buf_idx, sample_idx++, shepherd_mode);
-                GPIO_OFF(DEBUG_P0);
+			if ((ring_buf_idx != NO_BUFFER) && (analog_sample_idx < ADC_SAMPLES_PER_BUFFER))
+			{
+				GPIO_ON(DEBUG_P0);
+				sample(buffers_far + ring_buf_idx, analog_sample_idx, shepherd_mode);
+				analog_sample_idx = shared_mem->analog_sample_counter;
+				GPIO_OFF(DEBUG_P0);
+			}
+			else
+			{
+				// even if offline, this should simulate a (short) sampling-action
+				GPIO_ON(DEBUG_P0);
+				__delay_cycles(1000 / 5);
+				GPIO_OFF(DEBUG_P0);
+				__delay_cycles(3000 / 5);
 			}
 
-			if (int_source == SIG_BLOCK_END) {
-				/* Did the Linux kernel module ask for reset? */
-				if (shared_mem->shepherd_state == STATE_RESET) return;
-                GPIO_ON(DEBUG_P0);
+			if (shared_mem->analog_sample_counter == ADC_SAMPLES_PER_BUFFER)
+			{
+                		// TODO: this still needs sorting -> block end must be called even before a block ends ... to get a valid buffer
 
 				/* We try to exchange a full buffer for a fresh one if we are running */
 				if ((shared_mem->shepherd_state == STATE_RUNNING) &&
 				    (shared_mem->shepherd_mode != MODE_DEBUG))
-                {
-                    ring_buf_idx = handle_block_end(shared_mem, free_buffers_ptr, buffers_far, ring_buf_idx, sample_idx);
-                    GPIO_TOGGLE(USR_LED1); // NOTE: desired user-feedback
-                }
-
-
-				sample_idx = 0;
-				GPIO_OFF(DEBUG_P0);
+				{
+				    ring_buf_idx = handle_block_end(shared_mem, free_buffers_ptr, buffers_far, ring_buf_idx, analog_sample_idx);
+				    GPIO_TOGGLE(USR_LED1); // NOTE: desired user-feedback
+				}
 			}
 			/* We only handle rpmsg comms if we're not at the last sample */
 			else {
-                GPIO_ON(DEBUG_P0);
+                		//GPIO_ON(DEBUG_P0);
 				handle_rpmsg(free_buffers_ptr,
 					     (enum ShepherdMode)shared_mem->shepherd_mode,
 					     (enum ShepherdState)shared_mem->shepherd_state);
-                GPIO_OFF(DEBUG_P0);
+                		//GPIO_OFF(DEBUG_P0);
 			}
 
 #if SPI_SYS_TEST_EN // TODO: Test-Area
-            sys_adc_readwrite(DEBUG_P0, sample_idx);
+		sys_adc_readwrite(DEBUG_P0, shared_mem->analog_sample_counter);
 #endif
 		}
 	}
@@ -200,24 +201,24 @@ void event_loop(volatile struct SharedMem *const shared_mem,
 
 void main(void)
 {
-    static struct RingBuffer free_buffers;
+	static struct RingBuffer free_buffers;
 
-    /*
+	/*
 	 * The shared mem is dynamically allocated and we have to inform user space
 	 * about the address and size via sysfs, which exposes parts of the
 	 * shared_mem structure.
 	 * Do this initialization early! The kernel module relies on it.
 	 */
-    volatile struct SharedMem *const shared_mememory = (volatile struct SharedMem *)PRU_SHARED_MEM_STRUCT_OFFSET;
+	volatile struct SharedMem *const shared_mememory = (volatile struct SharedMem *const)PRU_SHARED_MEM_STRUCT_OFFSET;
 	shared_mememory->mem_base_addr = resourceTable.shared_mem.pa;
-    shared_mememory->mem_size = resourceTable.shared_mem.len;
+	shared_mememory->mem_size = resourceTable.shared_mem.len;
 
-    shared_mememory->n_buffers = RING_SIZE;
-    shared_mememory->samples_per_buffer = ADC_SAMPLES_PER_BUFFER;
-    shared_mememory->buffer_period_ns = BUFFER_PERIOD_NS;
+	shared_mememory->n_buffers = RING_SIZE;
+	shared_mememory->samples_per_buffer = ADC_SAMPLES_PER_BUFFER;
+	shared_mememory->buffer_period_ns = BUFFER_PERIOD_NS;
 
-    shared_mememory->harvesting_voltage = 0;
-    shared_mememory->shepherd_mode = MODE_HARVESTING;
+	shared_mememory->harvesting_voltage = 0;
+	shared_mememory->shepherd_mode = MODE_HARVESTING;
 
 	/*
 	 * The dynamically allocated shared DDR RAM holds all the buffers that
@@ -239,27 +240,27 @@ void main(void)
 	rpmsg_init("rpmsg-pru");
 
 #if SPI_SYS_TEST_EN // TODO: Test-Area
-    sys_spi_init();
+	sys_spi_init();
 #endif
 
 reset:
-    GPIO_OFF(DEBUG_P0 | USR_LED1);
+	GPIO_OFF(DEBUG_P0 | USR_LED1);
 
-    if (shared_mememory->shepherd_mode == MODE_VIRTCAP)
-        virtcap_init((struct VirtCapSettings *)&shared_mememory->virtcap_settings,
-                 (struct CalibrationSettings *)&shared_mememory->calibration_settings);
+	if (shared_mememory->shepherd_mode == MODE_VIRTCAP)
+	virtcap_init((struct VirtCapSettings *)&shared_mememory->virtcap_settings,
+		 (struct CalibrationSettings *)&shared_mememory->calibration_settings);
 
-    ring_init(&free_buffers);
-    sampling_init((enum ShepherdMode)shared_mememory->shepherd_mode,
-              shared_mememory->harvesting_voltage);
-    shared_mememory->gpio_edges = NULL;
+	ring_init(&free_buffers);
+	sampling_init((enum ShepherdMode)shared_mememory->shepherd_mode,
+	      shared_mememory->harvesting_voltage);
+	shared_mememory->gpio_edges = NULL;
 
-    /* Clear all interrupt events */
-    CT_INTC.SICR_bit.STS_CLR_IDX = PRU_PRU_EVT_SAMPLE;
-    CT_INTC.SICR_bit.STS_CLR_IDX = PRU_PRU_EVT_BLOCK_END;
+	/* Clear all interrupt events */
+	CT_INTC.SICR_bit.STS_CLR_IDX = PRU_PRU_EVT_SAMPLE;
+	CT_INTC.SICR_bit.STS_CLR_IDX = PRU_PRU_EVT_BLOCK_END;
 
-    shared_mememory->shepherd_state = STATE_IDLE;
+	shared_mememory->shepherd_state = STATE_IDLE;
 
-    event_loop(shared_mememory, &free_buffers, buffers_far);
-    goto reset;
+	event_loop(shared_mememory, &free_buffers, buffers_far);
+	goto reset;
 }

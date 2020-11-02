@@ -10,7 +10,7 @@
 #define HOST_PRU_EVT_TIMESTAMP          20U
 
 #define PRU_PRU_EVT_SAMPLE              30U
-#define PRU_PRU_EVT_BLOCK_END           31U
+#define PRU_PRU_EVT_BLOCK_END           31U	// TODO: can be removed, after trigger-replacement
 
 #define PRU_SHARED_MEM_STRUCT_OFFSET    0x10000u
 
@@ -58,7 +58,7 @@ struct GPIOEdges {
 struct SampleBuffer {
 	uint32_t len;
 	uint64_t timestamp_ns;
-	uint32_t values_voltage[ADC_SAMPLES_PER_BUFFER];
+	uint32_t values_voltage[ADC_SAMPLES_PER_BUFFER]; // TODO: would be more efficient to keep matching V&C together
 	uint32_t values_current[ADC_SAMPLES_PER_BUFFER];
 	struct GPIOEdges gpio_edges;
 } __attribute__((packed));
@@ -97,7 +97,7 @@ struct DEPMsg {
 	uint32_t value;
 } __attribute__((packed));
 
-/* Format of memory structure shared between PRU0, PRU1 and kernel module */
+/* Format of memory structure shared between PRU0, PRU1 and kernel module (lives in shared RAM of PRUs) */
 struct SharedMem {
 	uint32_t shepherd_state;
 	/* Stores the mode, e.g. harvesting or emulation */
@@ -123,11 +123,18 @@ struct SharedMem {
 	/* Protects write access to below gpio_edges structure */
 	simple_mutex_t gpio_edges_mutex;
 	/**
-     * Pointer to gpio_edges structure in current buffer. Only PRU0 knows about
-     * which is the current buffer, but PRU1 is sampling GPIOs. Therefore PRU0
-     * shares the memory location of the current gpio_edges struct
-     */
+	* Pointer to gpio_edges structure in current buffer. Only PRU0 knows about
+	* which is the current buffer, but PRU1 is sampling GPIOs. Therefore PRU0
+	* shares the memory location of the current gpio_edges struct
+	*/
 	struct GPIOEdges *gpio_edges;
+	/* Counter for ADC-Samples, updated by PRU0, also needed (non-writing) by PRU1 for some timing-calculations */
+	uint32_t analog_sample_counter;
+	/* Token system to ensure both PRUs can share interrupts */
+	bool_ft cmp0_handled_by_pru0;
+	bool_ft cmp0_handled_by_pru1;
+	bool_ft cmp1_handled_by_pru0;
+	bool_ft cmp1_handled_by_pru1;
 } __attribute__((packed));
 
 /* Format of RPMSG message sent from PRU1 to kernel module */
