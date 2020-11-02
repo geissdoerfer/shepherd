@@ -14,7 +14,7 @@
 #endif
 
 #define INTC_CHECK_EVENT(x)     (CT_INTC.SECR0 &(1U << (x)))
-#define INTC_CLEAR_EVENT(x)     (CT_INTC.SICR_bit.STS_CLR_IDX = (x));
+#define INTC_CLEAR_EVENT(x)     (CT_INTC.SICR_bit.STS_CLR_IDX = (x))
 // below is a deconstructed INTC_CHECK_EVENT, better optimizable for slow/far register read
 
 inline uint32_t intc_get_secr0()
