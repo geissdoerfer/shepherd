@@ -44,14 +44,15 @@ inline bool_ft iep_check_evt_cmp(const uint8_ft compare_channel)
 }
 
 // allow to build external, faster iep_check_evt_cmp, for when this fn is called more often in a loop
+// -> READs to IEP take 12 Cycles
 inline uint32_t iep_get_tmr_cmp_sts()
 {
     return CT_IEP.TMR_CMP_STS;
 }
 
-inline uint32_t iep_check_evt_cmp_fast(const uint32_t tmr_cmp_sts, const uint8_ft compare_channel)
+inline uint32_t iep_check_evt_cmp_fast(const uint32_t tmr_cmp_sts, const uint32_t compare_channel_shifted)
 {
-    return (tmr_cmp_sts & (1U << compare_channel));
+    return (tmr_cmp_sts & compare_channel_shifted);
 }
 
 inline void iep_clear_evt_cmp(const uint8_ft compare_channel)
@@ -84,6 +85,11 @@ inline uint32_t iep_get_cmp_val(const uint8_ft compare_channel)
 {
 	/* Hack to address the CMPN registers (offset=0x48 from CT_IEP) */
 	return *((uint32_t *) &CT_IEP + 18U + compare_channel);
+}
+
+inline uint32_t iep_get_cnt_val()
+{
+	return CT_IEP.TMR_CNT;
 }
 
 void iep_init()
