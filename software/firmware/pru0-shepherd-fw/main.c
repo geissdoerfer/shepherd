@@ -130,25 +130,22 @@ void event_loop(volatile struct SharedMem *const shared_mem,
 	{
 		// take a snapshot of current triggers -> ensures prioritized handling
 		// edge case: sample0 @cnt=0, cmp0&1 trigger, but cmp0 needs to get handled before cmp1
-		const uint32_t iep_tmr_cmp_sts = iep_get_tmr_cmp_sts();
+		const uint32_t iep_tmr_cmp_sts = iep_get_tmr_cmp_sts(); // 12 cycles, 60 ns
 
 		// this stack ensures low overhead to event loop AND full buffer before switching
-		if ((shared_mem->cmp0_handled_by_pru0 == 0) && (iep_check_evt_cmp_fast(iep_tmr_cmp_sts, IEP_CMP0) || (shared_mem->cmp0_handled_by_pru1 == 1)))
+		if ((shared_mem->cmp0_handled_by_pru0 == 0) && (iep_check_evt_cmp_fast(iep_tmr_cmp_sts, IEP_CMP0S) || (shared_mem->cmp0_handled_by_pru1 == 1)))
 		{
-			GPIO_TOGGLE(USR_LED1);
+			//GPIO_TOGGLE(USR_LED1);
 			shared_mem->cmp0_handled_by_pru0 = 1;
 			shared_mem->analog_sample_counter = 0;
 			analog_sample_idx = 0;
-			// dirty hack incoming :(
-			// TODO: the cmp0-reset seems to do more than setting count-register to 0 -> trigger at same time of cmp0 or after seem impossible
-			shared_mem->cmp1_handled_by_pru1 = 1;
 			/* Did the Linux kernel module ask for reset? */
 			if (shared_mem->shepherd_state == STATE_RESET) return;
-			GPIO_TOGGLE(USR_LED1);
+			//GPIO_TOGGLE(USR_LED1);
 		}
 
 		// pru0 manages the irq, but pru0 reacts to it directly -> less jitter
-		if ((shared_mem->cmp1_handled_by_pru0 == 0) && (iep_check_evt_cmp_fast(iep_tmr_cmp_sts, IEP_CMP1) || (shared_mem->cmp1_handled_by_pru1 == 1)))
+		if ((shared_mem->cmp1_handled_by_pru0 == 0) && (iep_check_evt_cmp_fast(iep_tmr_cmp_sts, IEP_CMP1S) || (shared_mem->cmp1_handled_by_pru1 == 1)))
 		{
 			shared_mem->cmp1_handled_by_pru0 = 1;
 
@@ -165,10 +162,7 @@ void event_loop(volatile struct SharedMem *const shared_mem,
 			else
 			{
 				// even if offline, this should simulate a (short) sampling-action
-				GPIO_ON(DEBUG_P0);
-				__delay_cycles(1000 / 5);
-				GPIO_OFF(DEBUG_P0);
-				__delay_cycles(3000 / 5);
+				__delay_cycles(4000 / 5);
 			}
 
 			if (shared_mem->analog_sample_counter == ADC_SAMPLES_PER_BUFFER)

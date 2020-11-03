@@ -155,7 +155,7 @@ static inline void check_gpio(volatile struct SharedMem *const shared_mem,
 int32_t event_loop(volatile struct SharedMem *const shared_mem)
 {
 	uint64_t current_timestamp_ns = 0;
-	uint32_t last_sample_ticks = 0;
+	uint32_t last_analog_sample_ticks = 0;
 	/*
 	* Buffer for storing the control reply from Linux kernel module
 	* needs to be large enough to hold the largest possible RPMSG
@@ -203,7 +203,7 @@ int32_t event_loop(volatile struct SharedMem *const shared_mem)
 		#endif
 
 		DEBUG_GPIO_STATE_1;
-		    check_gpio(shared_mem, current_timestamp_ns, last_sample_ticks);
+		    check_gpio(shared_mem, current_timestamp_ns, last_analog_sample_ticks);
 		DEBUG_GPIO_STATE_0;
 
 		/* Check for timer interrupt from Linux host [Event1] */
@@ -211,13 +211,13 @@ int32_t event_loop(volatile struct SharedMem *const shared_mem)
 			if (!INTC_CHECK_EVENT(HOST_PRU_EVT_TIMESTAMP)) continue;
 
 			/* Take timestamp of IEP */
-			ctrl_req.ticks_iep = CT_IEP.TMR_CNT;
+			ctrl_req.ticks_iep = iep_get_cnt_val();
 			DEBUG_EVENT_STATE_1;
 			/* Clear interrupt */
 			INTC_CLEAR_EVENT(HOST_PRU_EVT_TIMESTAMP);
 
 			/* Prepare and send control request to Linux host */
-			ctrl_req.old_period = CT_IEP.TMR_CMP0;
+			ctrl_req.old_period = iep_get_cmp_val(IEP_CMP0);
 
 			if (sync_state == WAIT_HOST_INT)    sync_state = REQUEST_PENDING;
 			else if (sync_state == IDLE)        sync_state = WAIT_IEP_WRAP;
@@ -233,7 +233,7 @@ int32_t event_loop(volatile struct SharedMem *const shared_mem)
 		const uint32_t iep_tmr_cmp_sts = iep_get_tmr_cmp_sts();
 
 		/* Timer compare 0 handle [Event 2] */
-		if (iep_check_evt_cmp_fast(iep_tmr_cmp_sts, IEP_CMP0))     // TODO: could be further optimized, E2 & E3
+		if (iep_check_evt_cmp_fast(iep_tmr_cmp_sts, IEP_CMP0S))
 		{
 			DEBUG_EVENT_STATE_2;
 			shared_mem->cmp0_handled_by_pru1 = 1;
@@ -242,12 +242,10 @@ int32_t event_loop(volatile struct SharedMem *const shared_mem)
 			iep_clear_evt_cmp(IEP_CMP0); // CT_IEP.TMR_CMP_STS.bit0
 
 			/* Reset sample counter and sample timer period (if needed) */
-			// Warning: results in race-condition if Event3 gets handled before Event2
-			// TODO: the cmp0-reset seems to do more than setting count-register to 0
-			iep_set_cmp_val(IEP_CMP1, analog_sample_period);
+			if (iep_get_cmp_val(IEP_CMP1) > iep_get_cmp_val(IEP_CMP0)) iep_set_cmp_val(IEP_CMP1, analog_sample_period);
    			iep_enable_evt_cmp(IEP_CMP1);
 
-			last_sample_ticks = 0;
+			last_analog_sample_ticks = 0;
 			if (sync_state == WAIT_IEP_WRAP)    sync_state = REQUEST_PENDING;
 			else if (sync_state == IDLE)        sync_state = WAIT_HOST_INT;
 			else {
@@ -263,31 +261,30 @@ int32_t event_loop(volatile struct SharedMem *const shared_mem)
 		}
 
 		/* Timer compare 1 handle [Event 3] */
-		if (iep_check_evt_cmp_fast(iep_tmr_cmp_sts, IEP_CMP1))
+		if (iep_check_evt_cmp_fast(iep_tmr_cmp_sts, IEP_CMP1S))
 		{
 			shared_mem->cmp1_handled_by_pru1 = 1;
-			// Relict from previous INTC-System -> TODO: Remove
+			// Relict from previous INTC-System -> TODO: Remove if safe
 			if (INTC_CHECK_EVENT(PRU_PRU_EVT_SAMPLE)) INTC_CLEAR_EVENT(PRU_PRU_EVT_SAMPLE);
 			if (INTC_CHECK_EVENT(PRU_PRU_EVT_BLOCK_END)) INTC_CLEAR_EVENT(PRU_PRU_EVT_BLOCK_END);
 
 			/* Important: We have to clear the interrupt here, to avoid missing interrupts */
 			iep_clear_evt_cmp(IEP_CMP1);
 
-			last_sample_ticks = iep_get_cmp_val(IEP_CMP1);
-			if (shared_mem->analog_sample_counter < ADC_SAMPLES_PER_BUFFER)
-			{
-				/* Forward sample timer based on current sample_period*/
-				uint32_t next_cmp_val = last_sample_ticks + analog_sample_period;
-				/* If we are in compensation phase add one */
-				if (n_comp > 0) {
-					next_cmp_val += 1;
-					n_comp--;
-				}
-				// handle edge-case: check if next compare-value is behind auto-reset of cmp0
-				if (next_cmp_val > CT_IEP.TMR_CMP0) next_cmp_val -= CT_IEP.TMR_CMP0;
-
-				iep_set_cmp_val(IEP_CMP1, next_cmp_val);
+			// Update Timer-Values
+			last_analog_sample_ticks = iep_get_cmp_val(IEP_CMP1);
+			/* Forward sample timer based on current sample_period*/
+			uint32_t next_cmp_val = last_analog_sample_ticks + analog_sample_period;
+			/* If we are in compensation phase add one */
+			if (n_comp > 0) {
+				next_cmp_val += 1;
+				n_comp--;
 			}
+			// handle edge-case: check if next compare-value is behind auto-reset of cmp0
+			const uint32_t timer_cmp0_value = iep_get_cmp_val(IEP_CMP0); // read costs 12 Cycles
+			if (next_cmp_val > timer_cmp0_value) next_cmp_val -= timer_cmp0_value;
+			iep_set_cmp_val(IEP_CMP1, next_cmp_val);
+
 
 			/* If we are waiting for a reply from Linux kernel module */
 			if (sync_state == REPLY_PENDING)
@@ -298,21 +295,19 @@ int32_t event_loop(volatile struct SharedMem *const shared_mem)
 					uint32_t block_period;
 					/* The new timer period is the base period plus the correction calculated by the controller */
 					if (ctrl_rep->clock_corr > (int32_t)(TIMER_BASE_PERIOD / 10))
-					block_period = TIMER_BASE_PERIOD + TIMER_BASE_PERIOD / 10;
+						block_period = TIMER_BASE_PERIOD + TIMER_BASE_PERIOD / 10;
 					else if (ctrl_rep->clock_corr < -(int32_t)(TIMER_BASE_PERIOD / 10))
-					block_period = TIMER_BASE_PERIOD - TIMER_BASE_PERIOD / 10;
+						block_period = TIMER_BASE_PERIOD - TIMER_BASE_PERIOD / 10;
 					else
-					block_period = TIMER_BASE_PERIOD + ctrl_rep->clock_corr;
+						block_period = TIMER_BASE_PERIOD + ctrl_rep->clock_corr;
 
-					// NOTE: more complicated code, but it avoids one expensive far-register read and modulo
-					const uint32_t block_period_remain = (block_period - CT_IEP.TMR_CMP1);
+					// determine resulting new sample period, n_comp is the remainder of the division
+					const uint32_t block_period_remain = (block_period - iep_get_cmp_val(IEP_CMP1));
 					const uint32_t samples_remain = (ADC_SAMPLES_PER_BUFFER - (shared_mem->analog_sample_counter));
-					//sample_period = (block_period - CT_IEP.TMR_CMP1) / (SAMPLES_PER_BUFFER - sample_counter);
 					analog_sample_period = block_period_remain / samples_remain;
-					//n_comp = (block_period - CT_IEP.TMR_CMP1) % (SAMPLES_PER_BUFFER - sample_counter);
 					n_comp = block_period_remain - (analog_sample_period * samples_remain);
 
-					CT_IEP.TMR_CMP0 = block_period; // TODO: use proper FN
+					iep_set_cmp_val(IEP_CMP0, block_period);
 					sync_state = IDLE;
 					shared_mem->next_timestamp_ns =  ctrl_rep->next_timestamp_ns;
 				}
