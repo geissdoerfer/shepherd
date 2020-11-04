@@ -166,7 +166,7 @@ clean:
 	@echo ''
 
 .PHONY: install
-install:
+install: all
 	@echo ''
 	@echo ''
 	@echo '************************************************************'

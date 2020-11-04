@@ -11,7 +11,7 @@ all: $(BUILDDIRS)
 clean: $(CLEANDIRS)
 
 .PHONY: install
-install: $(BUILDDIRS) $(INSTADIRS)
+install: $(INSTADIRS)
 
 $(BUILDDIRS):
 	$(MAKE) -C $(@:build-%=%) all
