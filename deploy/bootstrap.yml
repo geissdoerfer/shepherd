@@ -4,18 +4,10 @@
   become: true
   gather_facts: no
 
-  vars_prompt:
-  
-    # these can be also passed as argument:  -e "default_user=debian" -> automatically skips these prompts
-    - name: default_user
-      prompt: "Do you want to modify current default user?"
-      private: no
-      default: "ubuntu"
-
-    - name: default_password
-      prompt: "Do you want to modify current default password?"
-      private: no
-      default: "temppwd"
+  vars:
+    default_user: ubuntu
+    default_password: temppwd
+    apt_upgrade: true
 
   tasks:
 
@@ -106,4 +98,4 @@
     apt:
       upgrade: dist
       update_cache: yes
-    when: upgrade|default(false)|bool == true
+    when: apt_upgrade|bool

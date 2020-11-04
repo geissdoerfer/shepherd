@@ -6,7 +6,7 @@
   vars_prompt:
     # these can be also passed as argument:  -e "ptp=True" -> automatically skips these prompts
     - name: ptp
-      prompt: "Do you want to install ptp? Useful for synching a bunch of shepherd nodes. [yesNo]"
+      prompt: "Do you want to install ptp? Useful for synching several shepherd nodes. [yesNo]"
       private: no
       default: "no"
 

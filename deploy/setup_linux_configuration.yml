@@ -20,18 +20,16 @@
     # todo: vpdma maybe my fault, manual install, there is much more cluttering up the system,
 
   vars_prompt:
-    # these can be also passed as argument:  -e "update_kernel=True"
+    # these can be also passed as argument:  -e "update_kernel=True" -> automatically skips these prompts
     - name: update_kernel
       prompt: "Do you want to update the Kernel? [yesNO]"
       private: no
       default: "no"
-      when: update_kernel is not defined
 
     - name: update_bootloader
       prompt: "Do you want to update the Bootloader? [yesNO]"
       private: no
       default: "no"
-      when: update_bootloader is not defined
 
   tasks:
 
@@ -128,6 +126,11 @@
   - name: APT - Remove useless Packages from the Cache
     apt:
       autoclean: yes
+
+  - name: APT - Upgrade all packages to the latest version
+    apt:
+      upgrade: dist
+      update_cache: yes
 
   - name: CFG - Set timezone to "{{ timezone }}"
     timezone:
