@@ -22,7 +22,7 @@ void iep_set_us(const uint32_t value)
 void iep_reset()
 {
 	/* Reset Count register */
-	CT_IEP.TMR_CNT = 0x0;
+	CT_IEP.TMR_CNT = 0xFFFFFFFF;
 }
 
 inline void iep_start()
