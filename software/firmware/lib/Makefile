@@ -98,7 +98,6 @@ TARGET=$(GEN_DIR)/pru$(PRU_NUM)-$(FW_NAME).out
 MAP=$(GEN_DIR)/pru$(PRU_NUM)-$(FW_NAME).map
 
 TARGET_PATH := $(folder_path)$(TARGET)
-TARGET_SIZE := $(shell stat -L -c %s $(TARGET_PATH))
 
 VPATH = $(BASE_PATH)/lib/src
 
@@ -112,6 +111,7 @@ all: printStart $(TARGET) printEnd
 .PHONY: printStart
 printStart:
 	@echo ''
+	@echo ''
 	@echo '************************************************************'
 	@echo 'Building project: $(PROJ_NAME)'
 
@@ -119,8 +119,10 @@ printStart:
 printEnd:
 	@echo ''
 	@echo 'Output files can be found in the "$(GEN_DIR)" directory'
+	@echo 'Resulting firmware is $(TARGET_PATH), size in bytes:'
+	@stat -L -c %s $(TARGET_PATH)
 	@echo ''
-	@echo 'Finished building project: $(PROJ_NAME), in $(TARGET_PATH) [$(TARGET_SIZE) bytes]'
+	@echo 'Finished building project: $(PROJ_NAME), '
 	@echo '************************************************************'
 	@echo ''
 
@@ -130,7 +132,7 @@ $(TARGET): $(OBJECTS) $(LINKER_COMMAND_FILE)
 	@echo 'Building target: $@'
 	@echo 'Invoking: PRU Linker'
 	$(PRU_CGT)/bin/clpru $(CFLAGS) -z -i$(PRU_CGT)/lib -i$(PRU_CGT)/include $(LFLAGS) -o $(TARGET) $(OBJECTS) -m$(MAP) $(LINKER_COMMAND_FILE) $(LIBS)
-	@echo 'Finished building target: $@ [$$(shell stat -L -c %s $(TARGET_PATH)) bytes]' # TODO: not working yet
+	@echo 'Finished building target'
 
 # Invokes the compiler on all c files in the directory to create the object files
 $(GEN_DIR)/%.object: %.c
@@ -151,6 +153,7 @@ $(GEN_DIR)/%.object: %.asm
 .PHONY: clean
 clean:
 	@echo ''
+	@echo ''
 	@echo '************************************************************'
 	@echo 'Cleaning project: $(PROJ_NAME)'
 	@echo ''
@@ -160,9 +163,11 @@ clean:
 	@echo 'Finished cleaning project: $(PROJ_NAME)'
 	@echo '************************************************************'
 	@echo ''
+	@echo ''
 
 .PHONY: install
 install:
+	@echo ''
 	@echo ''
 	@echo '************************************************************'
 	@echo 'Installing project: $(PROJ_NAME)'
@@ -171,6 +176,7 @@ install:
 	install -D $(TARGET) $(DESTDIR)/lib/firmware/am335x-pru$(PRU_NUM)-$(FW_NAME)-fw
 	@echo ''
 	@echo '************************************************************'
+	@echo ''
 	@echo ''
 
 # Includes the dependencies that the compiler creates (-ppd and -ppa flags)
