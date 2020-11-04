@@ -95,7 +95,7 @@
     - source-code
     - python
 
-- name: Synchronize shepherd dir to target
+- name: Synchronize host shepherd dir to target
   synchronize:
     src: '{{ repo_dir.stdout }}/'
     dest: '{{ shepherd_install_path }}'
