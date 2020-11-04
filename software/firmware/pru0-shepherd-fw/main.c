@@ -122,7 +122,7 @@ void event_loop(volatile struct SharedMem *const shared_mem,
 		struct SampleBuffer *const buffers_far)
 {
 	uint32_t ring_buf_idx = NO_BUFFER;
-	//shared_mem->analog_sample_counter = 0;
+	shared_mem->analog_sample_counter = 0;
 	uint32_t analog_sample_idx = 0; // usually one behind counter, needed for stopping emulation during debug
 	enum ShepherdMode shepherd_mode = (enum ShepherdMode)shared_mem->shepherd_mode;
 
@@ -135,20 +135,17 @@ void event_loop(volatile struct SharedMem *const shared_mem,
 		// this stack ensures low overhead to event loop AND full buffer before switching
 		if ((shared_mem->cmp0_handled_by_pru0 == 0) && (iep_check_evt_cmp_fast(iep_tmr_cmp_sts, IEP_CMP0S) || (shared_mem->cmp0_handled_by_pru1 == 1)))
 		{
-			//GPIO_TOGGLE(USR_LED1);
+			GPIO_TOGGLE(USR_LED1);
 			shared_mem->cmp0_handled_by_pru0 = 1;
 			shared_mem->analog_sample_counter = 0;
 			analog_sample_idx = 0;
-			/* Did the Linux kernel module ask for reset? */
-			if (shared_mem->shepherd_state == STATE_RESET) return;
-			//GPIO_TOGGLE(USR_LED1);
+			GPIO_TOGGLE(USR_LED1);
 		}
 
 		// pru0 manages the irq, but pru0 reacts to it directly -> less jitter
 		if ((shared_mem->cmp1_handled_by_pru0 == 0) && (iep_check_evt_cmp_fast(iep_tmr_cmp_sts, IEP_CMP1S) || (shared_mem->cmp1_handled_by_pru1 == 1)))
 		{
 			shared_mem->cmp1_handled_by_pru0 = 1;
-
 			shared_mem->analog_sample_counter++;
 
 			/* The actual sampling takes place here */
@@ -165,10 +162,12 @@ void event_loop(volatile struct SharedMem *const shared_mem,
 				__delay_cycles(4000 / 5);
 			}
 
+			/* Did the Linux kernel module ask for reset? */
+			if (shared_mem->shepherd_state == STATE_RESET) return;
+
 			if (shared_mem->analog_sample_counter == ADC_SAMPLES_PER_BUFFER)
 			{
                 		// TODO: this still needs sorting -> block end must be called even before a block ends ... to get a valid buffer
-
 				/* We try to exchange a full buffer for a fresh one if we are running */
 				if ((shared_mem->shepherd_state == STATE_RUNNING) &&
 				    (shared_mem->shepherd_mode != MODE_DEBUG))
