@@ -143,6 +143,6 @@
       delay: 15
       timeout: 300
     become: no
-	
+
 #  - name: CFG - Set CPU Governor to more relaxed state (powersave)
 #    shell: 

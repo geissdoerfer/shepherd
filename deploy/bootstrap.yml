@@ -12,7 +12,7 @@
       private: no
       default: "ubuntu"
       when: default_user is not defined
-	  
+
     - name: default_password
       prompt: "Do you want to modify current default password?"
       private: no
