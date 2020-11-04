@@ -189,7 +189,7 @@ int32_t event_loop(volatile struct SharedMem *const shared_mem)
 	/* Clear raw interrupt status from ARM host */
 	INTC_CLEAR_EVENT(HOST_PRU_EVT_TIMESTAMP);
 	/* Wait for first timer interrupt from Linux host */
-	while (!(read_r31() & (1U << 30U))) {};
+	while (!(read_r31() & HOST_INT_TIMESTAMP)) {};
 
 	if (INTC_CHECK_EVENT(HOST_PRU_EVT_TIMESTAMP)) INTC_CLEAR_EVENT(HOST_PRU_EVT_TIMESTAMP);
 
