@@ -29,7 +29,8 @@
     become: false
 
   - name: Stop Kernel Module
-    command: modprobe -r shepherd
+    command: modprobe -rf shepherd
+    ignore_errors: yes
 
   - name: Clean PRU Firmware Source
     make:

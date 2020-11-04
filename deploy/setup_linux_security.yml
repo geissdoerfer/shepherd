@@ -78,6 +78,7 @@
       replace: ''
 
   # TODO: part 3 needed, terminal still active
+  # TODO: uEnv has UART enabled
 
   - name: SYS - Find and disable world-writables
     command: find / -xdev -perm +o=w ! \( -type d -perm +o=t \) ! -type l -ok chmod -v o-w {} \;
