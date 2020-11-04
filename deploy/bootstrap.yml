@@ -6,18 +6,16 @@
 
   vars_prompt:
   
-    # these can be also passed as argument:  -e "default_user=debian"
+    # these can be also passed as argument:  -e "default_user=debian" -> automatically skips these prompts
     - name: default_user
       prompt: "Do you want to modify current default user?"
       private: no
       default: "ubuntu"
-      when: default_user is not defined
 
     - name: default_password
       prompt: "Do you want to modify current default password?"
       private: no
       default: "temppwd"
-      when: default_password is not defined
 
   tasks:
 

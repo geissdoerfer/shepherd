@@ -10,12 +10,11 @@
     rebuild_kernel_module: false
 
   vars_prompt:
-    # these can be also passed as argument:  -e "refresh_source=True"
+    # these can be also passed as argument:  -e "refresh_source=True" -> automatically skips these prompts
     - name: refresh_source
       prompt: "Do you want to (forcefully) git pull the Shepherd-Source on Nodes? [yesNo]"
       private: no
       default: "no"
-      when: refresh_source is not defined
 
   tasks:
 
