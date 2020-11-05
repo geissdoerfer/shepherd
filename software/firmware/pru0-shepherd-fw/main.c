@@ -122,7 +122,6 @@ void event_loop(volatile struct SharedMem *const shared_mem,
 		struct SampleBuffer *const buffers_far)
 {
 	uint32_t ring_buf_idx = NO_BUFFER;
-	shared_mem->analog_sample_counter = 0;
 	uint32_t analog_sample_idx = 0; // usually one behind counter, needed for stopping emulation during debug
 	enum ShepherdMode shepherd_mode = (enum ShepherdMode)shared_mem->shepherd_mode;
 
@@ -162,12 +161,12 @@ void event_loop(volatile struct SharedMem *const shared_mem,
 				__delay_cycles(4000 / 5);
 			}
 
-			/* Did the Linux kernel module ask for reset? */
-			if (shared_mem->shepherd_state == STATE_RESET) return;
-
 			if (shared_mem->analog_sample_counter == ADC_SAMPLES_PER_BUFFER)
 			{
                 		// TODO: this still needs sorting -> block end must be called even before a block ends ... to get a valid buffer
+				/* Did the Linux kernel module ask for reset? */
+				if (shared_mem->shepherd_state == STATE_RESET) return;
+
 				/* We try to exchange a full buffer for a fresh one if we are running */
 				if ((shared_mem->shepherd_state == STATE_RUNNING) &&
 				    (shared_mem->shepherd_mode != MODE_DEBUG))
@@ -202,7 +201,8 @@ void main(void)
 	 * shared_mem structure.
 	 * Do this initialization early! The kernel module relies on it.
 	 */
-	volatile struct SharedMem *const shared_mememory = (volatile struct SharedMem *const)PRU_SHARED_MEM_STRUCT_OFFSET;
+	volatile struct SharedMem *const shared_mememory = (volatile struct SharedMem *)PRU_SHARED_MEM_STRUCT_OFFSET;
+	// Initialize all struct-Members Part A (Part B in Reset Loop)
 	shared_mememory->mem_base_addr = resourceTable.shared_mem.pa;
 	shared_mememory->mem_size = resourceTable.shared_mem.len;
 
@@ -212,6 +212,9 @@ void main(void)
 
 	shared_mememory->harvesting_voltage = 0;
 	shared_mememory->shepherd_mode = MODE_HARVESTING;
+
+	shared_mememory->next_timestamp_ns = 0;
+	shared_mememory->analog_sample_counter = 0;
 
 	/*
 	 * The dynamically allocated shared DDR RAM holds all the buffers that
@@ -223,8 +226,6 @@ void main(void)
 
 	/* Allow OCP master port access by the PRU so the PRU can read external memories */
 	CT_CFG.SYSCFG_bit.STANDBY_INIT = 0;
-
-	simple_mutex_exit(&shared_mememory->gpio_edges_mutex);
 
 	/* Enable interrupts from PRU1 */
 	CT_INTC.EISR_bit.EN_SET_IDX = PRU_PRU_EVT_SAMPLE;
@@ -239,6 +240,7 @@ void main(void)
 reset:
 	GPIO_OFF(DEBUG_P0 | USR_LED1);
 
+	// TODO: how do we make sure, that virtcap_settings & calibration_settings is initialized?
 	if (shared_mememory->shepherd_mode == MODE_VIRTCAP)
 	virtcap_init((struct VirtCapSettings *)&shared_mememory->virtcap_settings,
 		 (struct CalibrationSettings *)&shared_mememory->calibration_settings);
@@ -252,7 +254,16 @@ reset:
 	CT_INTC.SICR_bit.STS_CLR_IDX = PRU_PRU_EVT_SAMPLE;
 	CT_INTC.SICR_bit.STS_CLR_IDX = PRU_PRU_EVT_BLOCK_END;
 
+	// Initialize struct-Members Part B
+	// Reset Token-System to init-values
+	shared_mememory->cmp0_handled_by_pru0 = 0;
+	shared_mememory->cmp0_handled_by_pru1 = 0;
+	shared_mememory->cmp1_handled_by_pru0 = 0;
+	shared_mememory->cmp1_handled_by_pru1 = 0;
+
 	shared_mememory->shepherd_state = STATE_IDLE;
+	/* Make sure the mutex is clear */
+	simple_mutex_exit(&shared_mememory->gpio_edges_mutex);
 
 	event_loop(shared_mememory, &free_buffers, buffers_far);
 	goto reset;

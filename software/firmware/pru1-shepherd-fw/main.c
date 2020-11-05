@@ -320,14 +320,13 @@ int32_t event_loop(volatile struct SharedMem *const shared_mem)
 			}
 		}
 
-
-		if ((shared_mem->cmp0_handled_by_pru0 == 1) && (shared_mem->cmp0_handled_by_pru1 == 1))
+		if ((shared_mem->cmp0_handled_by_pru0 != 0) && (shared_mem->cmp0_handled_by_pru1 != 0))
 		{
 			shared_mem->cmp0_handled_by_pru0 = 0;
 			shared_mem->cmp0_handled_by_pru1 = 0;
 		}
 
-		if ((shared_mem->cmp1_handled_by_pru0 == 1) && (shared_mem->cmp1_handled_by_pru1 == 1))
+		if ((shared_mem->cmp1_handled_by_pru0 != 0) && (shared_mem->cmp1_handled_by_pru1 != 0))
 		{
 			shared_mem->cmp1_handled_by_pru0 = 0;
 			shared_mem->cmp1_handled_by_pru1 = 0;
@@ -338,7 +337,7 @@ int32_t event_loop(volatile struct SharedMem *const shared_mem)
 
 void main(void)
 {
-    volatile struct SharedMem *const shared_mememory = (volatile struct SharedMem *const)PRU_SHARED_MEM_STRUCT_OFFSET;
+    volatile struct SharedMem *const shared_mememory = (volatile struct SharedMem *)PRU_SHARED_MEM_STRUCT_OFFSET;
 
     /* Allow OCP master port access by the PRU so the PRU can read external memories */
 	CT_CFG.SYSCFG_bit.STANDBY_INIT = 0;
