@@ -141,4 +141,4 @@ def test_emulate_fn(tmp_path, data_h5, shepherd_up):
             hf_load["data"]["time"].shape[0]
             == hf_hrvst["data"]["time"].shape[0]
         )
-        assert hf_load["data"]["time"][0] == start_time * 1e9
+        assert hf_load["data"]["time"][0] == start_time * 10**9

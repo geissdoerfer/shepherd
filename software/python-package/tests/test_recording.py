@@ -76,4 +76,4 @@ def test_record_fn(tmp_path, shepherd_up):
     with h5py.File(d, "r+") as hf:
         n_samples = hf["data"]["time"].shape[0]
         assert 900_000 < n_samples <= 1_100_000
-        assert hf["data"]["time"][0] == start_time * 1e9
+        assert hf["data"]["time"][0] == start_time * 10**9
