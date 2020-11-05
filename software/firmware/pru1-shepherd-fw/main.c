@@ -315,6 +315,9 @@ int32_t event_loop(volatile struct SharedMem *const shared_mem)
 			}
 			else if (sync_state == REQUEST_PENDING)
 			{
+				// To stay consistent with timing throw away a possible pre-received Replies (that +1 can stay in the system forever)
+				check_control_reply(shared_mem->shepherd_state, ctrl_rep);
+				// send request
 				rpmsg_putraw(&ctrl_req, sizeof(struct CtrlReqMsg));
 				sync_state = REPLY_PENDING;
 			}
