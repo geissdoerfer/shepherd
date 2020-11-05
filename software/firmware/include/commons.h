@@ -118,6 +118,8 @@ struct SharedMem {
 	struct CalibrationSettings calibration_settings;
 	/* This structure defines all settings of virtcap emulation*/
 	struct VirtCapSettings virtcap_settings;
+	// NOTE: End of region (also) controlled by kernel module
+
 	/* Used to exchange timestamp of next buffer between PRU1 and PRU0 */
 	uint64_t next_timestamp_ns;
 	/* Protects write access to below gpio_edges structure */
