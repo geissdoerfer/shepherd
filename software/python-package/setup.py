@@ -21,7 +21,7 @@ if not os.getenv("READTHEDOCS"):
 
 setup(
     name="shepherd",
-    version="0.2.3",
+    version="0.2.4",
     description=("Synchronized Energy Harvesting" "Emulator and Recorder"),
     packages=["shepherd"],
     classifiers=[
