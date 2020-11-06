@@ -2,8 +2,8 @@
 #include <linux/ktime.h>
 #include <asm/io.h>
 
-#include "pru_comm.h"
 #include "commons.h"
+#include "pru_comm.h"
 
 #define PRU_BASE_ADDR 0x4A300000
 #define PRU_INTC_OFFSET 0x00020000
@@ -115,4 +115,28 @@ unsigned int pru_comm_get_buffer_period_ns(void)
 {
 	return readl(pru_shared_mem_io +
 		     offsetof(struct SharedMem, buffer_period_ns));
+}
+
+unsigned char pru_comm_get_ctrl_request(struct CtrlReqMsg *const ctrl_request)
+{
+    if (readb(pru_shared_mem_io + offsetof(struct SharedMem, ctrl_req) + 1) >= 1)
+    {
+        /* if unread, then continue to copy request */
+        memcpy_fromio(ctrl_request,
+                pru_shared_mem_io + offsetof(struct SharedMem, ctrl_req),
+                sizeof(struct CtrlReqMsg));
+        /* mark as read */
+        writeb(0, pru_shared_mem_io + offsetof(struct SharedMem, ctrl_req) + 1);
+        return 1;
+    }
+    return 0;
+}
+
+unsigned char pru_com_set_ctrl_reply(const struct CtrlRepMsg *const ctrl_reply)
+{
+    unsigned char status = readb(pru_shared_mem_io + offsetof(struct SharedMem, ctrl_rep) + 1) == 0;
+    memcpy_toio(pru_shared_mem_io + offsetof(struct SharedMem, ctrl_rep),
+            ctrl_reply,
+            sizeof(struct CtrlRepMsg));
+    return status;
 }

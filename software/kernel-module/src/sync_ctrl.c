@@ -12,6 +12,7 @@ static int64_t ns_sys_to_wrap;
 static uint64_t next_timestamp_ns;
 
 static enum hrtimer_restart timer_callback(struct hrtimer *timer_for_restart);
+static enum hrtimer_restart synch_loop_callback(struct hrtimer *timer_for_restart);
 
 /* We wrap the timer to pass arguments to the callback function */
 static struct hrtimer_wrap_s {
@@ -19,9 +20,13 @@ static struct hrtimer_wrap_s {
 	struct hrtimer hr_timer;
 } trigger_timer;
 
+/* Timer to trigger fast synch_loop */
+struct hrtimer synch_loop_timer;
+
 int sync_exit(void)
 {
 	hrtimer_cancel(&trigger_timer.hr_timer);
+	hrtimer_cancel(&synch_loop_timer);
 	kfree(sync_data);
 
 	return 0;
@@ -39,15 +44,19 @@ int sync_init(uint32_t timer_period_ns)
 		return -1;
 	sync_reset();
 
-	trigger_timer.timer_period_ns = timer_period_ns;
+    /* Timestamp system clock */
+    getnstimeofday(&ts_now);
+    now_ns_system = (uint64_t)timespec_to_ns(&ts_now);
+
+	/* timer for trigger, TODO: this needs better naming, make clear what it does */
+	trigger_timer.timer_period_ns = timer_period_ns; /* 100 ms */
 
 	hrtimer_init(&trigger_timer.hr_timer, CLOCK_REALTIME, HRTIMER_MODE_ABS);
 	trigger_timer.hr_timer.function = &timer_callback;
 
-	/* Timestamp system clock */
-	getnstimeofday(&ts_now);
-
-	now_ns_system = (uint64_t)timespec_to_ns(&ts_now);
+    /* timer for Synch-Loop */
+    hrtimer_init(&synch_loop_timer, CLOCK_REALTIME, HRTIMER_MODE_ABS);
+    synch_loop_timer.function = &synch_loop_callback;
 
 	div_u64_rem(now_ns_system, timer_period_ns, &ns_over_wrap);
 	if (ns_over_wrap > (timer_period_ns / 2))
@@ -58,6 +67,10 @@ int sync_init(uint32_t timer_period_ns)
 	hrtimer_start(&trigger_timer.hr_timer,
 		      ns_to_ktime(now_ns_system + ns_now_until_trigger),
 		      HRTIMER_MODE_ABS);
+
+    hrtimer_start(&synch_loop_timer,
+            ns_to_ktime(now_ns_system + 1000000),
+            HRTIMER_MODE_ABS);
 
 	return 0;
 }
@@ -117,7 +130,49 @@ enum hrtimer_restart timer_callback(struct hrtimer *timer_for_restart)
 	return HRTIMER_RESTART;
 }
 
-int sync_loop(struct CtrlRepMsg *ctrl_rep, struct CtrlReqMsg *ctrl_req)
+/* Handler for ctrl-requests from PRU1 */
+enum hrtimer_restart synch_loop_callback(struct hrtimer *timer_for_restart)
+{
+    struct CtrlReqMsg ctrl_req;
+    struct CtrlRepMsg ctrl_rep;
+    struct timespec ts_now;
+    /* Timestamp system clock */
+    getnstimeofday(&ts_now);
+
+    if (pru_comm_get_ctrl_request(&ctrl_req))
+    {
+        if (ctrl_req.identifier != MSG_SYNC_CTRL_REQ)
+        {
+            /* Error occurs if something writes over boundaries */
+            printk(KERN_INFO "shprd: Kernel Recv_CtrlRequest -> mem corruption?\n");
+        }
+
+        sync_loop(&ctrl_rep, &ctrl_req);
+        ctrl_rep.identifier = MSG_SYNC_CTRL_REP;
+        ctrl_rep.msg_unread = 1;
+
+        if (!pru_com_set_ctrl_reply(&ctrl_rep))
+        {
+            /* Error occurs if PRU was not able to handle previous message in time */
+            printk(KERN_INFO "shprd: Kernel Send_CtrlResponse -> backpressure\n");
+        }
+
+        /* after successful req timer sleep for <= 90 ms */
+        hrtimer_forward(timer_for_restart, timespec_to_ktime(ts_now),
+                ns_to_ktime(90000000u)); /* 90 ms */
+    }
+    else
+    {
+        /* still waiting for a request */
+        hrtimer_forward(timer_for_restart, timespec_to_ktime(ts_now),
+                ns_to_ktime(80000u)); /* 60 us */
+    }
+
+    return HRTIMER_RESTART;
+}
+
+
+int sync_loop(struct CtrlRepMsg *const ctrl_rep, const struct CtrlReqMsg *const ctrl_req)
 {
 	int64_t ns_iep_to_wrap;
 	int32_t clock_corr;
@@ -152,7 +207,6 @@ int sync_loop(struct CtrlRepMsg *ctrl_rep, struct CtrlReqMsg *ctrl_req)
 
 	ctrl_rep->clock_corr = clock_corr;
 	ctrl_rep->next_timestamp_ns = next_timestamp_ns;
-	ctrl_rep->identifier = MSG_SYNC_CTRL_REP;
 
 	sync_data->clock_corr = ctrl_rep->clock_corr;
 

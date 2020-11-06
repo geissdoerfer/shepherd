@@ -32,7 +32,7 @@ int sync_reset(void);
  * @param ctrl_rep Buffer to store the result of the control loop
  * @param ctrl_req Control request that was received from PRU0
  */
-int sync_loop(struct CtrlRepMsg *ctrl_rep, struct CtrlReqMsg *ctrl_req);
+int sync_loop(struct CtrlRepMsg *ctrl_rep, const struct CtrlReqMsg *ctrl_req);
 
 /**
  * Synchronization data structure

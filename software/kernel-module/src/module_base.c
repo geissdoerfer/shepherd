@@ -52,10 +52,11 @@ int pru_recvd(void *data, unsigned int len)
 		rpmsg_pru_send(&ctrl_rep, sizeof(struct CtrlRepMsg));
 		break;
 	default:
-		printk(KERN_INFO "shprd: RPMSG: %s\n", msg);
+		printk(KERN_INFO "shprd: PRU-RPMSG=  %s\n", msg);
 	}
 	return 0;
 }
+
 
 /*
  * get the two prus from the pruss-device-tree-node and save the pointers for common use.
@@ -165,7 +166,8 @@ static int shepherd_drv_probe(struct platform_device *pdev)
 	/* Initialize RPMSG and register the 'received' callback function */
 	if ((ret = rpmsg_pru_init(NULL, NULL, pru_recvd))) {
 		return ret;
-	}
+	} /* TODO: remove parts of subsystem if new system is in place */
+
 
 	/* Initialize synchronization mechanism between PRU1 and our clock */
 	sync_init(pru_comm_get_buffer_period_ns());

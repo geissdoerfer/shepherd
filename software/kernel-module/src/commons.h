@@ -11,7 +11,7 @@
 /* The SharedMem struct resides at the beginning of the PRUs shared memory */
 #define PRU_SHARED_MEM_STRUCT_OFFSET 0x10000
 
-enum SyncMsg { MSG_SYNC_CTRL_REQ = 0xF0, MSG_SYNC_CTRL_REP = 0xF1 };
+enum SyncMsgID { MSG_SYNC_CTRL_REQ = 0x55, MSG_SYNC_CTRL_REP = 0xAA };
 
 enum ShepherdMode {
 	MODE_HARVESTING,
@@ -57,6 +57,34 @@ struct VirtCapSettings {
   int32_t lookup_output_efficiency[4][9];
 } __attribute__((packed));
 
+/* Control request message sent from PRU1 to this kernel module */
+struct CtrlReqMsg {
+    /* Identifier => Canary, This is used to identify memory corruption */
+	uint8_t identifier;
+	/* Token-System to signal new message & the ack, (sender sets unread, receiver resets) */
+	uint8_t msg_unread;
+    /* Alignment with memory, (bytes)mod4 */
+	uint8_t reserved[2];
+	/* Number of ticks passed on the PRU's IEP timer */
+	uint32_t ticks_iep;
+	/* Previous buffer period in IEP ticks */
+	uint32_t old_period;
+} __attribute__((packed));
+
+/* Control reply message sent from this kernel module to PRU1 after running the control loop */
+struct CtrlRepMsg {
+	/* Identifier => Canary, This is used to identify memory corruption */
+	uint8_t identifier;
+    /* Token-System to signal new message & the ack, (sender sets unread, receiver resets) */
+    uint8_t msg_unread;
+    /* Alignment with memory, (bytes)mod4 */
+	uint8_t reserved0[2];
+	/* Actual Content of message */
+	int32_t clock_corr;
+	uint64_t next_timestamp_ns;
+} __attribute__((packed));
+
+
 /* This is external to expose some of the attributes through sysfs */
 extern void __iomem *pru_shared_mem_io;
 
@@ -80,23 +108,9 @@ struct SharedMem {
 	struct CalibrationSettings calibration_settings;
 	/* This structure defines all settings of virtcap emulation*/
 	struct VirtCapSettings virtcap_settings;
-} __attribute__((packed));
-
-/* Control request message sent from PRU1 to this kernel module */
-struct CtrlReqMsg {
-	/* This is used to identify message type at receiver */
-	char identifier;
-	/* Number of ticks passed on the PRU's IEP timer */
-	uint32_t ticks_iep;
-	/* Previous buffer period in IEP ticks */
-	uint32_t old_period;
-} __attribute__((packed));
-
-/* Control reply message sent from this kernel module to PRU1 after running the control loop */
-struct CtrlRepMsg {
-	char identifier;
-	int32_t clock_corr;
-	uint64_t next_timestamp_ns;
+	/* replacement Msg-System for slow rpmsg (check 640ns, receive 4820ns) */
+	struct CtrlReqMsg ctrl_req;
+	struct CtrlRepMsg ctrl_rep;
 } __attribute__((packed));
 
 #endif /* __COMMONS_H_ */
