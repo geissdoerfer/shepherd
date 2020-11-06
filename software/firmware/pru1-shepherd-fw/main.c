@@ -239,6 +239,7 @@ int32_t event_loop(volatile struct SharedMem *const shared_mem)
 				return 0;
 			}
 			DEBUG_EVENT_STATE_0;
+			//continue;  // for more regular gpio-sampling
 		}
 
 		// take a snapshot of current triggers -> ensures prioritized handling
@@ -292,6 +293,7 @@ int32_t event_loop(volatile struct SharedMem *const shared_mem)
 			if (n_comp > 0) {
 				next_cmp_val += 1;
 				n_comp--;
+				// TODO: there are more advanced algos that spread the n_comp more even (req. 1 more division)
 			}
 			// handle edge-case: check if next compare-value is behind auto-reset of cmp0
 			const uint32_t timer_cmp0_value = iep_get_cmp_val(IEP_CMP0); // read costs 12 Cycles
@@ -334,6 +336,7 @@ int32_t event_loop(volatile struct SharedMem *const shared_mem)
 				send_control_request(shared_mem, &ctrl_req);
 				sync_state = REPLY_PENDING;
 			}
+			//continue; // for more regular gpio-sampling
 		}
 
 		if ((shared_mem->cmp0_handled_by_pru0 != 0) && (shared_mem->cmp0_handled_by_pru1 != 0))
