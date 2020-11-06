@@ -80,7 +80,7 @@ static inline bool_ft send_control_request(volatile struct SharedMem *const shar
 		return 1;
 	}
 	/* Error occurs if PRU was not able to handle previous message in time */
-	fault_handler(shared_mem->shepherd_state, "Send_CtrlReq -> backpressure");
+	fault_handler(shared_mem->shepherd_state, "Send_CtrlReq -> back-pressure");
 	return 0;
 }
 

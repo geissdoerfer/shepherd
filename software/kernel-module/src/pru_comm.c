@@ -119,6 +119,7 @@ unsigned int pru_comm_get_buffer_period_ns(void)
 
 unsigned char pru_comm_get_ctrl_request(struct CtrlReqMsg *const ctrl_request)
 {
+    /* testing for unread-msg-token */
     if (readb(pru_shared_mem_io + offsetof(struct SharedMem, ctrl_req) + 1) >= 1)
     {
         /* if unread, then continue to copy request */

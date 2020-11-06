@@ -110,10 +110,6 @@ Now run the *bootstrap* `Ansible playbook <https://docs.ansible.com/ansible/late
 
     ansible-playbook deploy/bootstrap.yml
 
-.. note::
-
-   Initial default user and password can be changed on script-startup, this is only needed for non-ubuntu-images.
-
 To streamline the installation and upgrading process, the shepherd software is packaged and distributed as debian packages.
 Installing is as easy as adding the shepherd repository to the aptitude sources and installing the shepherd metapackage.
 The *install* playbook allows to easily automate this process on a group of nodes.
