@@ -22,6 +22,15 @@ static struct hrtimer_wrap_s {
 
 /* Timer to trigger fast synch_loop */
 struct hrtimer synch_loop_timer;
+/* series of halving sleep cycles, sleep less coming slowly near a total of 100ms of sleep */
+const static unsigned int timer_steps_ns[] = {
+        20000000u, 20000000u,
+        20000000u, 20000000u, 10000000u,
+        5000000u,  2000000u,  1000000u,
+        500000u,   200000u,   100000u,
+        50000u,    20000u};
+const static size_t timer_steps_ns_size = sizeof(timer_steps_ns) / sizeof(timer_steps_ns[0]);
+//static unsigned int step_pos = 0;
 
 int sync_exit(void)
 {
@@ -136,6 +145,7 @@ enum hrtimer_restart synch_loop_callback(struct hrtimer *timer_for_restart)
     struct CtrlReqMsg ctrl_req;
     struct CtrlRepMsg ctrl_rep;
     struct timespec ts_now;
+    static unsigned int step_pos = 0;
     /* Timestamp system clock */
     getnstimeofday(&ts_now);
 
@@ -154,19 +164,17 @@ enum hrtimer_restart synch_loop_callback(struct hrtimer *timer_for_restart)
         if (!pru_com_set_ctrl_reply(&ctrl_rep))
         {
             /* Error occurs if PRU was not able to handle previous message in time */
-            printk(KERN_INFO "shprd: Kernel Send_CtrlResponse -> backpressure\n");
+            printk(KERN_INFO "shprd: Kernel Send_CtrlResponse -> back-pressure\n");
         }
 
-        /* after successful req timer sleep for <= 90 ms */
-        hrtimer_forward(timer_for_restart, timespec_to_ktime(ts_now),
-                ns_to_ktime(90000000u)); /* 90 ms */
+        /* resetting to longest sleep period */
+        step_pos = 0;
     }
-    else
-    {
-        /* still waiting for a request */
-        hrtimer_forward(timer_for_restart, timespec_to_ktime(ts_now),
-                ns_to_ktime(80000u)); /* 60 us */
-    }
+
+    hrtimer_forward(timer_for_restart, timespec_to_ktime(ts_now),
+            ns_to_ktime(timer_steps_ns[step_pos])); /* variable sleep cycle */
+
+    if (step_pos < timer_steps_ns_size - 1) step_pos++;
 
     return HRTIMER_RESTART;
 }
