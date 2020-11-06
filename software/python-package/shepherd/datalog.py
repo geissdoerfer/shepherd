@@ -122,7 +122,7 @@ class LogWriter(object):
             # This makes writing more efficient, see HDF5 docs
             chunks=self.chunk_shape,
             compression=LogWriter.compression_algo,
-            compression_opts=LogWriter.compression_level,
+            #compression_opts=LogWriter.compression_level,
         )
         self.data_grp["time"].attrs["unit"] = f"system time in nano seconds"
 
@@ -134,7 +134,7 @@ class LogWriter(object):
             maxshape=(None,),
             chunks=self.chunk_shape,
             compression=LogWriter.compression_algo,
-            compression_opts=LogWriter.compression_level,
+            #compression_opts=LogWriter.compression_level,
         )
         self.data_grp["current"].attrs["unit"] = "A"
         self.data_grp.create_dataset(
@@ -144,7 +144,7 @@ class LogWriter(object):
             maxshape=(None,),
             chunks=self.chunk_shape,
             compression=LogWriter.compression_algo,
-            compression_opts=LogWriter.compression_level,
+            #compression_opts=LogWriter.compression_level,
         )
         self.data_grp["voltage"].attrs["unit"] = "V"
         # Refer to shepherd/calibration.py for the format of calibration data
@@ -164,7 +164,7 @@ class LogWriter(object):
             maxshape=(None,),
             chunks=self.chunk_shape,
             compression=LogWriter.compression_algo,
-            compression_opts=LogWriter.compression_level,
+            #compression_opts=LogWriter.compression_level,
         )
         self.log_grp["time"].attrs["unit"] = f"system time in nano seconds"
         # Every log entry consists of a timestamp, a message and a value
@@ -184,7 +184,7 @@ class LogWriter(object):
             dtype="u8",
             maxshape=(None,),
             compression=LogWriter.compression_algo,
-            compression_opts=LogWriter.compression_level,
+            #compression_opts=LogWriter.compression_level,
         )
         self.gpio_grp["time"].attrs["unit"] = f"system time in nano seconds"
         self.gpio_grp.create_dataset(
@@ -193,7 +193,7 @@ class LogWriter(object):
             dtype="u1",
             maxshape=(None,),
             compression=LogWriter.compression_algo,
-            compression_opts=LogWriter.compression_level,
+            #compression_opts=LogWriter.compression_level,
         )
 
         return self
