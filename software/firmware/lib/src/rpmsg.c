@@ -80,9 +80,9 @@ void rpmsg_printf(char * fmt, ...)
 {
 	va_list va;
 	va_start(va,fmt);
-    uint8_t * dst_ptr = print_buffer;
-    tfp_format(&dst_ptr, put_copy, fmt, va);
-    put_copy(&dst_ptr, 0U);
+    	uint8_t * dst_ptr = print_buffer;
+    	tfp_format(&dst_ptr, put_copy, fmt, va);
+    	put_copy(&dst_ptr, 0U);
 	rpmsg_putraw(print_buffer, strlen((char*)print_buffer) + 1U);
 	va_end(va);
 }
@@ -94,7 +94,7 @@ void rpmsg_init(char * chan_name)
 	CT_INTC.SICR_bit.STS_CLR_IDX = FROM_ARM_HOST;
 
 	/* Make sure the Linux drivers are ready for RPMsg communication */
-    volatile uint8_t *const status = &resourceTable.rpmsg_vdev.status;
+    	volatile uint8_t *const status = &resourceTable.rpmsg_vdev.status;
 	while (!(*status & VIRTIO_CONFIG_S_DRIVER_OK));
 
 	/* Initialize the RPMsg transport structure */
