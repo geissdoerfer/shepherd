@@ -36,6 +36,7 @@ static void send_message(const uint32_t msg_id, const uint32_t value)
 {
 	const struct DEPMsg msg_out = { .msg_type= msg_id, .value = value};
 	rpmsg_putraw((void *)&msg_out, sizeof(struct DEPMsg));
+	// TODO: could also be replaced by new msg-system / rp-replacement
 }
 
 uint32_t handle_block_end(volatile struct SharedMem *const shared_mem, struct RingBuffer *const free_buffers_ptr,
