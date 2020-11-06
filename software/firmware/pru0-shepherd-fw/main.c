@@ -75,6 +75,7 @@ uint32_t handle_block_end(volatile struct SharedMem *const shared_mem, struct Ri
 	return next_buffer_idx;
 }
 
+// TODO: this system can also be replaced by shared-mem-msg-system, also the send_message() above
 // fn emits a 0 on error, 1 on success
 bool_ft handle_rpmsg(struct RingBuffer *const free_buffers_ptr, const enum ShepherdMode mode,
 		 const enum ShepherdState state)

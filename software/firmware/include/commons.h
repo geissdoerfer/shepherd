@@ -31,7 +31,7 @@ enum DEPMsgID {
 };
 
 /* Message IDs used in Synchronization Protocol between PRU1 and kernel module */
-enum SyncMsgID { MSG_SYNC_CTRL_REQ = 0xF0, MSG_SYNC_CTRL_REP = 0xF1 };
+enum SyncMsgID { MSG_SYNC_CTRL_REQ = 0x55, MSG_SYNC_CTRL_REP = 0xAA };
 
 enum ShepherdMode {
 	MODE_HARVESTING,
@@ -97,6 +97,33 @@ struct DEPMsg {
 	uint32_t value;
 } __attribute__((packed));
 
+/* Format of RPMSG message sent from PRU1 to kernel module */
+struct CtrlReqMsg {
+	/* Identifier => Canary, This is used to identify memory corruption */
+	uint8_t identifier;
+	/* Token-System to signal new message & the ack, (sender sets unread, receiver resets) */
+	uint8_t msg_unread;
+	/* Alignment with memory, (bytes)mod4 */
+	uint8_t reserved[2];
+	/* Number of ticks passed on the PRU's IEP timer */
+	uint32_t ticks_iep;
+	/* Previous buffer period in IEP ticks */
+	uint32_t old_period;
+} __attribute__((packed));
+
+/* Format of RPMSG message sent from kernel module to PRU1 */
+struct CtrlRepMsg {
+	/* Identifier => Canary, This is used to identify memory corruption */
+	uint8_t identifier;
+	/* Token-System to signal new message & the ack, (sender sets unread, receiver resets) */
+	uint8_t msg_unread;
+	/* Alignment with memory, (bytes)mod4 */
+	uint8_t reserved0[2];
+	/* Actual Content of message */
+	int32_t clock_corr;
+	uint64_t next_timestamp_ns;
+} __attribute__((packed));
+
 /* Format of memory structure shared between PRU0, PRU1 and kernel module (lives in shared RAM of PRUs) */
 struct SharedMem {
 	uint32_t shepherd_state;
@@ -118,7 +145,10 @@ struct SharedMem {
 	struct CalibrationSettings calibration_settings;
 	/* This structure defines all settings of virtcap emulation*/
 	struct VirtCapSettings virtcap_settings;
-	// NOTE: End of region (also) controlled by kernel module
+	/* replacement Msg-System for slow rpmsg (check 640ns, receive 4820ns) */
+	struct CtrlReqMsg ctrl_req;
+	struct CtrlRepMsg ctrl_rep;
+	/* NOTE: End of region (also) controlled by kernel module */
 
 	/* Used to exchange timestamp of next buffer between PRU1 and PRU0 */
 	uint64_t next_timestamp_ns;
@@ -139,22 +169,7 @@ struct SharedMem {
 	bool_ft cmp1_handled_by_pru1;
 } __attribute__((packed));
 
-/* Format of RPMSG message sent from PRU1 to kernel module */
-struct CtrlReqMsg {
-	/* This is used to identify message type at receiver */
-    uint8_t identifier;
-	/* Number of ticks passed on the PRU's IEP timer */
-	uint32_t ticks_iep;
-	/* Previous buffer period in IEP ticks */
-	uint32_t old_period;
-} __attribute__((packed)); // TODO: should be aligned with memory, (bytes)mod4
 
-/* Format of RPMSG message sent from kernel module to PRU1 */
-struct CtrlRepMsg {
-    uint8_t identifier;
-	int32_t clock_corr;
-	uint64_t next_timestamp_ns;
-} __attribute__((packed)); // TODO: should be aligned with memory, (bytes)mod4
 
 struct ADCReading {
 	int32_t current;

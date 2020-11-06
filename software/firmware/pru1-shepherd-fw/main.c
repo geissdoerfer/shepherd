@@ -52,17 +52,35 @@ static void fault_handler(const uint32_t shepherd_state, char * err_msg)
 }
 
 
-
-static inline bool_ft check_control_reply(const uint32_t shepherd_state, struct CtrlRepMsg *const ctrl_rep)
+static inline bool_ft receive_control_reply(volatile struct SharedMem *const shared_mem, struct CtrlRepMsg *const ctrl_rep)
 {
-	const uint32_t n = rpmsg_get((void *)ctrl_rep);
-
-	if (n == sizeof(struct CtrlRepMsg)) {
-		if (ctrl_rep->identifier != MSG_SYNC_CTRL_REP)  fault_handler(shepherd_state, "Wrong RPMSG ID");
-		else if (rpmsg_get((uint8_t *)ctrl_rep) > 0)    fault_handler(shepherd_state, "Extra pending messages");
-		// TODO: why is an extra message so bad? most likely sign for out of sync [this rpmsg_get-check is quiet expensive]
+	if (shared_mem->ctrl_rep.msg_unread >= 1)
+	{
+		if (shared_mem->ctrl_rep.identifier != MSG_SYNC_CTRL_REP)
+		{
+			/* Error occurs if something writes over boundaries */
+			fault_handler(shared_mem->shepherd_state, "Recv_CtrlReply -> mem corruption?");
+		}
+		*ctrl_rep = shared_mem->ctrl_rep; // TODO: faster to copy only the needed 2 uint32
+		shared_mem->ctrl_rep.msg_unread = 0;
 		return 1;
 	}
+	return 0;
+}
+
+// send emits a 1 on success
+// ctrl_req: (future opt.) needs to have special config set: identifier=MSG_SYNC_CTRL_REQ and msg_unread=1
+static inline bool_ft send_control_request(volatile struct SharedMem *const shared_mem, const struct CtrlReqMsg *const ctrl_req)
+{
+	if (shared_mem->ctrl_req.msg_unread == 0)
+	{
+		shared_mem->ctrl_req = *ctrl_req;
+		shared_mem->ctrl_req.identifier = MSG_SYNC_CTRL_REQ; // TODO: is better done in request from argument
+		shared_mem->ctrl_req.msg_unread = 1u;
+		return 1;
+	}
+	/* Error occurs if PRU was not able to handle previous message in time */
+	fault_handler(shared_mem->shepherd_state, "Send_CtrlReq -> backpressure");
 	return 0;
 }
 
@@ -156,15 +174,10 @@ int32_t event_loop(volatile struct SharedMem *const shared_mem)
 {
 	uint64_t current_timestamp_ns = 0;
 	uint32_t last_analog_sample_ticks = 0;
-	/*
-	* Buffer for storing the control reply from Linux kernel module
-	* needs to be large enough to hold the largest possible RPMSG
-	*/
-	uint8_t rpmsg_buffer[256];
-	struct CtrlRepMsg *const ctrl_rep = (struct CtrlRepMsg *)&rpmsg_buffer;
 
-	/* Prepare message that will be sent to Linux kernel module */
-	struct CtrlReqMsg ctrl_req = { .identifier = MSG_SYNC_CTRL_REQ };
+	/* Prepare message that will be received and sent to Linux kernel module */
+	struct CtrlReqMsg ctrl_req = { .identifier = MSG_SYNC_CTRL_REQ, .msg_unread = 1 };
+	struct CtrlRepMsg ctrl_rep;
 
 	/* This tracks our local state, allowing to execute actions at the right time */
 	enum SyncState sync_state = IDLE;
@@ -290,16 +303,16 @@ int32_t event_loop(volatile struct SharedMem *const shared_mem)
 			if (sync_state == REPLY_PENDING)
 			{
 				DEBUG_EVENT_STATE_3;
-				if (check_control_reply(shared_mem->shepherd_state, ctrl_rep) > 0)
+				if (receive_control_reply(shared_mem, &ctrl_rep) > 0)
 				{
 					uint32_t block_period;
 					/* The new timer period is the base period plus the correction calculated by the controller */
-					if (ctrl_rep->clock_corr > (int32_t)(TIMER_BASE_PERIOD / 10))
+					if (ctrl_rep.clock_corr > (int32_t)(TIMER_BASE_PERIOD / 10))
 						block_period = TIMER_BASE_PERIOD + TIMER_BASE_PERIOD / 10;
-					else if (ctrl_rep->clock_corr < -(int32_t)(TIMER_BASE_PERIOD / 10))
+					else if (ctrl_rep.clock_corr < -(int32_t)(TIMER_BASE_PERIOD / 10))
 						block_period = TIMER_BASE_PERIOD - TIMER_BASE_PERIOD / 10;
 					else
-						block_period = TIMER_BASE_PERIOD + ctrl_rep->clock_corr;
+						block_period = TIMER_BASE_PERIOD + ctrl_rep.clock_corr;
 
 					// determine resulting new sample period, n_comp is the remainder of the division
 					const uint32_t block_period_remain = (block_period - iep_get_cmp_val(IEP_CMP1));
@@ -309,16 +322,16 @@ int32_t event_loop(volatile struct SharedMem *const shared_mem)
 
 					iep_set_cmp_val(IEP_CMP0, block_period);
 					sync_state = IDLE;
-					shared_mem->next_timestamp_ns =  ctrl_rep->next_timestamp_ns;
+					shared_mem->next_timestamp_ns =  ctrl_rep.next_timestamp_ns;
 				}
 				DEBUG_EVENT_STATE_0;
 			}
 			else if (sync_state == REQUEST_PENDING)
 			{
 				// To stay consistent with timing throw away a possible pre-received Replies (that +1 can stay in the system forever)
-				check_control_reply(shared_mem->shepherd_state, ctrl_rep);
+				receive_control_reply(shared_mem, &ctrl_rep);
 				// send request
-				rpmsg_putraw(&ctrl_req, sizeof(struct CtrlReqMsg));
+				send_control_request(shared_mem, &ctrl_req);
 				sync_state = REPLY_PENDING;
 			}
 		}
