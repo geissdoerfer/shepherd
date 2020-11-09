@@ -173,7 +173,7 @@ enum hrtimer_restart synch_loop_callback(struct hrtimer *timer_for_restart)
 
     hrtimer_forward(timer_for_restart, timespec_to_ktime(ts_now),
             ns_to_ktime(timer_steps_ns[step_pos])); /* variable sleep cycle */
-    /* TODO: ktime_get() seems a proper replacement for "timespec_to_ktime(ts_now)"
+    /* TODO: ktime_get() seems a proper replacement for "timespec_to_ktime(ts_now)" */
 
     if (step_pos < timer_steps_ns_size - 1) step_pos++;
 
