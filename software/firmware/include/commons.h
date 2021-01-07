@@ -52,7 +52,7 @@ enum ShepherdState {
 struct GPIOEdges {
 	uint32_t idx;
 	uint64_t timestamp_ns[MAX_GPIO_EVT_PER_BUFFER];
-    uint8_t  bitmask[MAX_GPIO_EVT_PER_BUFFER];
+    	uint8_t  bitmask[MAX_GPIO_EVT_PER_BUFFER]; // TODO: should be >= 10 bit for V2, leave 8 bit for now
 } __attribute__((packed));
 
 struct SampleBuffer {

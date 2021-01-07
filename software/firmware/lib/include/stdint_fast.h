@@ -3,9 +3,9 @@
 
 #include <stdint.h>
 
-// short-cuts for fastest data-types
+// short-cuts for fastest data-types on architecture
 // - pru needs 7 cycles and branch when int8 or int16 or int32 is used together in an OP
-// - perfect for mixed usage and hinting minimal container size (needed per design)
+// - perfect for mixed usage and hinting minimal container size (that is needed per design)
 
 #define int8_ft     int32_t
 #define uint8_ft    uint32_t

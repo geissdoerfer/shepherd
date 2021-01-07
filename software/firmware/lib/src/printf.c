@@ -36,79 +36,73 @@
 typedef void (*putcf) (void*, char);  // TODO: despite the datasheet char does not seem to be uint8_t on PRU, so it seems we need to go back
 
 static void uint_to_ascii(uint32_t number, const uint32_t base, const bool_ft upper_case, uint8_t * buf)
-	{
+{
 	uint32_t num = number;
-    int32_t digit_count=0;
+	int32_t digit_count=0;
 	uint32_t base_pwr=1;
 	while (num/base_pwr >= base) // TODO: if numbers are transferred often, the division could be replaced by a LUT
         base_pwr*=base;
 	while (base_pwr!=0) {
 		const uint32_t digit = num / base_pwr;
-        num -= base_pwr; // NOTE: replaced expensive modulo, not needed here
-        base_pwr/=base;
+		num -= base_pwr; // NOTE: replaced expensive modulo, not needed here
+		base_pwr/=base;
 		if (digit_count || digit>0 || base_pwr==0) {
 			*buf++ = digit+(digit<10 ? '0' : (upper_case ? 'A' : 'a')-10);
 			++digit_count;
 			}
 		}
 	*buf=0;
-	}
+}
 
 static void int_to_ascii(const int32_t number, uint8_t * buf)
-	{
+{
 	uint32_t num;
-    if (number<0) {
-        num=(uint32_t)-number;
+	if (number<0) {
+		num=(uint32_t)-number;
 		*buf++ = '-';
-		}
-    else num = (uint32_t)number;
-	uint_to_ascii(num, 10U, 0U, buf);
 	}
+	else num = (uint32_t)number;
+	uint_to_ascii(num, 10U, 0U, buf);
+}
 
 static uint8_ft ascii_to_digit(const uint8_t character)
-	{
-	if (character>='0' && character<='9')
-		return (character - '0');
-	else if (character>='a' && character<='f')
-		return (character - 'a' + 10);
-	else if (character>='A' && character<='F')
-		return (character - 'A' + 10);
+{
+	if (character>='0' && character<='9') 		return (character - '0');
+	else if (character>='a' && character<='f')	return (character - 'a' + 10);
+	else if (character>='A' && character<='F')	return (character - 'A' + 10);
 	else return 255U;
-	}
+}
 
 static uint8_t ascii_to_uint(const uint8_t character, const uint8_t**const src, const uint32_t base, uint32_t *const number_ptr)
-	{
-    uint8_t ch = character;
-    const uint8_t* src_ptr= *src;
+{
+	uint8_t ch = character;
+	const uint8_t* src_ptr= *src;
 	uint32_t number=0;
 	uint32_t digit;
 	while ((digit = ascii_to_digit(ch)) < 255U) {
 		if (digit > base) break;
-        number=number*base+digit;
-        ch=*src_ptr++;
-		}
+		number=number*base+digit;
+		ch=*src_ptr++;
+	}
 	*src=src_ptr;
 	*number_ptr=number;
 	return ch;
-	}
+}
 
 // looks like "put character with left padding", padding is zero or spaces
 static void put_chw(void* put_ptr, putcf put_fn, uint32_t ch_count, const uint8_t zero, const uint8_t * ch_buf)
-	{
-    uint8_t fill_char= zero ? '0' : ' ';
-    uint8_t ch;
-    const uint8_t* buf_ptr = ch_buf;
-	while (*buf_ptr++ && ch_count > 0)
-		ch_count--;
-	while (ch_count-- > 0)
-		put_fn(put_ptr,fill_char);
-	while ((ch= *ch_buf++))
-		put_fn(put_ptr,ch);
-	}
+{
+	uint8_t fill_char= zero ? '0' : ' ';
+	uint8_t ch;
+	const uint8_t* buf_ptr = ch_buf;
+	while (*buf_ptr++ && ch_count > 0)	ch_count--;
+	while (ch_count-- > 0)			put_fn(put_ptr,fill_char);
+	while ((ch= *ch_buf++))			put_fn(put_ptr,ch);
+}
 
 void tfp_format(void* dst_ptr, putcf put_fn, const char *src_ptr, va_list va)
-	{
-    uint8_t buffer[12];
+{
+	uint8_t buffer[12];
     char character;
 
 	while ((character=*(src_ptr++)) > 0) {
