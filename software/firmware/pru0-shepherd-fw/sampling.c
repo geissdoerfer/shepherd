@@ -63,10 +63,10 @@ static inline void sample_virtcap(struct SampleBuffer *const buffer, const uint3
 	static int32_t last_current_measurement = 0;
 
 	/* Get input current/voltage from shared memory buffer */
-    const int32_t input_current = buffer->values_current[sample_idx] - ((1U << 17U) - 1);
-    const int32_t input_voltage = buffer->values_voltage[sample_idx];
+	const int32_t input_current = buffer->values_current[sample_idx] - ((1U << 17U) - 1);
+	const int32_t input_voltage = buffer->values_voltage[sample_idx];
 
-    // TODO: time budget would allow to read both values everytime
+	// TODO: time budget would allow to read both values everytime
 	if (under_sample_voltage_cntr++ == 7) {
 		under_sample_voltage_cntr = 0;
 
@@ -75,14 +75,14 @@ static inline void sample_virtcap(struct SampleBuffer *const buffer, const uint3
 
 		/* Read load voltage and select load current for next reading */
 		read.voltage = adc_readwrite(SPI_CS_ADC_PIN, MAN_CH_SLCT | (ADC_CH_A_OUT << 10U));
-        last_voltage_measurement = read.voltage;
+        	last_voltage_measurement = read.voltage;
 		buffer->values_voltage[sample_idx] = read.voltage;
 
 
 	} else if (under_sample_voltage_cntr == 6) {
 		/* Read load current and select load voltage for next reading */
 		read.current = adc_readwrite(SPI_CS_ADC_PIN, MAN_CH_SLCT | (ADC_CH_V_OUT << 10U));
-        last_current_measurement = read.current;
+        	last_current_measurement = read.current;
 		buffer->values_current[sample_idx] = read.current;
 
 		read.voltage = last_voltage_measurement;
@@ -155,8 +155,8 @@ void sample_dbg_dac(const uint32_t value)
 void sampling_init(const enum ShepherdMode mode, const uint32_t harvesting_voltage)
 {
 	/* Chip-Select signals are active low */
-	GPIO_ON(SPI_CS_ADC_REG | SPI_CS_DAC_REG);
-	GPIO_OFF(SPI_SCLK | SPI_MOSI);
+	GPIO_ON(SPI_CS_ADC_MASK | SPI_CS_DAC_MASK);
+	GPIO_OFF(SPI_SCLK_MASK | SPI_MOSI_MASK);
 
 	/* Reset all registers (see DAC8562T datasheet Table 17) */
 	dac_write(SPI_CS_DAC_PIN, (0x5u << DAC_CMD_OFFSET) | (1U << 0U));

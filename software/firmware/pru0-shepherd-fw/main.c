@@ -136,15 +136,15 @@ void event_loop(volatile struct SharedMem *const shared_mem,
 		// this stack ensures low overhead to event loop AND full buffer before switching
 		if ((shared_mem->cmp0_handled_by_pru0 == 0) && (iep_check_evt_cmp_fast(iep_tmr_cmp_sts, IEP_CMP0S) || (shared_mem->cmp0_handled_by_pru1 == 1)))
 		{
-			GPIO_TOGGLE(USR_LED1);
+			GPIO_TOGGLE(DEBUG_PIN1_MASK);
 			shared_mem->cmp0_handled_by_pru0 = 1;
 			shared_mem->analog_sample_counter = 0;
 			analog_sample_idx = 0;
-			GPIO_TOGGLE(USR_LED1);
+			GPIO_TOGGLE(DEBUG_PIN1_MASK);
 		}
 
 		// pru0 manages the irq, but pru0 reacts to it directly -> less jitter
-		if ((shared_mem->cmp1_handled_by_pru0 == 0) && (iep_check_evt_cmp_fast(iep_tmr_cmp_sts, IEP_CMP1S) || (shared_mem->cmp1_handled_by_pru1 == 1)))
+		if ((shared_mem->cmp1_handled_by_pru0 == 0) && (iep_check_evt_cmp_fast(iep_tmr_cmp_sts, IEP_CMP1_MASK) || (shared_mem->cmp1_handled_by_pru1 == 1)))
 		{
 			shared_mem->cmp1_handled_by_pru0 = 1;
 			shared_mem->analog_sample_counter++;
@@ -152,10 +152,10 @@ void event_loop(volatile struct SharedMem *const shared_mem,
 			/* The actual sampling takes place here */
 			if ((ring_buf_idx != NO_BUFFER) && (analog_sample_idx < ADC_SAMPLES_PER_BUFFER))
 			{
-				GPIO_ON(DEBUG_P0);
+				GPIO_ON(DEBUG_PIN0_MASK);
 				sample(buffers_far + ring_buf_idx, analog_sample_idx, shepherd_mode);
 				analog_sample_idx = shared_mem->analog_sample_counter;
-				GPIO_OFF(DEBUG_P0);
+				GPIO_OFF(DEBUG_PIN0_MASK);
 			}
 			else
 			{
@@ -174,20 +174,20 @@ void event_loop(volatile struct SharedMem *const shared_mem,
 				    (shared_mem->shepherd_mode != MODE_DEBUG))
 				{
 				    ring_buf_idx = handle_block_end(shared_mem, free_buffers_ptr, buffers_far, ring_buf_idx, analog_sample_idx);
-				    GPIO_TOGGLE(USR_LED1); // NOTE: desired user-feedback
+				    GPIO_TOGGLE(DEBUG_PIN1_MASK); // NOTE: desired user-feedback
 				}
 			}
 			/* We only handle rpmsg comms if we're not at the last sample */
 			else {
-                		//GPIO_ON(DEBUG_P0);
+                		//GPIO_ON(DEBUG_PIN0_MASK);
 				handle_rpmsg(free_buffers_ptr,
 					     (enum ShepherdMode)shared_mem->shepherd_mode,
 					     (enum ShepherdState)shared_mem->shepherd_state);
-                		//GPIO_OFF(DEBUG_P0);
+                		//GPIO_OFF(DEBUG_PIN0_MASK);
 			}
 
 #if SPI_SYS_TEST_EN // TODO: Test-Area
-		sys_adc_readwrite(DEBUG_P0, shared_mem->analog_sample_counter);
+		sys_adc_readwrite(DEBUG_PIN0_MASK, shared_mem->analog_sample_counter);
 #endif
 		}
 	}
@@ -240,7 +240,7 @@ void main(void)
 #endif
 
 reset:
-	GPIO_OFF(DEBUG_P0 | USR_LED1);
+	GPIO_OFF(DEBUG_PIN0_MASK | DEBUG_PIN1_MASK);
 
 	// TODO: how do we make sure, that virtcap_settings & calibration_settings is initialized?
 	if (shared_mememory->shepherd_mode == MODE_VIRTCAP)
