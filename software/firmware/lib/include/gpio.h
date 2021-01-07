@@ -1,15 +1,20 @@
 #ifndef __GPIO_H_
 #define __GPIO_H_
 
-#ifdef __GNUC__ // NOTE: gcc can't use registers directly, so this is a workaround to allow gcc & cgt
+#ifdef __GNUC__ \
+                \
+// NOTE: gcc can't use registers directly, so this is a workaround to allow gcc & cgt
 #include <pru/io.h>
+
 #else // CGT
+
 volatile register uint32_t __R30;
 volatile register uint32_t __R31;
 #define read_r30()      __R30
 #define write_r30(x)    __R30 = (x)
 #define read_r31()      __R31
 #define write_r31(x)    __R31 = (x)
+
 #endif
 
 #if defined(PRU0)
@@ -46,7 +51,7 @@ volatile register uint32_t __R31;
     #define P8_46   1U
 
 #else
-    #error
+    #error "PRU0 / PRU1 not specified"
 #endif
 
 #define BIT_SHIFT(x)    (1U << (x))
