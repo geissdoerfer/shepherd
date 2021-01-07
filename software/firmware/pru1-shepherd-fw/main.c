@@ -16,11 +16,44 @@
 #include "debug_routines.h"
 
 /* The Arm to Host interrupt for the timestamp event is mapped to Host interrupt 0 -> Bit 30 (see resource_table.h) */
-#define HOST_INT_TIMESTAMP (1U << 30U)
-#define PRU_INT 	(1U << 31U)
+#define HOST_INT_TIMESTAMP_MASK (1U << 30U)
+#define PRU_INT_MASK 		(1U << 31U)
 
-#define DEBUG_P0            BIT_SHIFT(P8_41)
-#define DEBUG_P1            BIT_SHIFT(P8_42)
+#ifndef SHEPHERD_VER
+#define SHEPHERD_VER 2
+#endif
+
+#if (SHEPHERD_VER == 1)
+
+#define DEBUG_PIN0_MASK         BIT_SHIFT(P8_41)
+#define DEBUG_PIN1_MASK         BIT_SHIFT(P8_42)
+
+#define GPIO_MASK		(0x0F)
+
+#elif (SHEPHERD_VER == 2)
+
+// both pins have a LED
+#define DEBUG_PIN0_MASK 	BIT_SHIFT(P8_28)
+#define DEBUG_PIN1_MASK 	BIT_SHIFT(P8_30)
+
+#define GPIO_MASK		(0x00FF) // (0x03FF) TODO: reduced to 8 bit register
+
+/* overview for current pin-mirroring
+#define TARGET_GPIO0            BIT_SHIFT(P8_45) // r31_00
+#define TARGET_GPIO1            BIT_SHIFT(P8_46) // r31_01
+#define TARGET_GPIO2            BIT_SHIFT(P8_43) // r31_02
+#define TARGET_GPIO3            BIT_SHIFT(P8_44) // r31_03
+#define TARGET_UART_TX          BIT_SHIFT(P8_41) // r31_04
+#define TARGET_UART_RX          BIT_SHIFT(P8_42) // r31_05
+#define TARGET_SWD_CLK          BIT_SHIFT(P8_39) // r31_06
+#define TARGET_SWD_IO           BIT_SHIFT(P8_40) // r31_07
+#define TARGET_BAT_OK           BIT_SHIFT(P8_27) // r31_08
+#define TARGET_GPIO4            BIT_SHIFT(P8_29) // r31_09
+*/
+
+#else
+#error "shepherd-version not defined"
+#endif
 
 /* The IEP is clocked with 200 MHz -> 5 nanoseconds per tick */
 #define TIMER_TICK_NS       5U
@@ -39,15 +72,16 @@ enum SyncState {
 static void fault_handler(const uint32_t shepherd_state, char * err_msg)
 {
 	/* If shepherd is not running, we can recover from the fault */
-	if (shepherd_state != STATE_RUNNING) {
+	if (shepherd_state != STATE_RUNNING)
+	{
 		printf(err_msg);
 		return;
 	}
 
 	while (true)
 	{
-	printf(err_msg);
-	__delay_cycles(2000000000U);
+		printf(err_msg);
+		__delay_cycles(2000000000U);
 	}
 }
 
@@ -85,9 +119,9 @@ static inline bool_ft send_control_request(volatile struct SharedMem *const shar
 }
 
 /*
- * Here, we sample the 4 GPIO pins from a connected sensor node. We repeatedly
+ * Here, we sample the the GPIO pins from a connected sensor node. We repeatedly
  * poll the state via the R31 register and keep the last state in a static
- * variable. Once we detect a change, the new value (4bit) is written to the
+ * variable. Once we detect a change, the new value (V1=4bit, V2=10bit) is written to the
  * corresponding buffer (which is managed by PRU0). The tricky part is the
  * synchronization between the PRUs to avoid inconsistent state, while
  * minimizing sampling delay
@@ -108,16 +142,17 @@ static inline void check_gpio(volatile struct SharedMem *const shared_mem,
 		return;
 	}
 
-	const uint32_t gpio_status = read_r31() & 0x0F;
-	const uint32_t diff = gpio_status ^ prev_gpio_status;
+	const uint32_t gpio_status = read_r31() & GPIO_MASK;
+	const uint32_t gpio_diff = gpio_status ^ prev_gpio_status;
 
 	prev_gpio_status = gpio_status;
 
-	if (diff > 0)
+	if (gpio_diff > 0)
 	{
 		DEBUG_GPIO_STATE_2;
-	    	// TODO: reading from ram/far is slow, idx should be stored locally, potentially unsafe,
-		const uint32_t cIDX = shared_mem->gpio_edges->idx; // reduces reads to far-ram to current minimum
+		// local copy reduces reads to far-ram to current minimum
+		const uint32_t cIDX = shared_mem->gpio_edges->idx;
+
 		/* Each buffer can only store a limited number of events */
 		if (cIDX >= MAX_GPIO_EVT_PER_BUFFER) return;
 
@@ -132,7 +167,7 @@ static inline void check_gpio(volatile struct SharedMem *const shared_mem,
 
 		simple_mutex_enter(&shared_mem->gpio_edges_mutex);
 		shared_mem->gpio_edges->timestamp_ns[cIDX] = gpio_timestamp;
-		shared_mem->gpio_edges->bitmask[cIDX] = (uint8_t)gpio_status;
+		shared_mem->gpio_edges->bitmask[cIDX] = (uint8_t)gpio_status; // TODO: should be >= 10 bit for V2, leave 8 bit for now
 		shared_mem->gpio_edges->idx = cIDX + 1;
 		simple_mutex_exit(&shared_mem->gpio_edges_mutex);
 	}
@@ -202,7 +237,7 @@ int32_t event_loop(volatile struct SharedMem *const shared_mem)
 	/* Clear raw interrupt status from ARM host */
 	INTC_CLEAR_EVENT(HOST_PRU_EVT_TIMESTAMP);
 	/* Wait for first timer interrupt from Linux host */
-	while (!(read_r31() & HOST_INT_TIMESTAMP)) {};
+	while (!(read_r31() & HOST_INT_TIMESTAMP_MASK)) {};
 
 	if (INTC_CHECK_EVENT(HOST_PRU_EVT_TIMESTAMP)) INTC_CLEAR_EVENT(HOST_PRU_EVT_TIMESTAMP);
 
@@ -220,7 +255,7 @@ int32_t event_loop(volatile struct SharedMem *const shared_mem)
 		DEBUG_GPIO_STATE_0;
 
 		/* Check for timer interrupt from Linux host [Event1] */
-		if (read_r31() & HOST_INT_TIMESTAMP) {
+		if (read_r31() & HOST_INT_TIMESTAMP_MASK) {
 			if (!INTC_CHECK_EVENT(HOST_PRU_EVT_TIMESTAMP)) continue;
 
 			/* Take timestamp of IEP */
@@ -275,7 +310,7 @@ int32_t event_loop(volatile struct SharedMem *const shared_mem)
 		}
 
 		/* Timer compare 1 handle [Event 3] */
-		if (iep_check_evt_cmp_fast(iep_tmr_cmp_sts, IEP_CMP1S))
+		if (iep_check_evt_cmp_fast(iep_tmr_cmp_sts, IEP_CMP1_MASK))
 		{
 			shared_mem->cmp1_handled_by_pru1 = 1;
 			// Relict from previous INTC-System -> TODO: Remove if safe
@@ -356,12 +391,11 @@ int32_t event_loop(volatile struct SharedMem *const shared_mem)
 
 void main(void)
 {
-    volatile struct SharedMem *const shared_mememory = (volatile struct SharedMem *)PRU_SHARED_MEM_STRUCT_OFFSET;
+	volatile struct SharedMem *const shared_mememory = (volatile struct SharedMem *)PRU_SHARED_MEM_STRUCT_OFFSET;
 
-    /* Allow OCP master port access by the PRU so the PRU can read external memories */
+    	/* Allow OCP master port access by the PRU so the PRU can read external memories */
 	CT_CFG.SYSCFG_bit.STANDBY_INIT = 0;
-
-    DEBUG_STATE_0;
+	DEBUG_STATE_0;
 
 	rpmsg_init("rpmsg-shprd");
 	__delay_cycles(1000);

@@ -7,10 +7,10 @@
 #define DEBUG_LOOP_EN   0
 
 // Debug Code, state-changes add ~7 ticks (s0 -  s2), ~6 ticks (s3)
-#define DEBUG_STATE_0       write_r30(read_r30() & ~(DEBUG_P0 | DEBUG_P1))
-#define DEBUG_STATE_1       write_r30((read_r30() | DEBUG_P0) & ~DEBUG_P1)
-#define DEBUG_STATE_2       write_r30((read_r30() | DEBUG_P1) & ~DEBUG_P0)
-#define DEBUG_STATE_3       write_r30(read_r30() | (DEBUG_P1 | DEBUG_P0))
+#define DEBUG_STATE_0       write_r30(read_r30() & ~(DEBUG_PIN0_MASK | DEBUG_PIN1_MASK))
+#define DEBUG_STATE_1       write_r30((read_r30() | DEBUG_PIN0_MASK) & ~DEBUG_PIN1_MASK)
+#define DEBUG_STATE_2       write_r30((read_r30() | DEBUG_PIN1_MASK) & ~DEBUG_PIN0_MASK)
+#define DEBUG_STATE_3       write_r30(read_r30() | (DEBUG_PIN0_MASK | DEBUG_PIN1_MASK))
 
 #if DEBUG_GPIO_EN > 0
 #define DEBUG_GPIO_STATE_0  DEBUG_STATE_0
@@ -38,9 +38,9 @@
 // "print" number by toggling debug pins bitwise, lowest bitvalue first
 static void inline shift_gpio(const uint32_t number)
 {
-    const uint32_t gpio_off = read_r30() & ~(DEBUG_P0 | DEBUG_P1);
-    const uint32_t gpio_one = gpio_off | (DEBUG_P0 | DEBUG_P1);
-    const uint32_t gpio_zero = gpio_off | DEBUG_P0;
+    const uint32_t gpio_off = read_r30() & ~(DEBUG_PIN0_MASK | DEBUG_PIN1_MASK);
+    const uint32_t gpio_one = gpio_off | (DEBUG_PIN0_MASK | DEBUG_PIN1_MASK);
+    const uint32_t gpio_zero = gpio_off | DEBUG_PIN0_MASK;
     uint32_t value = number << 1u;
     while (value >>= 1u)
     {
@@ -77,9 +77,9 @@ static void inline debug_loop_delays(const uint32_t shepherd_state)
 
         if (ticks_count == (1u << 20u))
         {
-            _GPIO_ON(DEBUG_P0 | DEBUG_P1);
+            _GPIO_ON(DEBUG_PIN0_MASK | DEBUG_PIN1_MASK);
             __delay_cycles(10);
-            _GPIO_OFF(DEBUG_P0 | DEBUG_P1);
+            _GPIO_OFF(DEBUG_PIN0_MASK | DEBUG_PIN1_MASK);
             __delay_cycles(8);
 
             shift_gpio(ticks_min);
