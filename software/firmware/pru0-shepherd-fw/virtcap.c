@@ -262,9 +262,8 @@ static void virtcap_set_output_state(const bool_ft value)
 {
 	VIRTCAP_OUT_PIN_state = value;
 
-	if (value)  GPIO_ON(VIRTCAP_OUT_PIN);
-	else 	    GPIO_OFF(VIRTCAP_OUT_PIN);
-
+	if (value)  GPIO_ON(VIRTCAP_OUT_MASK);
+	else 	    GPIO_OFF(VIRTCAP_OUT_MASK);
 }
 
 bool_ft virtcap_get_output_state()

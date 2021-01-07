@@ -134,7 +134,7 @@ void event_loop(volatile struct SharedMem *const shared_mem,
 		const uint32_t iep_tmr_cmp_sts = iep_get_tmr_cmp_sts(); // 12 cycles, 60 ns
 
 		// this stack ensures low overhead to event loop AND full buffer before switching
-		if ((shared_mem->cmp0_handled_by_pru0 == 0) && (iep_check_evt_cmp_fast(iep_tmr_cmp_sts, IEP_CMP0S) || (shared_mem->cmp0_handled_by_pru1 == 1)))
+		if ((shared_mem->cmp0_handled_by_pru0 == 0) && (iep_check_evt_cmp_fast(iep_tmr_cmp_sts, IEP_CMP0_MASK) || (shared_mem->cmp0_handled_by_pru1 == 1)))
 		{
 			GPIO_TOGGLE(DEBUG_PIN1_MASK);
 			shared_mem->cmp0_handled_by_pru0 = 1;
@@ -173,16 +173,16 @@ void event_loop(volatile struct SharedMem *const shared_mem,
 				if ((shared_mem->shepherd_state == STATE_RUNNING) &&
 				    (shared_mem->shepherd_mode != MODE_DEBUG))
 				{
-				    ring_buf_idx = handle_block_end(shared_mem, free_buffers_ptr, buffers_far, ring_buf_idx, analog_sample_idx);
-				    GPIO_TOGGLE(DEBUG_PIN1_MASK); // NOTE: desired user-feedback
+					ring_buf_idx = handle_block_end(shared_mem, free_buffers_ptr, buffers_far, ring_buf_idx, analog_sample_idx);
+					GPIO_TOGGLE(DEBUG_PIN1_MASK); // NOTE: desired user-feedback
 				}
 			}
 			/* We only handle rpmsg comms if we're not at the last sample */
 			else {
-                		//GPIO_ON(DEBUG_PIN0_MASK);
+				//GPIO_ON(DEBUG_PIN0_MASK);
 				handle_rpmsg(free_buffers_ptr,
-					     (enum ShepherdMode)shared_mem->shepherd_mode,
-					     (enum ShepherdState)shared_mem->shepherd_state);
+				(enum ShepherdMode)shared_mem->shepherd_mode,
+				(enum ShepherdState)shared_mem->shepherd_state);
                 		//GPIO_OFF(DEBUG_PIN0_MASK);
 			}
 
