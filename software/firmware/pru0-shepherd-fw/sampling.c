@@ -143,7 +143,7 @@ void sample(struct SampleBuffer *const current_buffer_far, const uint32_t sample
 uint32_t sample_dbg_adc(const uint32_t channel_no)
 {
 	adc_readwrite(SPI_CS_ADC_PIN, MAN_CH_SLCT | (channel_no << 10U));
-    const uint32_t result = adc_readwrite(SPI_CS_ADC_PIN, MAN_CH_SLCT | (channel_no << 10U));
+	const uint32_t result = adc_readwrite(SPI_CS_ADC_PIN, MAN_CH_SLCT | (channel_no << 10U));
 	return result;
 }
 

@@ -7,7 +7,7 @@
 
 struct RingBuffer
 {
-    uint8_t ring[RING_SIZE];
+	uint8_t ring[RING_SIZE];
 	uint32_t start; // TODO: these can be smaller, at least in documentation
 	uint32_t end;
 	uint32_t active;
