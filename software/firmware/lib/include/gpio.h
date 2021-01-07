@@ -8,12 +8,12 @@
 
 #else // CGT
 
-volatile register uint32_t __R30;
-volatile register uint32_t __R31;
-#define read_r30()      __R30
-#define write_r30(x)    __R30 = (x)
-#define read_r31()      __R31
-#define write_r31(x)    __R31 = (x)
+volatile register uint32_t	__R30;
+volatile register uint32_t	__R31;
+#define read_r30()     		(__R30)
+#define write_r30(pin_mask)	__R30 = (pin_mask)
+#define read_r31()		(__R31)
+#define write_r31(pin_mask)	__R31 = (pin_mask)
 
 #endif
 
@@ -54,16 +54,16 @@ volatile register uint32_t __R31;
     #error "PRU0 / PRU1 not specified"
 #endif
 
-#define BIT_SHIFT(x)    (1U << (x))
+#define BIT_SHIFT(position)    (1U << (position))
 
 #ifdef __GNUC__
-#define GPIO_TOGGLE(x)  write_r30(read_r30() ^ (x))
-#define GPIO_ON(x)      write_r30(read_r30() | (x))
-#define GPIO_OFF(x)     write_r30(read_r30() & ~(x))
+#define GPIO_TOGGLE(pin_mask)	write_r30(read_r30() ^ (pin_mask))
+#define GPIO_ON(pin_mask)	write_r30(read_r30() | (pin_mask))
+#define GPIO_OFF(pin_mask)	write_r30(read_r30() & ~(pin_mask))
 #else // CGT
-#define GPIO_TOGGLE(x)  __R30 ^= (x)
-#define GPIO_ON(x)      __R30 |= (x)
-#define GPIO_OFF(x)     __R30 &= ~(x)
+#define GPIO_TOGGLE(pin_mask)	__R30 ^= (pin_mask)
+#define GPIO_ON(pin_mask)	__R30 |= (pin_mask)
+#define GPIO_OFF(pin_mask)	__R30 &= ~(pin_mask)
 #endif
 
 #endif /* __GPIO_H_ */
