@@ -74,29 +74,29 @@ static struct CalibrationSettings cali_cfg = {
 void virtcap_init(struct VirtCapSettings *const vcap_arg,
 		  struct CalibrationSettings *const cali_arg)
 {
-    vcap_cfg = *vcap_arg; // copies content of whole struct
+	vcap_cfg = *vcap_arg; // copies content of whole struct
 	cali_cfg = *cali_arg;
 
 	GPIO_OFF(VIRTCAP_OUT_PIN);
 
-    cali_arg->adc_load_current_gain = ADC_LOAD_CURRENT_GAIN; // TODO: why overwriting values provided by system?
-    cali_arg->adc_load_current_offset = ADC_LOAD_CURRENT_OFFSET;
+	cali_arg->adc_load_current_gain = ADC_LOAD_CURRENT_GAIN; // TODO: why overwriting values provided by system?
+	cali_arg->adc_load_current_offset = ADC_LOAD_CURRENT_OFFSET;
 	cali_arg->adc_load_voltage_gain = ADC_LOAD_VOLTAGE_GAIN;
 	cali_arg->adc_load_voltage_offset = ADC_LOAD_VOLTAGE_OFFSET;
 
 	*vcap_arg = kBQ25570Settings; // TODO: weird config in 3 Steps, why overwriting values provided by system?
 
 	// convert voltages and currents to logic values
-    vcap_cfg.upper_threshold_voltage =	voltage_mv_to_logic(vcap_arg->upper_threshold_voltage);
-    vcap_cfg.lower_threshold_voltage =	voltage_mv_to_logic(vcap_arg->lower_threshold_voltage);
-    vcap_cfg.max_cap_voltage = voltage_mv_to_logic(vcap_arg->max_cap_voltage);
-    vcap_cfg.min_cap_voltage = voltage_mv_to_logic(vcap_arg->min_cap_voltage);
-    vcap_cfg.init_cap_voltage = voltage_mv_to_logic(vcap_arg->init_cap_voltage);
-    vcap_cfg.dc_output_voltage = voltage_mv_to_logic(vcap_arg->dc_output_voltage);
-    vcap_cfg.leakage_current = current_ua_to_logic(vcap_arg->leakage_current);
+	vcap_cfg.upper_threshold_voltage =	voltage_mv_to_logic(vcap_arg->upper_threshold_voltage);
+	vcap_cfg.lower_threshold_voltage =	voltage_mv_to_logic(vcap_arg->lower_threshold_voltage);
+	vcap_cfg.max_cap_voltage = voltage_mv_to_logic(vcap_arg->max_cap_voltage);
+	vcap_cfg.min_cap_voltage = voltage_mv_to_logic(vcap_arg->min_cap_voltage);
+	vcap_cfg.init_cap_voltage = voltage_mv_to_logic(vcap_arg->init_cap_voltage);
+	vcap_cfg.dc_output_voltage = voltage_mv_to_logic(vcap_arg->dc_output_voltage);
+	vcap_cfg.leakage_current = current_ua_to_logic(vcap_arg->leakage_current);
 
 	/* Calculate how much output cap should be discharged when turning on, based
-    * on the storage capacitor and output capacitor size */
+	* on the storage capacitor and output capacitor size */
 	// TODO: seems wrong, even the formular mentioned in thesis, it assumes C_out gets only V_cap...
 	// base: C_cap * V_cap_new^2 / 2 = C_cap * V_cap_old^2 / 2 - C_out * V_out^2 / 2
 	const int32_t scale =	((vcap_cfg.capacitance_uf - vcap_cfg.output_cap_uf) << 20U) / vcap_cfg.capacitance_uf;
@@ -121,12 +121,12 @@ void virtcap_init(struct VirtCapSettings *const vcap_arg,
 void virtcap_update(int32_t output_current, const int32_t output_voltage,
 		    const int32_t input_current, const int32_t input_voltage) // TODO: out-volt not needed here, even remove spi-read from calling fn
 {
-    // TODO: explain design goals and limitations... why does the code looks that way
+	// TODO: explain design goals and limitations... why does the code looks that way
 
-    const int32_t output_efficiency = lookup(vcap_cfg.lookup_output_efficiency, output_current);
-    const int32_t input_efficiency = lookup(vcap_cfg.lookup_input_efficiency, input_current);
+	const int32_t output_efficiency = lookup(vcap_cfg.lookup_output_efficiency, output_current);
+    	const int32_t input_efficiency = lookup(vcap_cfg.lookup_input_efficiency, input_current);
 
-    // TODO: whole model should be transformed to unsigned, values don't change sign (except sum of dV_cap), we get more resolution, cleaner bit-shifts and safer array access
+	// TODO: whole model should be transformed to unsigned, values don't change sign (except sum of dV_cap), we get more resolution, cleaner bit-shifts and safer array access
 	/* Calculate current (cin) flowing into the storage capacitor */
 	const int32_t input_power = input_current * input_voltage; // TODO: data could already be preprocessed by system fpu
 	int32_t cin = input_power / (cap_voltage >> SHIFT_VOLT); // TODO: cin, cout are dI_in, dI_out
@@ -160,10 +160,10 @@ void virtcap_update(int32_t output_current, const int32_t output_voltage,
 		if (is_outputting &&
 		    (new_cap_voltage < vcap_cfg.lower_threshold_voltage)) {
 			is_outputting = 0U; // we fall under our threshold
-            virtcap_set_output_state(0U); // TODO: is_outputting and this fn each keep the same state ...
+			virtcap_set_output_state(0U); // TODO: is_outputting and this fn each keep the same state ...
 		} else if (!is_outputting &&(new_cap_voltage > vcap_cfg.upper_threshold_voltage)) {
 			is_outputting = 1U; // we have enough voltage to switch on again
-            virtcap_set_output_state(1U);
+			virtcap_set_output_state(1U);
 			new_cap_voltage = (new_cap_voltage >> 10) * outputcap_scale_factor; // TODO: magic numbers ... could be replaced by matching FN, analog to scale-calculation in init()
 		}
 	}
