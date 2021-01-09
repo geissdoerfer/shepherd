@@ -114,6 +114,8 @@ class Recorder(ShepherdIO):
         emulation data, we have to release the buffer to the PRU to avoid it
         running out of buffers.
 
+        TODO: needs better naming like emu.put_buffer() -> to "release memory" is a coined term in programmings languages means
+
         Args:
             index (int): Index of the buffer. 0 <= index < n_buffers
         """
