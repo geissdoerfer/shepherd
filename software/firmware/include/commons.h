@@ -1,6 +1,7 @@
 #ifndef __COMMONS_H_
 #define __COMMONS_H_
 // NOTE: a similar version of this definition-file exists for the kernel module (copy changes by hand)
+// NOTE: and most of the structs are hardcoded in read_buffer() in shepherd_io.py
 
 #include "simple_lock.h"
 #include "shepherd_config.h"
@@ -52,13 +53,13 @@ enum ShepherdState {
 struct GPIOEdges {
 	uint32_t idx;
 	uint64_t timestamp_ns[MAX_GPIO_EVT_PER_BUFFER];
-    	uint8_t  bitmask[MAX_GPIO_EVT_PER_BUFFER]; // TODO: should be >= 10 bit for V2, leave 8 bit for now
+    uint8_t  bitmask[MAX_GPIO_EVT_PER_BUFFER]; // TODO: should be >= 10 bit for V2, leave 8 bit for now
 } __attribute__((packed));
 
 struct SampleBuffer {
 	uint32_t len;
 	uint64_t timestamp_ns;
-	uint32_t values_voltage[ADC_SAMPLES_PER_BUFFER]; // TODO: would be more efficient to keep matching V&C together
+	uint32_t values_voltage[ADC_SAMPLES_PER_BUFFER]; // TODO: would be more efficient for PRU to keep matching V&C together
 	uint32_t values_current[ADC_SAMPLES_PER_BUFFER];
 	struct GPIOEdges gpio_edges;
 } __attribute__((packed));
