@@ -1,5 +1,5 @@
 ---
-- name: Refresh Source, compile and install PRU-Firmware, restart Shepherd-Kernel-Module, without Reboot
+- name: Refresh Src, compile and install PRU-Fw, restart Kernel-Module, reinstall py-package, without Reboot
   hosts: all
   become: true
 
@@ -95,3 +95,11 @@
 
   - name: Load Shepherd-Module
     command: modprobe -a shepherd
+    
+  - name: Install shepherd python package
+    command: python3 setup.py install --force
+    args:
+      chdir: '{{ shepherd_install_path }}/software/python-package'
+    tags:
+      - install
+      - python
