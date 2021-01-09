@@ -44,6 +44,8 @@ gpio_pin_nums = {
     "adc_rst_pdn": 88,
 }
 
+prev_timestamp = 0
+
 
 class ShepherdIOException(Exception):
     def __init__(self, message: str, id: int = 0, value: int = 0):
@@ -189,8 +191,20 @@ class SharedMem(object):
             f"Got buffer #{ index } with len {n_samples} and timestamp {buffer_timestamp}"
         )
 
-        # Each buffer contains samples_per_buffer values. We have 2 variables
+        # sanity-check of received timestamp
+        global prev_timestamp
+        diff_ms = round((buffer_timestamp - prev_timestamp) / 1e6, 3) if (prev_timestamp > 0) else 100
+        if diff_ms < 0:
+            logger.error(f"BACKWARDS timestamp-jump detected after recv it from PRU -> {diff_ms} ms")
+        if diff_ms < 95:
+            logger.error(f"TOO SMALL timestamp-jump detected after recv it from PRU -> {diff_ms} ms")
+        if diff_ms > 105:
+            logger.error(f"Forwards  timestamp-jump detected after recv it from PRU -> {diff_ms} ms")
+        prev_timestamp = buffer_timestamp
+
+        # Each buffer contains (n=) samples_per_buffer values. We have 2 variables
         # (voltage and current), thus samples_per_buffer/2 samples per variable
+        # TODO: this is a hardcoded struct with lots of magic numbers. also: why calculate sub-offsets every time?
 
         voltage_offset = buffer_offset + 12
         voltage = np.frombuffer(
