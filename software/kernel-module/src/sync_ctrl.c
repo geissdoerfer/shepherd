@@ -10,9 +10,15 @@ struct sync_data_s *sync_data;
 
 static int64_t ns_sys_to_wrap;
 static uint64_t next_timestamp_ns;
+static uint64_t prev_timestamp_ns = 0; 	/* for plausibility-check */
+
+void reset_prev_timestamp(void)
+{
+    prev_timestamp_ns = 0;
+}
 
 static enum hrtimer_restart timer_callback(struct hrtimer *timer_for_restart);
-static enum hrtimer_restart synch_loop_callback(struct hrtimer *timer_for_restart);
+static enum hrtimer_restart sync_loop_callback(struct hrtimer *timer_for_restart);
 
 /* We wrap the timer to pass arguments to the callback function */
 static struct hrtimer_wrap_s {
@@ -65,7 +71,7 @@ int sync_init(uint32_t timer_period_ns)
 
     /* timer for Synch-Loop */
     hrtimer_init(&synch_loop_timer, CLOCK_REALTIME, HRTIMER_MODE_ABS);
-    synch_loop_timer.function = &synch_loop_callback;
+    synch_loop_timer.function = &sync_loop_callback;
 
 	div_u64_rem(now_ns_system, timer_period_ns, &ns_over_wrap);
 	if (ns_over_wrap > (timer_period_ns / 2))
@@ -140,7 +146,7 @@ enum hrtimer_restart timer_callback(struct hrtimer *timer_for_restart)
 }
 
 /* Handler for ctrl-requests from PRU1 */
-enum hrtimer_restart synch_loop_callback(struct hrtimer *timer_for_restart)
+enum hrtimer_restart sync_loop_callback(struct hrtimer *timer_for_restart)
 {
     struct CtrlReqMsg ctrl_req;
     struct CtrlRepMsg ctrl_rep;
@@ -154,17 +160,15 @@ enum hrtimer_restart synch_loop_callback(struct hrtimer *timer_for_restart)
         if (ctrl_req.identifier != MSG_SYNC_CTRL_REQ)
         {
             /* Error occurs if something writes over boundaries */
-            printk(KERN_INFO "shprd: Kernel Recv_CtrlRequest -> mem corruption?\n");
+            printk(KERN_ERR "shprd: Kernel Recv_CtrlRequest -> mem corruption?\n");
         }
 
         sync_loop(&ctrl_rep, &ctrl_req);
-        ctrl_rep.identifier = MSG_SYNC_CTRL_REP;
-        ctrl_rep.msg_unread = 1;
 
         if (!pru_com_set_ctrl_reply(&ctrl_rep))
         {
             /* Error occurs if PRU was not able to handle previous message in time */
-            printk(KERN_INFO "shprd: Kernel Send_CtrlResponse -> back-pressure\n");
+            printk(KERN_WARNING "shprd: Kernel Send_CtrlResponse -> back-pressure\n");
         }
 
         /* resetting to longest sleep period */
@@ -186,6 +190,7 @@ int sync_loop(struct CtrlRepMsg *const ctrl_rep, const struct CtrlReqMsg *const 
 	int64_t ns_iep_to_wrap;
 	int32_t clock_corr;
 	uint64_t ns_per_tick;
+    int64_t diff_timestamp;
 
 	/*
      * Based on the previous IEP timer period and the nominal timer period
@@ -201,9 +206,7 @@ int sync_loop(struct CtrlRepMsg *const ctrl_rep, const struct CtrlReqMsg *const 
      */
 	ns_iep_to_wrap = ((int64_t)ctrl_req->ticks_iep) * ns_per_tick;
 	if (ns_iep_to_wrap > ((uint64_t)trigger_timer.timer_period_ns << 31)) {
-		ns_iep_to_wrap =
-			ns_iep_to_wrap -
-			((uint64_t)trigger_timer.timer_period_ns << 32);
+		ns_iep_to_wrap = ns_iep_to_wrap - ((uint64_t)trigger_timer.timer_period_ns << 32);
 	}
 
 	/* Difference between system clock and IEP clock phase */
@@ -214,10 +217,26 @@ int sync_loop(struct CtrlRepMsg *const ctrl_rep, const struct CtrlReqMsg *const 
 	clock_corr =
 		div_s64(sync_data->err, 32) + div_s64(sync_data->err_sum, 128);
 
-	ctrl_rep->clock_corr = clock_corr;
-	ctrl_rep->next_timestamp_ns = next_timestamp_ns;
+	/* for plausibility-check, in case the sync-algo produces jumps */
+	if (prev_timestamp_ns > 0)
+    {
+        diff_timestamp = div_s64(next_timestamp_ns - prev_timestamp_ns, 1000000u);
+        if (diff_timestamp < 0)
+            printk(KERN_ERR "shprd: KMod = backwards timestamp-jump detected \n");
+        else if (diff_timestamp < 95)
+            printk(KERN_ERR "shprd: KMod = too small timestamp-jump detected\n");
+        else if (diff_timestamp > 105)
+            printk(KERN_ERR "shprd: KMod = forwards timestamp-jump detected\n");
+    }
+    prev_timestamp_ns = next_timestamp_ns;
 
-	sync_data->clock_corr = ctrl_rep->clock_corr;
+	sync_data->clock_corr = clock_corr;
+
+    /* fill msg */
+    ctrl_rep->identifier = MSG_SYNC_CTRL_REP;
+    ctrl_rep->msg_unread = 1;
+    ctrl_rep->clock_corr = clock_corr;
+    ctrl_rep->next_timestamp_ns = next_timestamp_ns;
 
 	return 0;
 }

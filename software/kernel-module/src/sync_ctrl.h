@@ -3,6 +3,9 @@
 
 #include "commons.h"
 
+/* helper fn for plausibility-check */
+void reset_prev_timestamp(void);
+
 /**
  * Initializes snychronization procedure between our Linux clock and PRU0
  *

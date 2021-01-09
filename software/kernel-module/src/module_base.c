@@ -53,6 +53,7 @@ int pru_recvd(void *data, unsigned int len)
 		break;
 	default:
 		printk(KERN_INFO "shprd: PRU-RPMSG = %s\n", msg);
+        reset_prev_timestamp(); /* not correct place, but there is no sync-restart-detection yet */
 	}
 	return 0;
 }
