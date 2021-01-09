@@ -13,12 +13,12 @@ void ring_put(struct RingBuffer *const buf, const uint8_t element)
 	buf->ring[buf->end] = element;
 
 	// special faster version of buf = (buf + 1) % SIZE
-	if(++buf->end == RING_SIZE) 	buf->end = 0U;
+	if(++(buf->end) == RING_SIZE) 	buf->end = 0U;
 
 	if (buf->active < RING_SIZE)	buf->active++;
 	else
 	{
-		if(++buf->start == RING_SIZE) buf->start = 0U; // fast modulo
+		if(++(buf->start) == RING_SIZE) buf->start = 0U; // fast modulo
 	}
 }
 
@@ -27,7 +27,7 @@ bool_ft ring_get(struct RingBuffer *const buf, uint8_t *const element)
 	if(buf->active == 0) return 0;
 
 	*element = buf->ring[buf->start];
-	if(++buf->start == RING_SIZE) buf->start = 0U; // fast modulo
+	if(++(buf->start) == RING_SIZE) buf->start = 0U; // fast modulo
 	buf->active--;
 	return 1;
 }
