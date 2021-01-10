@@ -2,6 +2,7 @@ import pytest
 import logging
 import h5py
 import time
+import numpy as np
 
 from shepherd import LogWriter
 from shepherd import Recorder
@@ -56,7 +57,7 @@ def test_recorder(log_writer, recorder):
 
 
 @pytest.mark.hardware
-@pytest.mark.timeout(30)
+@pytest.mark.timeout(40)
 def test_record_fn(tmp_path, shepherd_up):
     d = tmp_path / "rec.h5"
     start_time = int(time.time() + 10)
@@ -77,3 +78,9 @@ def test_record_fn(tmp_path, shepherd_up):
         n_samples = hf["data"]["time"].shape[0]
         assert 900_000 < n_samples <= 1_100_000
         assert hf["data"]["time"][0] == start_time * 10**9
+        # test for equidistant timestamps
+        time_series = hf["data"]["time"]
+        diff_series = time_series[1:] - time_series[:-1]
+        unique = np.unique(diff_series)
+        assert len(unique) == 1
+
