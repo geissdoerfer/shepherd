@@ -10,6 +10,8 @@ functionality to a command line user.
 :copyright: (c) 2019 Networked Embedded Systems Lab, TU Dresden.
 :license: MIT, see LICENSE for more details.
 """
+from typing import Dict
+
 import click
 import time
 import pathlib
@@ -42,7 +44,7 @@ logger = logging.getLogger("shepherd")
 logger.addHandler(consoleHandler)
 
 
-def yamlprovider(file_path, cmd_name):
+def yamlprovider(file_path: str, cmd_name) -> Dict:
     logger.info(f"reading config from {file_path}")
     with open(file_path, "r") as config_data:
         full_config = yaml.safe_load(config_data)
@@ -93,9 +95,9 @@ def targetpower(on, voltage):
     "--command", default="record", type=click.Choice(["record", "emulate"])
 )
 @click.option("--parameters", default=dict())
-@click.option("-v", "--verbose", count=True)
 @click_config_file.configuration_option(provider=yamlprovider, implicit=False)
-def run(command, parameters, verbose):
+@click.option("-v", "--verbose", count=True)
+def run(command, parameters: Dict, verbose):
 
     if verbose is not None:
         if verbose == 0:
@@ -106,6 +108,9 @@ def run(command, parameters, verbose):
             logger.setLevel(logging.INFO)
         elif verbose > 2:
             logger.setLevel(logging.DEBUG)
+
+    if not isinstance(parameters, Dict):
+        raise click.BadParameter(f"parameter-argument is not dict, but {type(parameters)} (last occurred with alpha-version of click-lib)")
 
     if command == "record":
         if "output" in parameters.keys():
