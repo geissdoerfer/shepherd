@@ -77,7 +77,7 @@ void virtcap_init(struct VirtCapSettings *const vcap_arg,
 	vcap_cfg = *vcap_arg; // copies content of whole struct
 	cali_cfg = *cali_arg;
 
-	GPIO_OFF(VIRTCAP_OUT_PIN);
+	GPIO_OFF(VIRTCAP_OUT_MASK);
 
 	cali_arg->adc_load_current_gain = ADC_LOAD_CURRENT_GAIN; // TODO: why overwriting values provided by system?
 	cali_arg->adc_load_current_offset = ADC_LOAD_CURRENT_OFFSET;

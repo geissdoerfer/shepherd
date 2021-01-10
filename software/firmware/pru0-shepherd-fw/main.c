@@ -76,7 +76,7 @@ uint32_t handle_block_end(volatile struct SharedMem *const shared_mem, struct Ri
 	return next_buffer_idx;
 }
 
-// TODO: this system can also be replaced by shared-mem-msg-system, also the send_message() above
+// TODO: this system can also be replaced by shared-mem-msg-system, including the send_message() above
 // fn emits a 0 on error, 1 on success
 bool_ft handle_rpmsg(struct RingBuffer *const free_buffers_ptr, const enum ShepherdMode mode,
 		 const enum ShepherdState state)
@@ -123,7 +123,7 @@ void event_loop(volatile struct SharedMem *const shared_mem,
 		struct RingBuffer *const free_buffers_ptr,
 		struct SampleBuffer *const buffers_far)
 {
-	uint32_t ring_buf_idx = NO_BUFFER;
+	uint32_t sample_buf_idx = NO_BUFFER;
 	uint32_t analog_sample_idx = 0; // usually one behind counter, needed for stopping emulation during debug
 	enum ShepherdMode shepherd_mode = (enum ShepherdMode)shared_mem->shepherd_mode;
 
@@ -150,10 +150,10 @@ void event_loop(volatile struct SharedMem *const shared_mem,
 			shared_mem->analog_sample_counter++;
 
 			/* The actual sampling takes place here */
-			if ((ring_buf_idx != NO_BUFFER) && (analog_sample_idx < ADC_SAMPLES_PER_BUFFER))
+			if ((sample_buf_idx != NO_BUFFER) && (analog_sample_idx < ADC_SAMPLES_PER_BUFFER))
 			{
 				GPIO_ON(DEBUG_PIN0_MASK);
-				sample(buffers_far + ring_buf_idx, analog_sample_idx, shepherd_mode);
+				sample(buffers_far + sample_buf_idx, analog_sample_idx, shepherd_mode);
 				analog_sample_idx = shared_mem->analog_sample_counter;
 				GPIO_OFF(DEBUG_PIN0_MASK);
 			}
@@ -169,11 +169,11 @@ void event_loop(volatile struct SharedMem *const shared_mem,
 				/* Did the Linux kernel module ask for reset? */
 				if (shared_mem->shepherd_state == STATE_RESET) return;
 
-				/* We try to exchange a full buffer for a fresh one if we are running */
+				/* PRU tries to exchange a full buffer for a fresh one if measurement is running */
 				if ((shared_mem->shepherd_state == STATE_RUNNING) &&
 				    (shared_mem->shepherd_mode != MODE_DEBUG))
 				{
-					ring_buf_idx = handle_block_end(shared_mem, free_buffers_ptr, buffers_far, ring_buf_idx, analog_sample_idx);
+					sample_buf_idx = handle_block_end(shared_mem, free_buffers_ptr, buffers_far, sample_buf_idx, analog_sample_idx);
 					GPIO_TOGGLE(DEBUG_PIN1_MASK); // NOTE: desired user-feedback
 				}
 			}

@@ -20,7 +20,7 @@
 #define PRU_INT_MASK 		(1U << 31U)
 
 #ifndef SHEPHERD_VER
-#define SHEPHERD_VER 2
+#define SHEPHERD_VER 1
 #endif
 
 #if (SHEPHERD_VER == 1)
@@ -110,6 +110,7 @@ static inline bool_ft send_control_request(volatile struct SharedMem *const shar
 	{
 		shared_mem->ctrl_req = *ctrl_req;
 		shared_mem->ctrl_req.identifier = MSG_SYNC_CTRL_REQ; // TODO: is better done in request from argument
+		// NOTE: always make sure that the unread-flag is activated AFTER payload is copied
 		shared_mem->ctrl_req.msg_unread = 1u;
 		return 1;
 	}
@@ -254,7 +255,7 @@ int32_t event_loop(volatile struct SharedMem *const shared_mem)
 		    check_gpio(shared_mem, current_timestamp_ns, last_analog_sample_ticks);
 		DEBUG_GPIO_STATE_0;
 
-		/* Check for timer interrupt from Linux host [Event1] */
+		/* [Event1] Check for timer interrupt from Linux host */
 		if (read_r31() & HOST_INT_TIMESTAMP_MASK) {
 			if (!INTC_CHECK_EVENT(HOST_PRU_EVT_TIMESTAMP)) continue;
 
@@ -281,8 +282,8 @@ int32_t event_loop(volatile struct SharedMem *const shared_mem)
 		// edge case: sample0 @cnt=0, cmp0&1 trigger, but cmp0 needs to get handled before cmp1
 		const uint32_t iep_tmr_cmp_sts = iep_get_tmr_cmp_sts();
 
-		/* Timer compare 0 handle [Event 2] */
-		if (iep_check_evt_cmp_fast(iep_tmr_cmp_sts, IEP_CMP0S))
+		/*  [Event 2] Timer compare 0 handle -> trigger for buffer swap on pru0 */
+		if (iep_check_evt_cmp_fast(iep_tmr_cmp_sts, IEP_CMP0_MASK))
 		{
 			DEBUG_EVENT_STATE_2;
 			shared_mem->cmp0_handled_by_pru1 = 1;
@@ -309,7 +310,7 @@ int32_t event_loop(volatile struct SharedMem *const shared_mem)
 			DEBUG_EVENT_STATE_0;
 		}
 
-		/* Timer compare 1 handle [Event 3] */
+		/* [Event 3] Timer compare 1 handle -> trigger for analog sample on pru0 */
 		if (iep_check_evt_cmp_fast(iep_tmr_cmp_sts, IEP_CMP1_MASK))
 		{
 			shared_mem->cmp1_handled_by_pru1 = 1;
@@ -359,13 +360,13 @@ int32_t event_loop(volatile struct SharedMem *const shared_mem)
 
 					iep_set_cmp_val(IEP_CMP0, block_period);
 					sync_state = IDLE;
-					shared_mem->next_timestamp_ns =  ctrl_rep.next_timestamp_ns;
+					shared_mem->next_timestamp_ns = ctrl_rep.next_timestamp_ns;
 				}
 				DEBUG_EVENT_STATE_0;
 			}
 			else if (sync_state == REQUEST_PENDING)
 			{
-				// To stay consistent with timing throw away a possible pre-received Replies (that +1 can stay in the system forever)
+				// To stay consistent with timing throw away a possible pre-received Replies (otherwise that +1 can stay in the system forever)
 				receive_control_reply(shared_mem, &ctrl_rep);
 				// send request
 				send_control_request(shared_mem, &ctrl_req);
@@ -374,6 +375,7 @@ int32_t event_loop(volatile struct SharedMem *const shared_mem)
 			//continue; // for more regular gpio-sampling
 		}
 
+		// cleanup of cmp-tokens
 		if ((shared_mem->cmp0_handled_by_pru0 != 0) && (shared_mem->cmp0_handled_by_pru1 != 0))
 		{
 			shared_mem->cmp0_handled_by_pru0 = 0;
@@ -404,7 +406,7 @@ void main(void)
 	CT_INTC.EISR_bit.EN_SET_IDX = HOST_PRU_EVT_TIMESTAMP;
 
 reset:
-	printf("starting synch routine..");
+	printf("(re)starting sync routine..");
 	/* Make sure the mutex is clear */
 	simple_mutex_exit(&shared_mememory->gpio_edges_mutex);
 

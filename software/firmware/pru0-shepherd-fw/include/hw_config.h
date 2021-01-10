@@ -4,7 +4,7 @@
 #include "gpio.h"
 
 #ifndef SHEPHERD_VER
-#define SHEPHERD_VER 2
+#define SHEPHERD_VER 1
 #endif
 
 #if (SHEPHERD_VER == 1)
@@ -39,6 +39,12 @@
 
 #elif (SHEPHERD_VER == 2)
 
+// TODO: remove when sampling.c is prepared for V2
+#define SPI_CS_ADC_PIN     	(P9_25)
+#define SPI_CS_ADC_MASK		BIT_SHIFT(SPI_CS_ADC_PIN)
+#define SPI_CS_DAC_PIN      	(P9_31)
+#define SPI_CS_DAC_MASK 	BIT_SHIFT(SPI_CS_DAC_PIN)
+
 #define SPI_CS_REC_DAC_PIN      (P9_27)
 #define SPI_CS_REC_DAC_MASK	BIT_SHIFT(SPI_CS_REC_DAC_PIN)
 #define SPI_CS_REC_V_ADC_PIN    (P9_41B)
@@ -59,6 +65,9 @@
 // both pins have a LED
 #define DEBUG_PIN0_MASK         BIT_SHIFT(P8_12)
 #define DEBUG_PIN1_MASK         BIT_SHIFT(P8_11)
+
+// TODO: has to stay as long as virtcap code is present (but will be replaced by virtual regulator)
+#define VIRTCAP_OUT_MASK     	(DEBUG_PIN0_MASK)
 
 #else
 #error "shepherd-version not defined"
