@@ -2,10 +2,10 @@ import os
 from setuptools import setup
 
 requirements = [
-    "click",
+    "click<8.0.0",
     "click-config-file",
     "numpy",
-    "python-periphery==1.1.2",
+    "python-periphery<2.0.0",
     "scipy",
     "zerorpc",
     "invoke",
