@@ -5,9 +5,9 @@
 
   vars:
     shepherd_install_path: /opt/shepherd
-    # pru_support_path: '{{ ti_path }}/{{ pru_support_package }}'
-    pru_support_path: '{{ shepherd_install_path }}/software/firmware/_pssp57g' # TODO: just for debug
-    rebuild_kernel_module: false
+    pru_support_path: '{{ ti_path }}/{{ pru_support_package }}'
+    #pru_support_path: '{{ shepherd_install_path }}/software/firmware/_pssp57g' # TODO: just for debug
+    rebuild_kernel_module: true
 
   vars_prompt:
     # these can be also passed as argument:  -e "refresh_source=True" -> automatically skips these prompts
