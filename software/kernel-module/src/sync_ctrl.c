@@ -233,8 +233,6 @@ int sync_loop(struct CtrlRepMsg *const ctrl_rep, const struct CtrlReqMsg *const 
 	sync_data->clock_corr = clock_corr;
 
     /* fill msg */
-    ctrl_rep->identifier = MSG_SYNC_CTRL_REP;
-    ctrl_rep->msg_unread = 1;
     ctrl_rep->clock_corr = clock_corr;
     ctrl_rep->next_timestamp_ns = next_timestamp_ns;
 

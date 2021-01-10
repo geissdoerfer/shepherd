@@ -133,9 +133,22 @@ unsigned char pru_comm_get_ctrl_request(struct CtrlReqMsg *const ctrl_request)
     return 0;
 }
 
-unsigned char pru_com_set_ctrl_reply(const struct CtrlRepMsg *const ctrl_reply)
+
+
+unsigned char pru_com_set_ctrl_reply(struct CtrlRepMsg *const ctrl_reply)
 {
     unsigned char status = readb(pru_shared_mem_io + offsetof(struct SharedMem, ctrl_rep) + 1) == 0;
+
+    /* first update payload in memory */
+    ctrl_reply->identifier = 0;
+    ctrl_reply->msg_unread = 0;
+    memcpy_toio(pru_shared_mem_io + offsetof(struct SharedMem, ctrl_rep),
+            ctrl_reply,
+            sizeof(struct CtrlRepMsg));
+
+    /* activate message */
+    ctrl_reply->identifier = MSG_SYNC_CTRL_REP;
+    ctrl_reply->msg_unread = 1;
     memcpy_toio(pru_shared_mem_io + offsetof(struct SharedMem, ctrl_rep),
             ctrl_reply,
             sizeof(struct CtrlRepMsg));
