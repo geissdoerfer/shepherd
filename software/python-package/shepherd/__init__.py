@@ -381,14 +381,15 @@ def record(
     if no_calib:
         calib = CalibrationData.from_default()
     else:
-        with EEPROM() as eeprom:
-            try:
+        try:
+            with EEPROM() as eeprom:
                 calib = eeprom.read_calibration()
-            except ValueError:
-                logger.warning(
-                    "Couldn't read calibration from EEPROM. Falling back to default values."
-                )
-                calib = CalibrationData.from_default()
+        except ValueError:
+            logger.warning("Couldn't read calibration from EEPROM (val). Falling back to default values.")
+            calib = CalibrationData.from_default()
+        except FileNotFoundError:
+            logger.warning("Couldn't read calibration from EEPROM (FS). Falling back to default values.")
+            calib = CalibrationData.from_default()
 
     recorder = Recorder(
         mode=mode,
@@ -485,14 +486,15 @@ def emulate(
     if no_calib:
         calib = CalibrationData.from_default()
     else:
-        with EEPROM() as eeprom:
-            try:
+        try:
+            with EEPROM() as eeprom:
                 calib = eeprom.read_calibration()
-            except ValueError:
-                logger.warning(
-                    "Couldn't read calibration from EEPROM. Falling back to default values."
-                )
-                calib = CalibrationData.from_default()
+        except ValueError:
+            logger.warning("Couldn't read calibration from EEPROM (val). Falling back to default values.")
+            calib = CalibrationData.from_default()
+        except FileNotFoundError:
+            logger.warning("Couldn't read calibration from EEPROM (FS). Falling back to default values.")
+            calib = CalibrationData.from_default()
 
     if output is not None:
         if not output.is_absolute():
