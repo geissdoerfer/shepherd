@@ -26,8 +26,7 @@ The BeagleBone has hardware support for PTP and Linux provides the necessary too
 
 In mobile or long-range scenarios, it might not be feasible to connect the nodes with Ethernet.
 Instead, you can use the timing signal from a GPS receiver.
-We have designed a GPS capelet (hardware/capelets/gps) to easily connect a GPS receiver to shepherd, however we have not yet tested it and there is no software support yet.
-Get in touch with one of the developers if you need GPS support for your project!
+We have designed a GPS capelet (hardware/capelets/gps) to easily connect a GPS receiver and provide all necessary software in our repository.
 
 
 Recording

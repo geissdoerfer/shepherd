@@ -100,6 +100,13 @@ After the nodes stop blinking, you can retrieve the data to analyze it on your l
 shepherd-herd retrieve recording.h5 ~/shepherd_recordings
 ```
 
+After installing some additional dependencies, you can use the provided command line utility from `extra/plot.py` to visualize the recorded data:
+
+```
+pip install numpy matplotlib h5py click
+python extra/plot.py -f ~/shepherd_recordings/sheep1/rec.h5
+```
+
 For a detailed description of the [HDF5](https://en.wikipedia.org/wiki/Hierarchical_Data_Format) based data format, refer to the [corresponding documentation](https://shepherd-testbed.readthedocs.io/en/latest/user/data_format.html).
 
 Finally, replay the previously recorded data to the attached sensor nodes, recording their power consumption:
@@ -131,3 +138,4 @@ The following people have contributed to *shepherd*:
  - [Marco Zimmerling](https://wwwpub.zih.tu-dresden.de/~mzimmerl/)
  - [Justus Paulick](https://github.com/kugelbit)
  - [Boris Blokland](https://github.com/borro0)
+ - [Ingmar Splitt](https://github.com/orgua)
