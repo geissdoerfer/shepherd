@@ -3,7 +3,7 @@
 
 #include "stdint_fast.h"
 
-#define RING_SIZE   64U
+#define RING_SIZE   (64U)
 
 struct RingBuffer
 {
