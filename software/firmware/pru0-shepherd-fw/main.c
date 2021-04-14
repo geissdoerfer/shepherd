@@ -21,25 +21,18 @@
 #include "ringbuffer.h"
 #include "sampling.h"
 #include "shepherd_config.h"
-#include "virtcap.h"
-
 
 /* Used to signal an invalid buffer index */
 #define NO_BUFFER 0xFFFFFFFF
 
-#define SPI_SYS_TEST_EN     0
-#if SPI_SYS_TEST_EN > 0 // NOTE: code is currently in extended pssp (not mainline)
-#include "spi_transfer_sys.h"
-#endif
 
 static void send_message(const uint32_t msg_id, const uint32_t value)
 {
 	const struct DEPMsg msg_out = { .msg_type= msg_id, .value = value};
 	rpmsg_putraw((void *)&msg_out, sizeof(struct DEPMsg));
-	// TODO: could also be replaced by new msg-system / rp-replacement
 }
 
-uint32_t handle_block_end(volatile struct SharedMem *const shared_mem, struct RingBuffer *const free_buffers_ptr,
+static uint32_t handle_block_swap(volatile struct SharedMem *const shared_mem, struct RingBuffer *const free_buffers_ptr,
 			  struct SampleBuffer *const buffers_far, const uint32_t current_buffer_idx, const uint32_t analog_sample_idx)
 {
 	uint32_t next_buffer_idx;
@@ -76,9 +69,8 @@ uint32_t handle_block_end(volatile struct SharedMem *const shared_mem, struct Ri
 	return next_buffer_idx;
 }
 
-// TODO: this system can also be replaced by shared-mem-msg-system, including the send_message() above
 // fn emits a 0 on error, 1 on success
-bool_ft handle_rpmsg(struct RingBuffer *const free_buffers_ptr, const enum ShepherdMode mode,
+static bool_ft handle_rpmsg(struct RingBuffer *const free_buffers_ptr, const enum ShepherdMode mode,
 		 const enum ShepherdState state)
 {
 	struct DEPMsg msg_in;
@@ -124,37 +116,35 @@ void event_loop(volatile struct SharedMem *const shared_mem,
 		struct SampleBuffer *const buffers_far)
 {
 	uint32_t sample_buf_idx = NO_BUFFER;
-	uint32_t analog_sample_idx = 0; // usually one behind counter, needed for stopping emulation during debug
 	enum ShepherdMode shepherd_mode = (enum ShepherdMode)shared_mem->shepherd_mode;
+	uint32_t iep_tmr_cmp_sts = 0;
 
 	while (1)
 	{
-		// take a snapshot of current triggers -> ensures prioritized handling
+		// take a snapshot of current triggers until something happens -> ensures prioritized handling
 		// edge case: sample0 @cnt=0, cmp0&1 trigger, but cmp0 needs to get handled before cmp1
-		const uint32_t iep_tmr_cmp_sts = iep_get_tmr_cmp_sts(); // 12 cycles, 60 ns
+		while (!(iep_tmr_cmp_sts = iep_get_tmr_cmp_sts())); // read iep-reg -> 12 cycles, 60 ns
 
-		// this stack ensures low overhead to event loop AND full buffer before switching
-		if ((shared_mem->cmp0_handled_by_pru0 == 0) && (iep_check_evt_cmp_fast(iep_tmr_cmp_sts, IEP_CMP0_MASK) || (shared_mem->cmp0_handled_by_pru1 == 1)))
+		// TODO: this design looks silly, but this relaxes a current racing-condition on pru1 -> event2 must be called before event3!
+		if (iep_tmr_cmp_sts & IEP_CMP0_MASK)
 		{
-			GPIO_TOGGLE(DEBUG_PIN1_MASK);
-			shared_mem->cmp0_handled_by_pru0 = 1;
-			shared_mem->analog_sample_counter = 0;
-			analog_sample_idx = 0;
-			GPIO_TOGGLE(DEBUG_PIN1_MASK);
+			shared_mem->cmp0_trigger_for_pru1 = 1;
+			/* Clear Timer Compare 0 */
+			iep_clear_evt_cmp(IEP_CMP0); // CT_IEP.TMR_CMP_STS.bit0
 		}
 
-		// pru0 manages the irq, but pru0 reacts to it directly -> less jitter
-		if ((shared_mem->cmp1_handled_by_pru0 == 0) && (iep_check_evt_cmp_fast(iep_tmr_cmp_sts, IEP_CMP1_MASK) || (shared_mem->cmp1_handled_by_pru1 == 1)))
+		// pru1 manages the irq, but pru0 reacts to it directly -> less jitter
+		if (iep_tmr_cmp_sts & IEP_CMP1_MASK)
 		{
-			shared_mem->cmp1_handled_by_pru0 = 1;
-			shared_mem->analog_sample_counter++;
+			shared_mem->cmp1_trigger_for_pru1 = 1;
+			/* Clear Timer Compare 1 */
+			iep_clear_evt_cmp(IEP_CMP1); // CT_IEP.TMR_CMP_STS.bit1
 
 			/* The actual sampling takes place here */
-			if ((sample_buf_idx != NO_BUFFER) && (analog_sample_idx < ADC_SAMPLES_PER_BUFFER))
+			if ((sample_buf_idx != NO_BUFFER) && (shared_mem->analog_sample_counter < ADC_SAMPLES_PER_BUFFER))
 			{
 				GPIO_ON(DEBUG_PIN0_MASK);
-				sample(buffers_far + sample_buf_idx, analog_sample_idx, shepherd_mode);
-				analog_sample_idx = shared_mem->analog_sample_counter;
+				sample(buffers_far + sample_buf_idx, shared_mem->analog_sample_counter, shepherd_mode);
 				GPIO_OFF(DEBUG_PIN0_MASK);
 			}
 			else
@@ -162,6 +152,8 @@ void event_loop(volatile struct SharedMem *const shared_mem,
 				// even if offline, this should simulate a (short) sampling-action
 				__delay_cycles(4000 / 5);
 			}
+
+			shared_mem->analog_sample_counter++;
 
 			if (shared_mem->analog_sample_counter == ADC_SAMPLES_PER_BUFFER)
 			{
@@ -173,7 +165,8 @@ void event_loop(volatile struct SharedMem *const shared_mem,
 				if ((shared_mem->shepherd_state == STATE_RUNNING) &&
 				    (shared_mem->shepherd_mode != MODE_DEBUG))
 				{
-					sample_buf_idx = handle_block_end(shared_mem, free_buffers_ptr, buffers_far, sample_buf_idx, analog_sample_idx);
+					sample_buf_idx = handle_block_swap(shared_mem, free_buffers_ptr, buffers_far, sample_buf_idx, shared_mem->analog_sample_counter);
+					shared_mem->analog_sample_counter = 0;
 					GPIO_TOGGLE(DEBUG_PIN1_MASK); // NOTE: desired user-feedback
 				}
 			}
@@ -186,15 +179,24 @@ void event_loop(volatile struct SharedMem *const shared_mem,
                 		//GPIO_OFF(DEBUG_PIN0_MASK);
 			}
 
-#if SPI_SYS_TEST_EN // TODO: Test-Area
-		sys_adc_readwrite(DEBUG_PIN0_MASK, shared_mem->analog_sample_counter);
-#endif
+
+		}
+
+		// this stack ensures low overhead to event loop AND full buffer before switching
+		if (iep_tmr_cmp_sts & IEP_CMP0_MASK) {
+			GPIO_TOGGLE(DEBUG_PIN1_MASK);
+			// TODO: a buffer swap should be done here, but then would the first sample not be on timer=0
+			// TODO: prepare: accelerate buffer_swap and harden pre-trigger, then this routine can come before the actual sampling
+			if (shared_mem->analog_sample_counter > 1)
+				shared_mem->analog_sample_counter = 1;
+			GPIO_TOGGLE(DEBUG_PIN1_MASK);
 		}
 	}
 }
 
 void main(void)
 {
+	GPIO_OFF(DEBUG_PIN0_MASK | DEBUG_PIN1_MASK);
 	static struct RingBuffer free_buffers;
 
 	/*
@@ -203,20 +205,20 @@ void main(void)
 	 * shared_mem structure.
 	 * Do this initialization early! The kernel module relies on it.
 	 */
-	volatile struct SharedMem *const shared_mememory = (volatile struct SharedMem *)PRU_SHARED_MEM_STRUCT_OFFSET;
+	volatile struct SharedMem *const shared_memory = (volatile struct SharedMem *)PRU_SHARED_MEM_STRUCT_OFFSET;
 	// Initialize all struct-Members Part A (Part B in Reset Loop)
-	shared_mememory->mem_base_addr = resourceTable.shared_mem.pa;
-	shared_mememory->mem_size = resourceTable.shared_mem.len;
+	shared_memory->mem_base_addr = resourceTable.shared_mem.pa;
+	shared_memory->mem_size = resourceTable.shared_mem.len;
 
-	shared_mememory->n_buffers = RING_SIZE;
-	shared_mememory->samples_per_buffer = ADC_SAMPLES_PER_BUFFER;
-	shared_mememory->buffer_period_ns = BUFFER_PERIOD_NS;
+	shared_memory->n_buffers = RING_SIZE;
+	shared_memory->samples_per_buffer = ADC_SAMPLES_PER_BUFFER;
+	shared_memory->buffer_period_ns = BUFFER_PERIOD_NS;
 
-	shared_mememory->harvesting_voltage = 0;
-	shared_mememory->shepherd_mode = MODE_HARVESTING;
+	shared_memory->harvesting_voltage = 0;
+	shared_memory->shepherd_mode = MODE_HARVESTING;
 
-	shared_mememory->next_timestamp_ns = 0;
-	shared_mememory->analog_sample_counter = 0;
+	shared_memory->next_timestamp_ns = 0;
+	shared_memory->analog_sample_counter = 0;
 
 	/*
 	 * The dynamically allocated shared DDR RAM holds all the buffers that
@@ -229,44 +231,28 @@ void main(void)
 	/* Allow OCP master port access by the PRU so the PRU can read external memories */
 	CT_CFG.SYSCFG_bit.STANDBY_INIT = 0;
 
-	/* Enable interrupts from PRU1 */
-	CT_INTC.EISR_bit.EN_SET_IDX = PRU_PRU_EVT_SAMPLE;
-	CT_INTC.EISR_bit.EN_SET_IDX = PRU_PRU_EVT_BLOCK_END;
-
 	rpmsg_init("rpmsg-pru");
-
-#if SPI_SYS_TEST_EN // TODO: Test-Area
-	sys_spi_init();
-#endif
 
 reset:
 	GPIO_OFF(DEBUG_PIN0_MASK | DEBUG_PIN1_MASK);
 
-	// TODO: how do we make sure, that virtcap_settings & calibration_settings is initialized?
-	if (shared_mememory->shepherd_mode == MODE_VIRTCAP)
-	virtcap_init((struct VirtCapSettings *)&shared_mememory->virtcap_settings,
-		 (struct CalibrationSettings *)&shared_mememory->calibration_settings);
-
 	ring_init(&free_buffers);
-	sampling_init((enum ShepherdMode)shared_mememory->shepherd_mode,
-	      shared_mememory->harvesting_voltage);
-	shared_mememory->gpio_edges = NULL;
 
-	/* Clear all interrupt events */
-	CT_INTC.SICR_bit.STS_CLR_IDX = PRU_PRU_EVT_SAMPLE;
-	CT_INTC.SICR_bit.STS_CLR_IDX = PRU_PRU_EVT_BLOCK_END;
+	GPIO_ON(DEBUG_PIN0_MASK | DEBUG_PIN1_MASK);
+	sampling_init((enum ShepherdMode)shared_memory->shepherd_mode, shared_memory->harvesting_voltage);
+	GPIO_OFF(DEBUG_PIN0_MASK | DEBUG_PIN1_MASK);
+
+	shared_memory->gpio_edges = NULL;
 
 	// Initialize struct-Members Part B
 	// Reset Token-System to init-values
-	shared_mememory->cmp0_handled_by_pru0 = 0;
-	shared_mememory->cmp0_handled_by_pru1 = 0;
-	shared_mememory->cmp1_handled_by_pru0 = 0;
-	shared_mememory->cmp1_handled_by_pru1 = 0;
+	shared_memory->cmp0_trigger_for_pru1 = 0;
+	shared_memory->cmp1_trigger_for_pru1 = 0;
 
-	shared_mememory->shepherd_state = STATE_IDLE;
+	shared_memory->shepherd_state = STATE_IDLE;
 	/* Make sure the mutex is clear */
-	simple_mutex_exit(&shared_mememory->gpio_edges_mutex);
+	simple_mutex_exit(&shared_memory->gpio_edges_mutex);
 
-	event_loop(shared_mememory, &free_buffers, buffers_far);
+	event_loop(shared_memory, &free_buffers, buffers_far);
 	goto reset;
 }

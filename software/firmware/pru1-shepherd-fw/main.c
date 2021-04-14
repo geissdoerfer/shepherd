@@ -24,16 +24,8 @@
 
 #define GPIO_MASK		(0x0F)
 
-/* The IEP is clocked with 200 MHz -> 5 nanoseconds per tick */
-#define TIMER_TICK_NS       5U
-#define TIMER_BASE_PERIOD   (BUFFER_PERIOD_NS / TIMER_TICK_NS)
-#define SAMPLE_INTERVAL_NS  (BUFFER_PERIOD_NS / ADC_SAMPLES_PER_BUFFER)
-
 enum SyncState {
 	IDLE,
-	WAIT_IEP_WRAP,
-	WAIT_HOST_INT,
-	REQUEST_PENDING,
 	REPLY_PENDING
 };
 
@@ -137,7 +129,7 @@ static inline void check_gpio(volatile struct SharedMem *const shared_mem,
 
 		simple_mutex_enter(&shared_mem->gpio_edges_mutex);
 		shared_mem->gpio_edges->timestamp_ns[cIDX] = gpio_timestamp;
-		shared_mem->gpio_edges->bitmask[cIDX] = (uint8_t)gpio_status; // TODO: should be >= 10 bit for V2, leave 8 bit for now
+		shared_mem->gpio_edges->bitmask[cIDX] = (uint8_t)gpio_status;
 		shared_mem->gpio_edges->idx = cIDX + 1;
 		simple_mutex_exit(&shared_mem->gpio_edges_mutex);
 	}
@@ -182,7 +174,11 @@ int32_t event_loop(volatile struct SharedMem *const shared_mem)
 
 	/* Prepare message that will be received and sent to Linux kernel module */
 	struct CtrlReqMsg ctrl_req = { .identifier = MSG_SYNC_CTRL_REQ, .msg_unread = 1 };
-	struct CtrlRepMsg ctrl_rep;
+	struct CtrlRepMsg ctrl_rep = {
+		.buffer_block_period = TIMER_BASE_PERIOD,
+		.analog_sample_period = TIMER_BASE_PERIOD / ADC_SAMPLES_PER_BUFFER,
+		.compensation_steps = 0u,
+	};
 
 	/* This tracks our local state, allowing to execute actions at the right time */
 	enum SyncState sync_state = IDLE;
@@ -190,16 +186,22 @@ int32_t event_loop(volatile struct SharedMem *const shared_mem)
 	/*
 	* This holds the number of 'compensation' periods, where the sampling
 	* period is increased by 1 in order to compensate for the remainder of the
-	* integer division used to calculate the sampling period
+	* integer division used to calculate the sampling period.
 	*/
-	uint32_t n_comp = 0;
+	uint32_t compensation_steps = ctrl_rep.compensation_steps;
+	/*
+	 * holds distribution of the compensation periods (every x samples the period is increased by 1)
+	 */
+	uint32_t compensation_counter = 0u;
+	uint32_t compensation_increment = 0u;
 
 	/* Our initial guess of the sampling period based on nominal timer period */
-	uint32_t analog_sample_period = TIMER_BASE_PERIOD / ADC_SAMPLES_PER_BUFFER;
+	uint32_t analog_sample_period = ctrl_rep.analog_sample_period;
+	uint32_t buffer_block_period = ctrl_rep.buffer_block_period;
 
 	/* These are our initial guesses for buffer sample period */
 	iep_set_cmp_val(IEP_CMP0, TIMER_BASE_PERIOD);  // 20 MTicks -> 100 ms
-	iep_set_cmp_val(IEP_CMP1, analog_sample_period); // 20 kTicks -> 10 us
+	iep_set_cmp_val(IEP_CMP1, buffer_block_period); // 20 kTicks -> 10 us
 
 	iep_enable_evt_cmp(IEP_CMP1);
 	iep_clear_evt_cmp(IEP_CMP0);
@@ -230,133 +232,78 @@ int32_t event_loop(volatile struct SharedMem *const shared_mem)
 
 			/* Take timestamp of IEP */
 			ctrl_req.ticks_iep = iep_get_cnt_val();
-			DEBUG_EVENT_STATE_1;
+			DEBUG_EVENT_STATE_2;
 			/* Clear interrupt */
 			INTC_CLEAR_EVENT(HOST_PRU_EVT_TIMESTAMP);
 
-			/* Prepare and send control request to Linux host */
-			ctrl_req.old_period = iep_get_cmp_val(IEP_CMP0);
-
-			if (sync_state == WAIT_HOST_INT)    sync_state = REQUEST_PENDING;
-			else if (sync_state == IDLE)        sync_state = WAIT_IEP_WRAP;
+			if (sync_state == IDLE)    sync_state = REPLY_PENDING;
 			else {
-				fault_handler(shared_mem->shepherd_state,"Wrong state at host interrupt");
+				fault_handler(shared_mem->shepherd_state,"Sync not idle at host interrupt");
 				return 0;
 			}
+			send_control_request(shared_mem, &ctrl_req);
 			DEBUG_EVENT_STATE_0;
-			//continue;  // for more regular gpio-sampling
+			continue;  // for more regular gpio-sampling
 		}
 
-		// take a snapshot of current triggers -> ensures prioritized handling
-		// edge case: sample0 @cnt=0, cmp0&1 trigger, but cmp0 needs to get handled before cmp1
-		const uint32_t iep_tmr_cmp_sts = iep_get_tmr_cmp_sts();
-
 		/*  [Event 2] Timer compare 0 handle -> trigger for buffer swap on pru0 */
-		if (iep_check_evt_cmp_fast(iep_tmr_cmp_sts, IEP_CMP0_MASK))
+		if (shared_mem->cmp0_trigger_for_pru1)
 		{
 			DEBUG_EVENT_STATE_2;
-			shared_mem->cmp0_handled_by_pru1 = 1;
+			// hand-back of cmp-token
+			shared_mem->cmp0_trigger_for_pru1 = 0;
 
-			/* Clear Timer Compare 0 */
-			iep_clear_evt_cmp(IEP_CMP0); // CT_IEP.TMR_CMP_STS.bit0
+			/* update clock compensation of sample-trigger */
+			iep_set_cmp_val(IEP_CMP1, 0);
+			iep_enable_evt_cmp(IEP_CMP1);
+			analog_sample_period = ctrl_rep.analog_sample_period;
+			compensation_steps = ctrl_rep.compensation_steps;
+			compensation_increment = ctrl_rep.compensation_steps;
+			compensation_counter = 0;
 
-			/* Reset sample counter and sample timer period (if needed) */
-			if (iep_get_cmp_val(IEP_CMP1) > iep_get_cmp_val(IEP_CMP0)) iep_set_cmp_val(IEP_CMP1, analog_sample_period);
-   			iep_enable_evt_cmp(IEP_CMP1);
+			/* update main-loop */
+			buffer_block_period = ctrl_rep.buffer_block_period;
+			iep_set_cmp_val(IEP_CMP0, buffer_block_period);
 
+			/* more maintenance */
 			last_analog_sample_ticks = 0;
-			if (sync_state == WAIT_IEP_WRAP)    sync_state = REQUEST_PENDING;
-			else if (sync_state == IDLE)        sync_state = WAIT_HOST_INT;
-			else {
-				fault_handler(shared_mem->shepherd_state, "Wrong state at timer wrap");
-				return 0;
-			}
 
 			/* With wrap, we'll use next timestamp as base for GPIO timestamps */
 			current_timestamp_ns = shared_mem->next_timestamp_ns;
-			// TODO: shouldn't it always be the shared_mem timestamp? timestamping could be wrong after buffer exchange, but before this update
+			// TODO: this is definitely wrong for edge case: buffer already exchanged, timer0 not yet wrapped
 
 			DEBUG_EVENT_STATE_0;
 		}
 
 		/* [Event 3] Timer compare 1 handle -> trigger for analog sample on pru0 */
-		if (iep_check_evt_cmp_fast(iep_tmr_cmp_sts, IEP_CMP1_MASK))
+		if (shared_mem->cmp1_trigger_for_pru1)
 		{
-			shared_mem->cmp1_handled_by_pru1 = 1;
-			// Relict from previous INTC-System -> TODO: Remove if safe
-			if (INTC_CHECK_EVENT(PRU_PRU_EVT_SAMPLE)) INTC_CLEAR_EVENT(PRU_PRU_EVT_SAMPLE);
-			if (INTC_CHECK_EVENT(PRU_PRU_EVT_BLOCK_END)) INTC_CLEAR_EVENT(PRU_PRU_EVT_BLOCK_END);
-
-			/* Important: We have to clear the interrupt here, to avoid missing interrupts */
-			iep_clear_evt_cmp(IEP_CMP1);
+			DEBUG_EVENT_STATE_1;
+			// hand-back of cmp-token
+			shared_mem->cmp1_trigger_for_pru1 = 0;
 
 			// Update Timer-Values
 			last_analog_sample_ticks = iep_get_cmp_val(IEP_CMP1);
-			/* Forward sample timer based on current sample_period*/
+			/* Forward sample timer based on current analog_sample_period*/
 			uint32_t next_cmp_val = last_analog_sample_ticks + analog_sample_period;
+			compensation_counter += compensation_increment; // fixed point magic
 			/* If we are in compensation phase add one */
-			if (n_comp > 0) {
+			if ((compensation_counter >= ADC_SAMPLES_PER_BUFFER) && (compensation_steps > 0)) {
 				next_cmp_val += 1;
-				n_comp--;
-				// TODO: there are more advanced algos that spread the n_comp more even (req. 1 more division)
+				compensation_steps--;
+				compensation_counter -= ADC_SAMPLES_PER_BUFFER;
 			}
-			// handle edge-case: check if next compare-value is behind auto-reset of cmp0
-			const uint32_t timer_cmp0_value = iep_get_cmp_val(IEP_CMP0); // read costs 12 Cycles
-			if (next_cmp_val > timer_cmp0_value) next_cmp_val -= timer_cmp0_value;
 			iep_set_cmp_val(IEP_CMP1, next_cmp_val);
 
-
 			/* If we are waiting for a reply from Linux kernel module */
-			if (sync_state == REPLY_PENDING)
+			if (receive_control_reply(shared_mem, &ctrl_rep) > 0)
 			{
-				DEBUG_EVENT_STATE_3;
-				if (receive_control_reply(shared_mem, &ctrl_rep) > 0)
-				{
-					uint32_t block_period;
-					/* The new timer period is the base period plus the correction calculated by the controller */
-					if (ctrl_rep.clock_corr > (int32_t)(TIMER_BASE_PERIOD / 10))
-						block_period = TIMER_BASE_PERIOD + TIMER_BASE_PERIOD / 10;
-					else if (ctrl_rep.clock_corr < -(int32_t)(TIMER_BASE_PERIOD / 10))
-						block_period = TIMER_BASE_PERIOD - TIMER_BASE_PERIOD / 10;
-					else
-						block_period = TIMER_BASE_PERIOD + ctrl_rep.clock_corr;
-
-					// determine resulting new sample period, n_comp is the remainder of the division
-					const uint32_t block_period_remain = (block_period - iep_get_cmp_val(IEP_CMP1));
-					const uint32_t samples_remain = (ADC_SAMPLES_PER_BUFFER - (shared_mem->analog_sample_counter));
-					analog_sample_period = block_period_remain / samples_remain;
-					n_comp = block_period_remain - (analog_sample_period * samples_remain);
-
-					iep_set_cmp_val(IEP_CMP0, block_period);
-					sync_state = IDLE;
-					shared_mem->next_timestamp_ns = ctrl_rep.next_timestamp_ns;
-				}
-				DEBUG_EVENT_STATE_0;
+				sync_state = IDLE;
+				shared_mem->next_timestamp_ns = ctrl_rep.next_timestamp_ns;
 			}
-			else if (sync_state == REQUEST_PENDING)
-			{
-				// To stay consistent with timing throw away a possible pre-received Replies (otherwise that +1 can stay in the system forever)
-				receive_control_reply(shared_mem, &ctrl_rep);
-				// send request
-				send_control_request(shared_mem, &ctrl_req);
-				sync_state = REPLY_PENDING;
-			}
-			//continue; // for more regular gpio-sampling
+			DEBUG_EVENT_STATE_0;
+			continue; // for more regular gpio-sampling
 		}
-
-		// cleanup of cmp-tokens
-		if ((shared_mem->cmp0_handled_by_pru0 != 0) && (shared_mem->cmp0_handled_by_pru1 != 0))
-		{
-			shared_mem->cmp0_handled_by_pru0 = 0;
-			shared_mem->cmp0_handled_by_pru1 = 0;
-		}
-
-		if ((shared_mem->cmp1_handled_by_pru0 != 0) && (shared_mem->cmp1_handled_by_pru1 != 0))
-		{
-			shared_mem->cmp1_handled_by_pru0 = 0;
-			shared_mem->cmp1_handled_by_pru1 = 0;
-		}
-
 	}
 }
 
