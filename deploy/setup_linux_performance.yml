@@ -1,5 +1,5 @@
 ---
-- name: Apply performance enhancing Changes
+- name: Apply performance enhancing Changes (use less ram, boot faster)
   hosts: all
   become: true
 
