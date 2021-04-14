@@ -2,7 +2,10 @@ SCLK .set 3
 MOSI .set 2
 MISO .set 5
 
-.macro NOP
+; TODO: v2-branch has improved but untested code  (hw-loops, simultanious mosi / clk setting)
+; TODO: code of DAC is 1:1 replacement, ADC is more difficult
+
+.macro NOP ; TODO: this assembler understands a simple NOP, without macro
    MOV r23, r23
 .endm
 
@@ -58,6 +61,12 @@ adc_end:
     SET r30, r30, r24 ; set CS high
     JMP r3.w2
 
+
+; DAC8562
+; -> MSB begins with falling CS
+; -> begin with high CLK
+; -> Reads on falling CLK-Edge
+; -> transfer frame must contain 24 capture edges for writing
 
     .global dac_write  ; code performs with 25 MHz, ~ 980 ns CS low
 dac_write:
