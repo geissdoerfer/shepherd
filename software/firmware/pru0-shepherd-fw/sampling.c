@@ -3,7 +3,6 @@
 #include "gpio.h"
 #include "hw_config.h"
 #include "sampling.h"
-#include "virtcap.h"
 
 #define CMD_ID_ADC      0U
 #define CMD_ID_DAC      1U
@@ -55,66 +54,6 @@ static inline void sample_emulation(struct SampleBuffer *const buffer, const uin
 	buffer->values_voltage[sample_idx] = adc_readwrite(SPI_CS_ADC_PIN, MAN_CH_SLCT | (ADC_CH_A_OUT << 10U));
 }
 
-static inline void sample_virtcap(struct SampleBuffer *const buffer, const uint32_t sample_idx)
-{
-	struct ADCReading read;
-	static uint8_ft under_sample_voltage_cntr = 0;
-	static int32_t last_voltage_measurement = 0;
-	static int32_t last_current_measurement = 0;
-
-	/* Get input current/voltage from shared memory buffer */
-	const int32_t input_current = buffer->values_current[sample_idx] - ((1U << 17U) - 1);
-	const int32_t input_voltage = buffer->values_voltage[sample_idx];
-
-	// TODO: time budget would allow to read both values everytime
-	if (under_sample_voltage_cntr++ == 7) {
-		under_sample_voltage_cntr = 0;
-
-		read.current = last_current_measurement;
-		buffer->values_current[sample_idx] = last_current_measurement;
-
-		/* Read load voltage and select load current for next reading */
-		read.voltage = adc_readwrite(SPI_CS_ADC_PIN, MAN_CH_SLCT | (ADC_CH_A_OUT << 10U));
-        	last_voltage_measurement = read.voltage;
-		buffer->values_voltage[sample_idx] = read.voltage;
-
-
-	} else if (under_sample_voltage_cntr == 6) {
-		/* Read load current and select load voltage for next reading */
-		read.current = adc_readwrite(SPI_CS_ADC_PIN, MAN_CH_SLCT | (ADC_CH_V_OUT << 10U));
-        	last_current_measurement = read.current;
-		buffer->values_current[sample_idx] = read.current;
-
-		read.voltage = last_voltage_measurement;
-		buffer->values_voltage[sample_idx] = last_voltage_measurement;
-
-	} else {
-		/* Read load current and select load current for next reading */
-		read.current = adc_readwrite(SPI_CS_ADC_PIN, MAN_CH_SLCT | (ADC_CH_A_OUT << 10U));
-		buffer->values_current[sample_idx] = read.current;
-
-		read.voltage = last_voltage_measurement;
-		buffer->values_voltage[sample_idx] = last_voltage_measurement;
-	}
-
-	/* Execute virtcap algorithm */
-	// TODO: routine seems broken, there is no dac-output updated, and buffer->voltage gets into fn, but is not used
-	virtcap_update(buffer->values_current[sample_idx] - ((1U << 17U) - 1U),
-		       buffer->values_voltage[sample_idx], input_current,
-		       input_voltage);
-
-	/*
-	 * If output is off, force buffer voltage to zero.
-	 * Else it will go to max 2.6V, because voltage sense is put before
-	 * output switch.
-	 */
-	if (!virtcap_get_output_state())
-		buffer->values_voltage[sample_idx] = 0U;
-
-    // TODO: probably missing part - this is completely guessed - not tested:
-    //const int32_t cap_volt_logic = voltage_mv_to_logic(cap_voltage);
-    // dac_write(SPI_CS_DAC, cap_volt_logic | DAC_CH_V_ADDR);
-}
 
 void sample(struct SampleBuffer *const current_buffer_far, const uint32_t sample_idx,
 	    const enum ShepherdMode mode)
@@ -123,9 +62,6 @@ void sample(struct SampleBuffer *const current_buffer_far, const uint32_t sample
 	{
 	case MODE_EMULATION: // ~ 6860 ns
 		sample_emulation(current_buffer_far, sample_idx);
-		break;
-	case MODE_VIRTCAP: // ~ 4220 ns, TODO: routine is not complete
-		sample_virtcap(current_buffer_far, sample_idx);
 		break;
 	case MODE_HARVESTING: // ~ 4340 ns
 		sample_harvesting(current_buffer_far, sample_idx);
