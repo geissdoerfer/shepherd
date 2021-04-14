@@ -64,6 +64,7 @@ volatile register uint32_t	__R31;
 #define GPIO_TOGGLE(pin_mask)	__R30 ^= (pin_mask)
 #define GPIO_ON(pin_mask)	__R30 |= (pin_mask)
 #define GPIO_OFF(pin_mask)	__R30 &= ~(pin_mask)
+// TODO: there are special asm-commands to set or clear a bit. its faster and gets rid of the additional _mask
 #endif
 
 #endif /* __GPIO_H_ */
