@@ -1,22 +1,19 @@
 #ifndef __COMMONS_H_
 #define __COMMONS_H_
-// NOTE: a similar version of this definition-file exists for the kernel module (copy changes by hand)
+// NOTE: a Copy version of this definition-file exists for the kernel module (copy changes by hand)
 // NOTE: and most of the structs are hardcoded in read_buffer() in shepherd_io.py
 
 #include "simple_lock.h"
 #include "shepherd_config.h"
 #include "stdint_fast.h"
 
+#define HOST_PRU_EVT_TIMESTAMP          (20u)
+#define PRU_SHARED_MEM_STRUCT_OFFSET    (0x10000u)
+#define MAX_GPIO_EVT_PER_BUFFER         (16384u)
 
-#define HOST_PRU_EVT_TIMESTAMP          20U
-
-#define PRU_PRU_EVT_SAMPLE              30U
-#define PRU_PRU_EVT_BLOCK_END           31U	// TODO: can be removed, after trigger-replacement
-
-#define PRU_SHARED_MEM_STRUCT_OFFSET    0x10000u
-
-#define MAX_GPIO_EVT_PER_BUFFER         16384U
-
+// Test data-containers and constants with pseudo-assertion with zero cost (if expression evaluates to 0 this causes a div0
+// NOTE: name => alphanum without spaces and without ""
+#define ASSERT(name, expression) 	extern uint32_t assert_name[1/(expression)]
 
 /* Message IDs used in Data Exchange Protocol between PRU0 and user space */
 enum DEPMsgID {
@@ -38,7 +35,7 @@ enum ShepherdMode {
 	MODE_HARVESTING,
 	MODE_LOAD,
 	MODE_EMULATION,
-	MODE_VIRTCAP,
+	MODE_VIRTCAP, // TODO: can be removed, vcap is re-implemented in newer version
 	MODE_DEBUG
 };
 enum ShepherdState {
@@ -53,7 +50,7 @@ enum ShepherdState {
 struct GPIOEdges {
 	uint32_t idx;
 	uint64_t timestamp_ns[MAX_GPIO_EVT_PER_BUFFER];
-    uint8_t  bitmask[MAX_GPIO_EVT_PER_BUFFER]; // TODO: should be >= 10 bit for V2, leave 8 bit for now
+    uint8_t  bitmask[MAX_GPIO_EVT_PER_BUFFER];
 } __attribute__((packed));
 
 struct SampleBuffer {
@@ -73,7 +70,7 @@ struct CalibrationSettings {
 	int32_t adc_load_voltage_gain;
 	/* Offset of load voltage adc */
 	int32_t adc_load_voltage_offset;
-} __attribute__((packed));
+} __attribute__((packed)); // TODO: can be removed, vcap is re-implemented in newer version
 
 /* This structure defines all settings of virtcap emulation*/
 struct VirtCapSettings {
@@ -90,7 +87,7 @@ struct VirtCapSettings {
   int32_t output_cap_uf;
   int32_t lookup_input_efficiency[4][9];
   int32_t lookup_output_efficiency[4][9];
-} __attribute__((packed));
+} __attribute__((packed)); // TODO: can be removed, vcap is re-implemented in newer version
 
 /* Format of RPMSG used in Data Exchange Protocol between PRU0 and user space */
 struct DEPMsg {
@@ -108,8 +105,6 @@ struct CtrlReqMsg {
 	uint8_t reserved[2];
 	/* Number of ticks passed on the PRU's IEP timer */
 	uint32_t ticks_iep;
-	/* Previous buffer period in IEP ticks */
-	uint32_t old_period;
 } __attribute__((packed));
 
 /* Format of RPMSG message sent from kernel module to PRU1 */
@@ -121,8 +116,10 @@ struct CtrlRepMsg {
 	/* Alignment with memory, (bytes)mod4 */
 	uint8_t reserved0[2];
 	/* Actual Content of message */
-	int32_t clock_corr;
-	uint64_t next_timestamp_ns;
+	uint32_t buffer_block_period;   // corrected ticks that equal 100ms
+	uint32_t analog_sample_period;  // ~ 10 us
+	uint32_t compensation_steps;    // remainder of buffer_block/sample_count = sample_period
+	uint64_t next_timestamp_ns;     // start of next buffer block
 } __attribute__((packed));
 
 /* Format of memory structure shared between PRU0, PRU1 and kernel module (lives in shared RAM of PRUs) */
@@ -164,13 +161,11 @@ struct SharedMem {
 	/* Counter for ADC-Samples, updated by PRU0, also needed (non-writing) by PRU1 for some timing-calculations */
 	uint32_t analog_sample_counter;
 	/* Token system to ensure both PRUs can share interrupts */
-	bool_ft cmp0_handled_by_pru0;
-	bool_ft cmp0_handled_by_pru1;
-	bool_ft cmp1_handled_by_pru0;
-	bool_ft cmp1_handled_by_pru1;
+	bool_ft cmp0_trigger_for_pru1;
+	bool_ft cmp1_trigger_for_pru1;
 } __attribute__((packed));
 
-
+ASSERT(shared_mem_size, sizeof(struct SharedMem) < 10000);
 
 struct ADCReading {
 	int32_t current;
