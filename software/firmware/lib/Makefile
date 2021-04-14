@@ -68,20 +68,32 @@ CFLAGS += --symdebug:none #                 debug symbols -> remove
 CFLAGS += --plain_char=unsigned    #        explicit define underlying datatype for char
 CFLAGS += --obj_directory=$(GEN_DIR)
 CFLAGS += --pp_directory=$(GEN_DIR)
+CFLAGS += --asm_directory=$(GEN_DIR)
 CFLAGS += -ppd #                            perform preprocessing only [but]
 CFLAGS += -ppa #                            continue preprocessing with compilation
+CFLAGS += --keep_asm #						does what it says - have a look
+
+# float - NOTE: use fp_reassoc=on and fp_mode=relaxed, both reduce the precision a bit, but improve performance (even using int if safe)
+# 				enable with --float_operations_allowed=32
 
 # Compile Optimization
-CFLAGS += -O4
+CFLAGS += --opt_level=4
 # -O2 -> old default for shepherd
-# -O3 ->
-# -O4 -> link time optimization, 30-40% smaller code
+# -O3 -> lvl2 & file-optimization
+# -O4 -> lvl3 & link time optimization, 30-40% smaller code
 # TODO: with optimization <4 and no debug symbols the firmware does not work (60/54 kB, against 101/92 kB)?!?
+
+# Speed Optimization (short -mf)
+CFLAGS += --opt_for_speed=5
+# 2, 1, 0 	gradually optimize for size, (lower number means higher risk of performance impact)
+# 3, 4, 5 	gradually optimize for performance (higher num means high risk impacting size)
+# default is 4 (without value), 1 (not specifying command)
 
 # Compile Feedback
 CFLAGS += --issue_remarks #                 non-serious warnings
 CFLAGS += --display_error_number #          supplies diagnostic identifier
-
+#CFLAGS += --check_misra=all #     	   		diagnostic for MISRA-C:2004 rules -> compiler goes berserk
+#CFLAGS += --misra_advisory=warning #    	diagnostic for MISRA-C:2004 rules
 
 # Linker flags (Defined in 'PRU Optimizing C/C++ Compiler User's Guide)
 LFLAGS = --reread_libs #                    reread until references are resolved
@@ -101,7 +113,7 @@ TARGET_PATH := $(folder_path)$(TARGET)
 
 VPATH = $(BASE_PATH)/lib/src
 
-#Using .object instead of .obj in order to not conflict with the CCS build process
+# Using .object instead of .obj in order to not conflict with the CCS build process
 OBJECTS=$(patsubst %,$(GEN_DIR)/%,$(SOURCES:.c=.object))
 OBJECTS+=$(patsubst %,$(GEN_DIR)/%,$(ASM_SOURCES:.asm=.object))
 
