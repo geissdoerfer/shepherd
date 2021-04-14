@@ -30,20 +30,6 @@
     regexp: '#?dtb_overlay=\/lib\/firmware\S*'
     line: 'dtb_overlay=/lib/firmware/BB-SHPRD-00A0.dtbo'
     state: present
-  when: virtcap | default(False) == False
-  become: yes
-  notify:
-    - restart device
-  tags:
-    - device-tree
-
-- name: Enable shepherd virtcap overlay
-  lineinfile:
-    dest: '/boot/uEnv.txt'
-    regexp: '#?dtb_overlay=\/lib\/firmware\S*'
-    line: 'dtb_overlay=/lib/firmware/BB-SHPRDVCAP-00A0.dtbo'
-    state: present
-  when: virtcap | default(False) == True
   become: yes
   notify:
     - restart device
