@@ -1,12 +1,12 @@
 #ifndef __COMMONS_H_
 #define __COMMONS_H_
-// NOTE: a similar version of this definition-file exists for the pru-firmware (copy changes by hand)
+// NOTE: a (almost)Copy of this definition-file exists for the pru-firmware (copy changes by hand)
 
 /**
  * These are the system events that we use to signal events to the PRUs.
  * See the AM335x TRM Table 4-22 for a list of all events
  */
-#define HOST_PRU_EVT_TIMESTAMP 20
+#define HOST_PRU_EVT_TIMESTAMP      (20)
 
 /* The SharedMem struct resides at the beginning of the PRUs shared memory */
 #define PRU_SHARED_MEM_STRUCT_OFFSET 0x10000
@@ -17,7 +17,6 @@ enum ShepherdMode {
 	MODE_HARVESTING,
 	MODE_LOAD,
 	MODE_EMULATION,
-	MODE_VIRTCAP,
 	MODE_DEBUG
 };
 enum ShepherdState {
@@ -29,33 +28,6 @@ enum ShepherdState {
 	STATE_FAULT
 };
 
-struct CalibrationSettings {
-	/* Gain of load current adc. It converts current to adc value */
-	int32_t adc_load_current_gain;
-	/* Offset of load current adc */
-	int32_t adc_load_current_offset;
-	/* Gain of load voltage adc. It converts voltage to adc value */
-	int32_t adc_load_voltage_gain;
-	/* Offset of load voltage adc */
-	int32_t adc_load_voltage_offset;
-} __attribute__((packed));
-
-/* This structure defines all settings of virtcap emulation*/
-struct VirtCapSettings {
-  int32_t upper_threshold_voltage;
-  int32_t lower_threshold_voltage;
-  int32_t sample_period_us;
-  int32_t capacitance_uf;
-  int32_t max_cap_voltage;
-  int32_t min_cap_voltage;
-  int32_t init_cap_voltage;
-  int32_t dc_output_voltage;
-  int32_t leakage_current;
-  int32_t discretize;
-  int32_t output_cap_uf;
-  int32_t lookup_input_efficiency[4][9];
-  int32_t lookup_output_efficiency[4][9];
-} __attribute__((packed));
 
 /* Control request message sent from PRU1 to this kernel module */
 struct CtrlReqMsg {
@@ -67,9 +39,8 @@ struct CtrlReqMsg {
 	uint8_t reserved[2];
 	/* Number of ticks passed on the PRU's IEP timer */
 	uint32_t ticks_iep;
-	/* Previous buffer period in IEP ticks */
-	uint32_t old_period;
 } __attribute__((packed));
+
 
 /* Control reply message sent from this kernel module to PRU1 after running the control loop */
 struct CtrlRepMsg {
@@ -80,8 +51,10 @@ struct CtrlRepMsg {
     /* Alignment with memory, (bytes)mod4 */
 	uint8_t reserved0[2];
 	/* Actual Content of message */
-	int32_t clock_corr;
-	uint64_t next_timestamp_ns;
+    uint32_t buffer_block_period;   // corrected ticks that equal 100ms
+    uint32_t analog_sample_period;  // ~ 10 us
+    uint32_t compensation_steps;    // remainder of buffer_block/sample_count = sample_period
+    uint64_t next_timestamp_ns;     // start of next buffer block
 } __attribute__((packed));
 
 
@@ -104,10 +77,6 @@ struct SharedMem {
 	uint32_t samples_per_buffer;
 	/* The time for sampling samples_per_buffer. Determines sampling rate */
 	uint32_t buffer_period_ns;
-	/* ADC calibration settings */
-	struct CalibrationSettings calibration_settings;
-	/* This structure defines all settings of virtcap emulation*/
-	struct VirtCapSettings virtcap_settings;
 	/* replacement Msg-System for slow rpmsg (check 640ns, receive 4820ns) */
 	struct CtrlReqMsg ctrl_req;
 	struct CtrlRepMsg ctrl_rep;
