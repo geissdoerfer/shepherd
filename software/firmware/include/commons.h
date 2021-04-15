@@ -1,14 +1,22 @@
 #ifndef __COMMONS_H_
 #define __COMMONS_H_
-// NOTE: a Copy version of this definition-file exists for the kernel module (copy changes by hand)
+// NOTE: a (almost)Copy of this definition-file exists for the kernel module (copy changes by hand)
 // NOTE: and most of the structs are hardcoded in read_buffer() in shepherd_io.py
 
 #include "simple_lock.h"
 #include "shepherd_config.h"
 #include "stdint_fast.h"
 
+/**
+ * These are the system events that we use to signal events to the PRUs.
+ * See the AM335x TRM Table 4-22 for a list of all events
+ */
 #define HOST_PRU_EVT_TIMESTAMP          (20u)
+
+/* The SharedMem struct resides at the beginning of the PRUs shared memory */
 #define PRU_SHARED_MEM_STRUCT_OFFSET    (0x10000u)
+
+/* gpio_buffer_size that comes with every analog_sample_buffer (0.1s) */
 #define MAX_GPIO_EVT_PER_BUFFER         (16384u)
 
 // Test data-containers and constants with pseudo-assertion with zero cost (if expression evaluates to 0 this causes a div0
@@ -35,7 +43,6 @@ enum ShepherdMode {
 	MODE_HARVESTING,
 	MODE_LOAD,
 	MODE_EMULATION,
-	MODE_VIRTCAP, // TODO: can be removed, vcap is re-implemented in newer version
 	MODE_DEBUG
 };
 enum ShepherdState {
@@ -60,34 +67,6 @@ struct SampleBuffer {
 	uint32_t values_current[ADC_SAMPLES_PER_BUFFER];
 	struct GPIOEdges gpio_edges;
 } __attribute__((packed));
-
-struct CalibrationSettings {
-	/* Gain of load current adc. It converts current to adc value */
-	int32_t adc_load_current_gain;
-	/* Offset of load current adc */
-	int32_t adc_load_current_offset;
-	/* Gain of load voltage adc. It converts voltage to adc value */
-	int32_t adc_load_voltage_gain;
-	/* Offset of load voltage adc */
-	int32_t adc_load_voltage_offset;
-} __attribute__((packed)); // TODO: can be removed, vcap is re-implemented in newer version
-
-/* This structure defines all settings of virtcap emulation*/
-struct VirtCapSettings {
-  int32_t upper_threshold_voltage;
-  int32_t lower_threshold_voltage;
-  int32_t sample_period_us;
-  int32_t capacitance_uf;
-  int32_t max_cap_voltage;
-  int32_t min_cap_voltage;
-  int32_t init_cap_voltage;
-  int32_t dc_output_voltage;
-  int32_t leakage_current;
-  int32_t discretize;
-  int32_t output_cap_uf;
-  int32_t lookup_input_efficiency[4][9];
-  int32_t lookup_output_efficiency[4][9];
-} __attribute__((packed)); // TODO: can be removed, vcap is re-implemented in newer version
 
 /* Format of RPMSG used in Data Exchange Protocol between PRU0 and user space */
 struct DEPMsg {
@@ -139,10 +118,6 @@ struct SharedMem {
 	uint32_t samples_per_buffer;
 	/* The time for sampling samples_per_buffer. Determines sampling rate */
 	uint32_t buffer_period_ns;
-	/* ADC calibration settings */
-	struct CalibrationSettings calibration_settings;
-	/* This structure defines all settings of virtcap emulation*/
-	struct VirtCapSettings virtcap_settings;
 	/* replacement Msg-System for slow rpmsg (check 640ns, receive 4820ns) */
 	struct CtrlReqMsg ctrl_req;
 	struct CtrlRepMsg ctrl_rep;
