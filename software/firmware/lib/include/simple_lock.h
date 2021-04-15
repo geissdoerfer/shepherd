@@ -9,6 +9,7 @@ typedef struct {
     bool_ft lock_pru1;
 }__attribute__((packed)) simple_mutex_t;
 
+/* TODO: there is a hardware spinlocks available */
 inline void simple_mutex_enter(volatile simple_mutex_t * mutex);
 inline void simple_mutex_exit(volatile simple_mutex_t * mutex);
 
