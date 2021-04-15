@@ -91,7 +91,7 @@ unsigned char pru_comm_get_ctrl_request(struct CtrlReqMsg *const ctrl_request);
  * @param ctrl_reply
  * @return success = 1, error = 0
  */
-unsigned char pru_com_set_ctrl_reply(struct CtrlRepMsg *const ctrl_reply);
+unsigned char pru_comm_send_ctrl_reply(struct CtrlRepMsg *const ctrl_reply);
 
 
 #endif /* PRU_COMM_H_ */
