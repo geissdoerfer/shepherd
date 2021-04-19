@@ -31,14 +31,21 @@ Configuring GNSS module
 The u-blox GPS receiver can be configured to optimize its perfomance. To do this directly form the host node the python the python script: ``ubloxmsg_exchange`` was
 written (see https://github.com/kugelbit/ubx-packet-exchange). The configuration files can be found under ``config_files``.  To this end the following configurations were set:
 
-- SBAS was disabled for better timing information
-- The stationary mode was enabled to get a better percussion and a stable perfomance
-- the GPS- and galileo-satelite-systems were enabled to get a fast and stable fix
+- SBAS was disabled for greater accuracy of the timepulse signal
+- The Galileo system was enabled for increased performance
 
 In addtion the standard config of the receiver leads to the following behaviour:
 
 - If the PPS is not locked, the LED on the capelet will not blink. After the lock is attained, the LED will start blinking at 1 Hz.
 - NMEA messages are enabled for the UART link which connects to the BeagleBone.
+
+Note: Recent versions of gpsd include a tool `ubxtool`, allowing convenient configuration of ublox receivers:
+ - Poll GNSS config: `ubxtool -p GNSS-CFG`
+ - Enable Galileo: `ubxtool -e GALILEO`
+ - Enable binary messages: `ubxtool -e BINARY`
+ - Disable NMEA messages: `ubxtool -d NMEA`
+ - Disable SBAS: `ubxtool -d SBAS`
+ - Poll time pulse config: `ubxtool -p CFG-TP5`
 
 
 Deploy
