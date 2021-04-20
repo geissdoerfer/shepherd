@@ -16,6 +16,7 @@ import logging
 import time
 import struct
 from pathlib import Path
+from typing import NoReturn
 
 logger = logging.getLogger(__name__)
 sysfs_path = Path("/sys/shepherd")
@@ -24,6 +25,8 @@ sysfs_path = Path("/sys/shepherd")
 class SysfsInterfaceException(Exception):
     pass
 
+
+shepherd_modes = ["harvesting", "load", "emulation", "debug"]
 
 attribs = {
     "mode": {"path": "mode", "type": str},
@@ -37,7 +40,7 @@ attribs = {
 }
 
 
-def wait_for_state(state: str, timeout: float):
+def wait_for_state(state: str, timeout: float) -> NoReturn:
     """Waits until shepherd is in specified state.
 
     Polls the sysfs 'state' attribute until it contains the target state or
@@ -63,8 +66,8 @@ def wait_for_state(state: str, timeout: float):
         time.sleep(0.1)
 
 
-def start(start_time: int = None):
-    """Starts shepherd.
+def set_start(start_time: float = None):
+    """ Starts shepherd.
 
     Writes 'start' to the 'state' sysfs attribute in order to transition from
     'idle' to 'running' state. Optionally allows to start at a later point in
@@ -77,19 +80,21 @@ def start(start_time: int = None):
     logger.debug(f"current state of shepherd kernel module: {current_state}")
     if current_state != "idle":
         raise SysfsInterfaceException(
-            f"Cannot start from state { current_state }"
-        )
+            f"Cannot start from state { current_state }")
 
     with open(str(sysfs_path / "state"), "w") as f:
-        if start_time is None:
+        if isinstance(start_time, float):
+            start_time = int(start_time)
+        if isinstance(start_time, int):
+            f.write(f"{start_time}")
+        else:  # unknown type
+            f.write(f"{start_time}")
             logger.debug(f"writing 'start' to sysfs")
             f.write("start")
-        else:
-            f.write(f"{ start_time }")
 
 
-def stop():
-    """Stops shepherd.
+def set_stop() -> NoReturn:
+    """ Stops shepherd.
 
     Writes 'stop' to the 'state' sysfs attribute in order to transition from
     any state to 'idle'.
@@ -104,16 +109,16 @@ def stop():
         f.write("stop")
 
 
-def set_mode(mode: str):
+def set_mode(mode: str) -> NoReturn:
     """Sets the shepherd mode.
 
     Sets shepherd mode by writing corresponding string to the 'mode' sysfs
     attribute.
 
     Args:
-        mode (str): Target mode. Must be one of harvesting, load, emulation
+        mode (str): Target mode. Must be one of harvesting, load, emulation or debug
     """
-    if mode not in ["harvesting", "load", "emulation", "virtcap", "debug"]:
+    if mode not in shepherd_modes:
         raise SysfsInterfaceException("invalid value for mode")
     if get_state() != "idle":
         raise SysfsInterfaceException(
@@ -125,63 +130,7 @@ def set_mode(mode: str):
         f.write(mode)
 
 
-def send_calibration_settings(
-    current_gain: int, current_offset: int, voltage_gain: int, voltage_offset
-):
-    """Sends the calibration settings to the PRU core.
-
-    The virtcap algorithm uses adc measurements of load current.
-
-    """
-    with open(str(sysfs_path / "calibration_settings"), "w") as f:
-        output = (
-            f"{current_gain} {current_offset} {voltage_gain} {voltage_offset}"
-        )
-        logger.debug(f"Sending calibration settings: {output}")
-        f.write(output)
-
-
-def get_calibration_settings():
-    """Retreive the calibration settings to the PRU core.
-
-    The virtcap algorithm uses adc measurements of load current.
-
-    """
-    with open(str(sysfs_path / "calibration_settings"), "r") as f:
-        settings = f.read().rstrip()
-
-    int_settings = [int(x) for x in settings.split()]
-    return (int_settings[0], int_settings[1], int_settings[2], int_settings[3])
-
-
-def send_virtcap_settings(settings: list):
-    """Sends the virtcap settings to the PRU core.
-
-    The virtcap algorithm uses these settings to configure emulation.
-
-    """
-
-    s = [str(i) for i in settings]
-    output = " ".join(s)
-    logger.debug(f"Writing virtcap to sysfs_interface: {output}")
-
-    with open(str(sysfs_path / "virtcap_settings"), "w") as f:
-        f.write(output)
-
-
-def get_virtcap_settings():
-    """Retreive the virtcap settings to the PRU core.
-
-    The virtcap algorithm uses these settings to configure emulation.
-
-    """
-    with open(str(sysfs_path / "virtcap_settings"), "r") as f:
-        settings = f.read().rstrip()
-
-    return settings
-
-
-def set_harvesting_voltage(harvesting_voltage: int):
+def set_harvesting_voltage(harvesting_voltage: int) -> NoReturn:
     """Sets the harvesting voltage.
 
     In some cases, it is necessary to fix the harvesting voltage, instead of
