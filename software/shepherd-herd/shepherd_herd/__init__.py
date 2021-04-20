@@ -475,10 +475,6 @@ def record(
     default=2.0,
     help="Pre-charge capacitor before starting recording",
 )
-@click.option(
-    "--virtcap",
-    help="Use virtcap to emulate any energy harvesting power supply chain",
-)
 @click_config_file.configuration_option(provider=yamlprovider, implicit=False)
 @click.option(
     "--start/--no-start",
@@ -495,7 +491,6 @@ def emulate(
     no_calib,
     load,
     ldo_voltage,
-    virtcap,
     start,
 ):
 
@@ -510,7 +505,6 @@ def emulate(
         "no_calib": no_calib,
         "ldo_voltage": ldo_voltage,
         "load": load,
-        "virtcap": virtcap,
     }
 
     if output is not None:
