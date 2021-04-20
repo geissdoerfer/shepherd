@@ -19,6 +19,7 @@ import atexit
 import struct
 import mmap
 import sys
+from typing import NoReturn
 import numpy as np
 import collections
 from pathlib import Path
@@ -29,6 +30,7 @@ from shepherd import commons
 from shepherd import calibration_default
 from shepherd import const_reg
 from shepherd.calibration import CalibrationData
+from shepherd.sysfs_interface import SysfsInterfaceException
 
 logger = logging.getLogger(__name__)
 
@@ -45,6 +47,25 @@ gpio_pin_nums = {
 }
 
 prev_timestamp = 0
+
+
+def flatten_dict_list(dl) -> list:
+    """ small helper FN to convert (multi-dimensional) dicts or lists to 1D list
+    Args:
+        dl: (multi-dimensional) dicts or lists
+    Returns:
+        1D list
+    """
+    if len(dl) == 1:
+        if isinstance(dl[0], list):
+            result = flatten_dict_list(dl[0])
+        else:
+            result = dl
+    elif isinstance(dl[0], list):
+        result = flatten_dict_list(dl[0]) + flatten_dict_list(dl[1:])
+    else:
+        result = [dl[0]] + flatten_dict_list(dl[1:])
+    return result
 
 
 class ShepherdIOException(Exception):
@@ -133,19 +154,20 @@ class SharedMem(object):
 
         # With knowledge of structure of each buffer, we calculate its total size
         self.buffer_size = (
-            # Header: 8B timestamp + 4B size
-            12
-            # Actual IV data, 4B for each current and voltage
+            # Header: 64 bit timestamp + 32 bit counter
+            8 + 4
+            # Actual IV data, 32 bit for each current and voltage
             + 2 * 4 * self.samples_per_buffer
             # GPIO edge count
             + 4
-            # 8B timestamp per GPIO event
+            # 64 bit timestamp per GPIO event
             + 8 * commons.MAX_GPIO_EVT_PER_BUFFER
-            # 1B GPIO state per GPIO event
+            # 8 bit GPIO state per GPIO event
             + commons.MAX_GPIO_EVT_PER_BUFFER  # GPIO edge data
-        )
+        )  # NOTE: atm 4h of bug-search lead to this hardcoded piece
+        # TODO: put number in shared-mem
 
-        logger.debug(f"Individual buffer size: { self.buffer_size }B")
+        logger.debug(f"Individual buffer size:\t{ self.buffer_size } byte")
 
     def __enter__(self):
         self.devmem_fd = os.open("/dev/mem", os.O_RDWR | os.O_SYNC)
@@ -164,7 +186,7 @@ class SharedMem(object):
         self.mapped_mem.close()
         os.close(self.devmem_fd)
 
-    def read_buffer(self, index: int):
+    def read_buffer(self, index: int) -> DataBuffer:
         """Extracts buffer from shared memory.
 
         Extracts data from buffer with given index from the shared memory area
@@ -191,9 +213,11 @@ class SharedMem(object):
             f"Got buffer #{ index } with len {n_samples} and timestamp {buffer_timestamp}"
         )
 
-        # sanity-check of received timestamp
+        # sanity-check of received timestamp, TODO: python knows the duration between timestamps
         global prev_timestamp
         diff_ms = round((buffer_timestamp - prev_timestamp) / 1e6, 3) if (prev_timestamp > 0) else 100
+        if buffer_timestamp == 0:
+            logger.error(f"ZERO      timestamp detected after recv it from PRU")
         if diff_ms < 0:
             logger.error(f"BACKWARDS timestamp-jump detected after recv it from PRU -> {diff_ms} ms")
         if diff_ms < 95:
@@ -253,7 +277,7 @@ class SharedMem(object):
 
         return DataBuffer(voltage, current, buffer_timestamp, gpio_edges)
 
-    def write_buffer(self, index, voltage, current):
+    def write_buffer(self, index, voltage, current) -> NoReturn:
 
         buffer_offset = self.buffer_size * index
         # Seek buffer location in memory and skip 12B header
@@ -290,7 +314,7 @@ class ShepherdIO(object):
         """Initializes relevant variables.
 
         Args:
-            mode (str): Shepherd mode, one of 'harvesting', 'load', 'emulation', 'virtcap'
+            mode (str): Shepherd mode, one of 'harvesting', 'load', 'emulation'
             load (str): Which load to use, one of 'artificial', 'node'
         """
 
@@ -322,7 +346,7 @@ class ShepherdIO(object):
 
             # If shepherd hasn't been terminated properly
             if sysfs_interface.get_state() != "idle":
-                sysfs_interface.stop()
+                sysfs_interface.set_stop()
 
             sysfs_interface.wait_for_state("idle", 5)
             logger.debug(f"Switching to '{ self.mode }' mode")
@@ -336,22 +360,22 @@ class ShepherdIO(object):
 
             # Ask PRU for base address of shared mem (reserved with remoteproc)
             mem_address = sysfs_interface.get_mem_address()
-            # Ask PRU for length of shared memory (reserved with remoteproc)
+            # Ask PRU for size of shared memory (reserved with remoteproc)
             mem_size = sysfs_interface.get_mem_size()
 
             logger.debug(
-                f"Shared memory address: {mem_address:08X} length: {mem_size}"
+                f"Shared memory address: \t0x{mem_address:08X}, size: {mem_size} byte"
             )
 
             # Ask PRU for size of individual buffers
             samples_per_buffer = sysfs_interface.get_samples_per_buffer()
-            logger.debug(f"Samples per buffer: { samples_per_buffer }")
+            logger.debug(f"Samples per buffer: \t{ samples_per_buffer }")
 
             self.n_buffers = sysfs_interface.get_n_buffers()
-            logger.debug(f"Number of buffers: { self.n_buffers }")
+            logger.debug(f"Number of buffers: \t{ self.n_buffers }")
 
             self.buffer_period_ns = sysfs_interface.get_buffer_period_ns()
-            logger.debug(f"Buffer period: { self.buffer_period_ns }ns")
+            logger.debug(f"Buffer period: \t\t{ self.buffer_period_ns } ns")
 
             self.shared_mem = SharedMem(
                 mem_address, mem_size, self.n_buffers, samples_per_buffer
@@ -376,7 +400,7 @@ class ShepherdIO(object):
         logger.info("exiting analog shepherd_io")
         self._cleanup()
 
-    def _send_msg(self, msg_type: int, value: int):
+    def _send_msg(self, msg_type: int, value: int) -> NoReturn:
         """Sends a formatted message to PRU0 via rpmsg channel.
 
         Args:
@@ -412,19 +436,20 @@ class ShepherdIO(object):
             except BlockingIOError:
                 break
 
-    def start(self, start_time: int = None, wait_blocking: bool = True):
+    def start(self, start_time: float = None, wait_blocking: bool = True) -> NoReturn:
         """Starts sampling either now or at later point in time.
 
         Args:
             start_time (int): Desired start time in unix time
             wait_blocking (bool): If true, block until start has completed
         """
-        logger.debug(f"asking kernel module for start at {start_time}")
-        sysfs_interface.start(start_time)
+        logger.debug(f"asking kernel module for start at {round(start_time, 2)}")
+        sysfs_interface.set_start(start_time)
         if wait_blocking:
-            self.wait_for_start(1000000)
+            self.wait_for_start(1_000_000)
 
-    def wait_for_start(self, timeout: float):
+    @staticmethod
+    def wait_for_start(timeout: float) -> NoReturn:
         """Waits until shepherd has started sampling.
 
         Args:
@@ -434,10 +459,15 @@ class ShepherdIO(object):
 
     def _cleanup(self):
 
-        try:
-            sysfs_interface.stop()
-        except Exception as e:
-            print(e)
+        while sysfs_interface.get_state() != "idle":
+            try:
+                sysfs_interface.set_stop()
+            except Exception as e:
+                print(e)
+            try:
+                sysfs_interface.wait_for_state("idle", 3.0)
+            except SysfsInterfaceException:
+                logger.warning("CleanupRoutine - send stop-command and waiting for PRU to go to idle")
 
         if self.shared_mem is not None:
             self.shared_mem.__exit__()
@@ -456,17 +486,19 @@ class ShepherdIO(object):
         self.set_lvl_conv(False)
         self._adc_set_power(False)
         self._set_power(False)
-        logger.debug("Analog shepherd_io is powered down")
+        logger.debug("Shepherd hardware is powered down")
 
-    def _set_power(self, state: bool):
-        """Controls state of main analog power supply on shepherd cape.
+    def _set_power(self, state: bool) -> NoReturn:
+        """ Controls state of main analog power supply on shepherd cape.
 
         Args:
             state (bool): True for on, False for off
         """
+        state_str = "enabled" if state else "disabled"
+        logger.debug(f"Set power-supplies of shepherd-cape to {state_str}")
         self.gpios["en_v_anlg"].write(state)
 
-    def set_mppt(self, state: bool):
+    def set_mppt(self, state: bool) -> NoReturn:
         """Enables or disables Maximum Power Point Tracking of BQ25505
 
         TI's BQ25505 implements an MPPT algorithm, that dynamically adapts
@@ -478,9 +510,11 @@ class ShepherdIO(object):
         Args:
             state (bool): True for enabling MPPT, False for disabling
         """
+        state_str = "enabled" if state else "disabled"
+        logger.debug(f"Set MPPT-state of BW25505 to {state_str}")
         self.gpios["en_mppt"].write(not state)
 
-    def set_harvester(self, state: bool):
+    def set_harvester(self, state: bool) -> NoReturn:
         """Enables or disables connection to the harvester.
 
         The harvester is connected to the main power path of the shepherd cape
@@ -490,9 +524,11 @@ class ShepherdIO(object):
         Args:
             state (bool): True for enabling harvester, False for disabling
         """
+        state_str = "enabled" if state else "disabled"
+        logger.debug(f"Connection to Harvester is {state_str}")
         self.gpios["en_hrvst"].write(state)
 
-    def set_ldo_voltage(self, voltage: float):
+    def set_ldo_voltage(self, voltage: float) -> NoReturn:
         """Enables or disables the constant voltage regulator.
 
         The shepherd cape has a linear regulator that is connected to the load
@@ -512,7 +548,7 @@ class ShepherdIO(object):
         self.ldo.set_voltage(voltage)
         self.ldo.set_output(True)
 
-    def set_lvl_conv(self, state: bool):
+    def set_lvl_conv(self, state: bool) -> NoReturn:
         """Enables or disables the GPIO level converter.
 
         The shepherd cape has a bi-directional logic level shifter (TI TXB0304)
@@ -522,9 +558,11 @@ class ShepherdIO(object):
         Args:
             state (bool): True for enabling converter, False for disabling
         """
+        state_str = "enabled" if state else "disabled"
+        logger.debug(f"Connection to Harvester is {state_str}")
         self.gpios["en_lvl_cnv"].write(state)
 
-    def set_load(self, load: str):
+    def set_load(self, load: str) -> NoReturn:
         """Selects which load is connected to shepherd's output.
 
         The output of the main power path can be connected either to the
@@ -546,7 +584,7 @@ class ShepherdIO(object):
         else:
             raise NotImplementedError('Load "{}" not supported'.format(load))
 
-    def _adc_set_power(self, state: bool):
+    def _adc_set_power(self, state: bool) -> NoReturn:
         """Controls power/reset of shepherd's ADC.
 
         The TI ADS8694 has a power/reset pin, that can be used to power down
@@ -558,7 +596,7 @@ class ShepherdIO(object):
         """
         self.gpios["adc_rst_pdn"].write(state)
 
-    def set_harvesting_voltage(self, voltage: float):
+    def set_harvesting_voltage(self, voltage: float) -> NoReturn:
         """Sets the reference voltage for the boost converter
 
         In some cases, it is necessary to fix the harvesting voltage, instead
@@ -577,56 +615,7 @@ class ShepherdIO(object):
         dac_value = calibration_default.voltage_to_dac(voltage)
         sysfs_interface.set_harvesting_voltage(dac_value)
 
-    def send_calibration_settings(self, calibration_settings: CalibrationData):
-        """Sends calibration settings to PRU core
-
-        For virtcap it is required to have the calibration settings.
-
-        Args:
-            calibration_settings (CalibrationData): Contains the device's
-            calibration settings.
-        """
-
-        sysfs_interface.send_calibration_settings(
-            int(1 / calibration_settings["load"]["current"]["gain"]),
-            int(
-                calibration_settings["load"]["current"]["offset"]
-                / calibration_settings["load"]["current"]["gain"]
-            ),
-            int(1 / calibration_settings["load"]["voltage"]["gain"]),
-            int(
-                calibration_settings["load"]["voltage"]["offset"]
-                / calibration_settings["load"]["voltage"]["gain"]
-            ),
-        )
-
-    def send_virtcap_settings(self, virtcap_settings: dict):
-        """Sends virtcap settings to PRU core
-
-        For virtcap it is required to have the virtcap settings.
-
-        Args:
-            virtcap_settings (dict): Contains the virtcap settings.
-        """
-
-        def flatten(L):
-            if len(L) == 1:
-                if type(L[0]) == list:
-                    result = flatten(L[0])
-                else:
-                    result = L
-            elif type(L[0]) == list:
-                result = flatten(L[0]) + flatten(L[1:])
-            else:
-                result = [L[0]] + flatten(L[1:])
-            return result
-
-        values = virtcap_settings.values()
-        values = flatten(list(values))
-
-        sysfs_interface.send_virtcap_settings(values)
-
-    def _release_buffer(self, index: int):
+    def _return_buffer(self, index: int) -> NoReturn:
         """Returns a buffer to the PRU
 
         After reading the content of a buffer and potentially filling it with
@@ -637,10 +626,10 @@ class ShepherdIO(object):
             index (int): Index of the buffer. 0 <= index < n_buffers
         """
 
-        logger.debug(f"Releasing buffer #{ index } to PRU")
+        logger.debug(f"Returning buffer #{ index } to PRU")
         self._send_msg(commons.MSG_DEP_BUF_FROM_HOST, index)
 
-    def get_buffer(self, timeout: float = 1.0):
+    def get_buffer(self, timeout: float = 1.0) -> NoReturn:
         """Reads a data buffer from shared memory.
 
         Polls the RPMSG channel for a message from PRU0 and, if the message
