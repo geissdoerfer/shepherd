@@ -61,7 +61,7 @@ def test_create_logwriter_with_force(tmp_path, calibration_data):
     stat = d.stat()
     time.sleep(0.1)
 
-    h = LogWriter(store_path=d, calibration_data=calibration_data, force=False)
+    h = LogWriter(store_path=d, calibration_data=calibration_data, force_overwrite=False)
     h.__enter__()
     h.__exit__()
     # This should have created the following alternative file:
@@ -69,7 +69,7 @@ def test_create_logwriter_with_force(tmp_path, calibration_data):
     assert h.store_path == d_altered
     assert d_altered.exists()
 
-    h = LogWriter(store_path=d, calibration_data=calibration_data, force=True)
+    h = LogWriter(store_path=d, calibration_data=calibration_data, force_overwrite=True)
     h.__enter__()
     h.__exit__()
     new_stat = d.stat()

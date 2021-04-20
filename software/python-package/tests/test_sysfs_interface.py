@@ -8,35 +8,9 @@ from shepherd import sysfs_interface
 from shepherd.calibration import CalibrationData
 
 
-@pytest.fixture
-def virtcap_settings():
-    here = Path(__file__).absolute()
-    name = "virtcap_settings.yml"
-    file_path = here.parent / name
-    with open(file_path, "r") as config_data:
-        virtcap_settings = yaml.safe_load(config_data)
-
-    def flatten(L):
-        if len(L) == 1:
-            if type(L[0]) == list:
-                result = flatten(L[0])
-            else:
-                result = L
-        elif type(L[0]) == list:
-            result = flatten(L[0]) + flatten(L[1:])
-        else:
-            result = [L[0]] + flatten(L[1:])
-        return result
-
-    values = virtcap_settings["virtcap"].values()
-    values = flatten(list(values))
-
-    return values
-
-
 @pytest.fixture()
 def shepherd_running(shepherd_up):
-    sysfs_interface.start()
+    sysfs_interface.set_start()
     sysfs_interface.wait_for_state("running", 5)
 
 
@@ -73,25 +47,25 @@ def test_getters_fail(shepherd_down, attr):
 
 @pytest.mark.hardware
 def test_start(shepherd_up):
-    sysfs_interface.start()
+    sysfs_interface.set_start()
     time.sleep(5)
     assert sysfs_interface.get_state() == "running"
     with pytest.raises(sysfs_interface.SysfsInterfaceException):
-        sysfs_interface.start()
+        sysfs_interface.set_start()
 
 
 @pytest.mark.hardware
 def test_wait_for_state(shepherd_up):
-    sysfs_interface.start()
+    sysfs_interface.set_start()
     assert sysfs_interface.wait_for_state("running", 3) < 3
-    sysfs_interface.stop()
+    sysfs_interface.set_stop()
     assert sysfs_interface.wait_for_state("idle", 3) < 3
 
 
 @pytest.mark.hardware
 def test_start_delayed(shepherd_up):
     start_time = time.time() + 5
-    sysfs_interface.start(start_time)
+    sysfs_interface.set_start(start_time)
 
     sysfs_interface.wait_for_state("armed", 1)
     with pytest.raises(sysfs_interface.SysfsInterfaceException):
@@ -100,7 +74,7 @@ def test_start_delayed(shepherd_up):
     sysfs_interface.wait_for_state("running", 3)
 
     with pytest.raises(sysfs_interface.SysfsInterfaceException):
-        sysfs_interface.start()
+        sysfs_interface.set_start()
 
 
 @pytest.mark.parametrize("mode", ["harvesting", "load", "emulation"])
@@ -141,51 +115,3 @@ def test_harvesting_voltage_fail_mode(shepherd_up, mode):
     sysfs_interface.set_mode(mode)
     with pytest.raises(sysfs_interface.SysfsInterfaceException):
         sysfs_interface.set_harvesting_voltage(2 ** 15)
-
-
-@pytest.mark.hardware
-def test_calibration_settings(shepherd_up, calibration_settings):
-    (
-        current_gain,
-        current_offset,
-        voltage_gain,
-        voltage_offset,
-    ) = calibration_settings
-    sysfs_interface.send_calibration_settings(
-        current_gain, current_offset, voltage_gain, voltage_offset
-    )
-    assert sysfs_interface.get_calibration_settings() == (
-        current_gain,
-        current_offset,
-        voltage_gain,
-        voltage_offset,
-    )
-
-
-@pytest.mark.hardware
-def test_initial_calibration_settings(shepherd_up, calibration_settings):
-    (
-        current_gain,
-        current_offset,
-        voltage_gain,
-        voltage_offset,
-    ) = calibration_settings
-    assert sysfs_interface.get_calibration_settings() == (
-        current_gain,
-        current_offset,
-        voltage_gain,
-        voltage_offset,
-    )
-
-
-@pytest.mark.hardware
-def test_virtcap_settings(shepherd_up, virtcap_settings):
-    sysfs_interface.send_virtcap_settings(virtcap_settings)
-    str_values = " ".join(str(i) for i in virtcap_settings)
-    assert sysfs_interface.get_virtcap_settings() == str_values
-
-
-@pytest.mark.hardware
-def test_initial_virtcap_settings(shepherd_up, virtcap_settings):
-    str_values = " ".join(str(i) for i in virtcap_settings)
-    assert sysfs_interface.get_virtcap_settings() == str_values

@@ -141,59 +141,6 @@ def test_emulate(shepherd_up, cli_runner, tmp_path, data_h5):
 
 @pytest.mark.hardware
 @pytest.mark.timeout(60)
-def test_virtcap_emulate(shepherd_up, cli_runner, tmp_path, data_h5):
-    here = Path(__file__).absolute()
-    name = "virtcap_settings.yml"
-    file_path = here.parent / name
-    store = tmp_path / "out.h5"
-    res = cli_runner.invoke(
-        cli,
-        [
-            "-vvv",
-            "emulate",
-            "-l",
-            "10",
-            "--config",
-            f"{str(file_path)}",
-            "-o",
-            f"{str(store)}",
-            f"{str(data_h5)}",
-        ],
-    )
-
-    assert res.exit_code == 0
-    assert store.exists()
-
-
-@pytest.mark.hardware
-@pytest.mark.timeout(60)
-def test_virtcap_emulate_wrong_option(
-    shepherd_up, cli_runner, tmp_path, data_h5
-):
-    here = Path(__file__).absolute()
-    name = "virtcap_settings.yml"
-    file_path = here.parent / name
-    store = tmp_path / "out.h5"
-    res = cli_runner.invoke(
-        cli,
-        [
-            "-vvv",
-            "emulate",
-            "-l",
-            "10",
-            "--virtcap",
-            f"{str(file_path)}",
-            "-o",
-            f"{str(store)}",
-            f"{str(data_h5)}",
-        ],
-    )
-
-    assert res.exit_code != 0
-
-
-@pytest.mark.hardware
-@pytest.mark.timeout(60)
 def test_emulate_ldo_short(shepherd_up, cli_runner, tmp_path, data_h5):
     store = tmp_path / "out.h5"
     res = cli_runner.invoke(

@@ -14,7 +14,7 @@ def data_calibration():
 @pytest.fixture
 def data_example_yml():
     here = Path(__file__).absolute()
-    name = "capedata_example.yml"
+    name = "example_capedata.yml"
     return here.parent / name
 
 
