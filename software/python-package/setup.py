@@ -23,7 +23,7 @@ if not os.getenv("READTHEDOCS"):
 setup(
     name="shepherd",
     version="0.2.6",
-    description=("Synchronized Energy Harvesting" "Emulator and Recorder"),
+    description="Synchronized Energy Harvesting Emulator and Recorder",
     packages=["shepherd"],
     classifiers=[
         # How mature is this project? Common values are
