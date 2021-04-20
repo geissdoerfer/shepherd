@@ -4,7 +4,7 @@ from pathlib import Path
 from shepherd import EEPROM
 from shepherd import CapeData
 from shepherd import CalibrationData
-
+from shepherd.calibration import cal_parameter_list, cal_channel_list, cal_component_list
 
 @pytest.fixture()
 def data_calibration():
@@ -70,13 +70,13 @@ def test_from_yaml(data_example_yml):
     assert data["serial_number"] == "0119XXXX0001"
 
 
-@pytest.mark.eeprom_wp
+@pytest.mark.eeprom_write
 @pytest.mark.hardware
 def test_read_raw(eeprom_open):
     eeprom_open._read(0, 4)
 
 
-@pytest.mark.eeprom_wp
+@pytest.mark.eeprom_write
 @pytest.mark.hardware
 def test_write_raw(eeprom_retained, data_test_string):
     eeprom_retained._write(0, data_test_string)
@@ -84,7 +84,7 @@ def test_write_raw(eeprom_retained, data_test_string):
     assert data == data_test_string
 
 
-@pytest.mark.eeprom_wp
+@pytest.mark.eeprom_write
 @pytest.mark.hardware
 def test_read_value(eeprom_with_data, data_example):
     with pytest.raises(KeyError):
@@ -92,7 +92,7 @@ def test_read_value(eeprom_with_data, data_example):
     assert eeprom_with_data["version"] == data_example["version"]
 
 
-@pytest.mark.eeprom_wp
+@pytest.mark.eeprom_write
 @pytest.mark.hardware
 def test_write_value(eeprom_retained, data_example):
     with pytest.raises(KeyError):
@@ -102,7 +102,7 @@ def test_write_value(eeprom_retained, data_example):
     assert eeprom_retained["version"] == "1234"
 
 
-@pytest.mark.eeprom_wp
+@pytest.mark.eeprom_write
 @pytest.mark.hardware
 def test_write_capedata(eeprom_retained, data_example):
     eeprom_retained.write_cape_data(data_example)
@@ -113,7 +113,7 @@ def test_write_capedata(eeprom_retained, data_example):
             assert eeprom_retained[key] == value
 
 
-@pytest.mark.eeprom_wp
+@pytest.mark.eeprom_write
 @pytest.mark.hardware
 def test_read_capedata(eeprom_with_data, data_example):
     cape_data = eeprom_with_data.read_cape_data()
@@ -121,27 +121,27 @@ def test_read_capedata(eeprom_with_data, data_example):
         assert data_example[key] == cape_data[key]
 
 
-@pytest.mark.eeprom_wp
+@pytest.mark.eeprom_write
 @pytest.mark.hardware
 def test_write_calibration(eeprom_retained, data_calibration):
     eeprom_retained.write_calibration(data_calibration)
     calib_restored = eeprom_retained.read_calibration()
-    for component in ["harvesting", "load", "emulation"]:
-        for channel in ["voltage", "current"]:
-            for parameter in ["gain", "offset"]:
+    for component in cal_component_list:
+        for channel in cal_channel_list:
+            for parameter in cal_parameter_list:
                 assert (
                     calib_restored[component][channel][parameter]
                     == data_calibration[component][channel][parameter]
                 )
 
 
-@pytest.mark.eeprom_wp
+@pytest.mark.eeprom_write
 @pytest.mark.hardware
 def test_read_calibration(eeprom_with_calibration, data_calibration):
     calib_restored = eeprom_with_calibration.read_calibration()
-    for component in ["harvesting", "load", "emulation"]:
-        for channel in ["voltage", "current"]:
-            for parameter in ["gain", "offset"]:
+    for component in cal_component_list:
+        for channel in cal_channel_list:
+            for parameter in cal_parameter_list:
                 assert (
                     calib_restored[component][channel][parameter]
                     == data_calibration[component][channel][parameter]

@@ -9,6 +9,7 @@ from itertools import product
 from shepherd import LogReader
 from shepherd import LogWriter
 from shepherd import CalibrationData
+from shepherd.calibration import cal_parameter_list, cal_channel_list
 
 from shepherd.shepherd_io import DataBuffer
 from shepherd.datalog import GPIOEdges
@@ -104,9 +105,7 @@ def test_calibration_logging(mode, tmp_path, calibration_data):
 
     h5store = h5py.File(d, "r")
 
-    for channel, parameter in product(
-        ["voltage", "current"], ["gain", "offset"]
-    ):
+    for channel, parameter in product(cal_channel_list, cal_parameter_list):
         assert (
             h5store["data"][channel].attrs[parameter]
             == calibration_data["load"][channel][parameter]

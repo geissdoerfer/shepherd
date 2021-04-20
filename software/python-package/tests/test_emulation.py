@@ -44,7 +44,7 @@ def log_writer(tmp_path):
 
 @pytest.fixture()
 def log_reader(data_h5):
-    with LogReader(data_h5, 10000) as lr:
+    with LogReader(data_h5, 10_000) as lr:
         yield lr
 
 
