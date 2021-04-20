@@ -19,6 +19,21 @@ from pathlib import Path
 
 from shepherd import calibration_default
 
+# gain and offset will be normalized to SI-Units, most likely V, A
+# -> general formula is:    si-value = raw_value * gain + offset
+cal_component_list = ["harvesting", "load", "emulation"]
+cal_channel_list = ["voltage", "current"]
+cal_parameter_list = ["gain", "offset"]
+
+
+# slim alternative to the methods (same name) of CalibrationData
+def convert_raw_to_value(cal_dict: dict, raw: int) -> float:  # more precise dict[str, int], trouble with py3.6
+    return (float(raw) * cal_dict["gain"]) + cal_dict["offset"]
+
+
+def convert_value_to_raw(cal_dict: dict, value: float) -> int:  # more precise dict[str, int], trouble with py3.6
+    return int((value - cal_dict["offset"]) / cal_dict["gain"])
+
 
 class CalibrationData(object):
     """Represents SHEPHERD calibration data.
@@ -51,15 +66,16 @@ class CalibrationData(object):
         Returns:
             CalibrationData object with extracted calibration data.
         """
-        vals = struct.unpack(">dddddddddddd", bytestr)
+        val_count = len(cal_component_list) * len(cal_channel_list) * len(cal_parameter_list)
+        values = struct.unpack(">" + val_count * "d", bytestr)  # X double float, big endian
         calib_dict = dict()
         counter = 0
-        for component in ["harvesting", "load", "emulation"]:
+        for component in cal_component_list:
             calib_dict[component] = dict()
-            for channel in ["voltage", "current"]:
+            for channel in cal_channel_list:
                 calib_dict[component][channel] = dict()
-                for parameter in ["gain", "offset"]:
-                    val = float(vals[counter])
+                for parameter in cal_parameter_list:
+                    val = float(values[counter])
                     if np.isnan(val):
                         raise ValueError(
                             f"{ component } { channel } { parameter } not a valid number"
@@ -76,9 +92,9 @@ class CalibrationData(object):
             CalibrationData object with default calibration values.
         """
         calib_dict = dict()
-        for component in ["harvesting", "load"]:
+        for component in cal_component_list[:1]:
             calib_dict[component] = dict()
-            for channel in ["voltage", "current"]:
+            for channel in cal_channel_list:
                 calib_dict[component][channel] = dict()
                 offset = getattr(calibration_default, f"{ channel }_to_adc")(0)
                 gain = (
