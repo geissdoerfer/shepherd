@@ -44,7 +44,7 @@ def data_h5(tmp_path):
 def test_record(shepherd_up, cli_runner, tmp_path):
     store = tmp_path / "out.h5"
     res = cli_runner.invoke(
-        cli, ["-vvv", "record", "-l", "10", "-o", f"{str(store)}"]
+        cli, ["-vvv", "record", "-d", "10", "-o", f"{str(store)}"]
     )
 
     assert res.exit_code == 0
@@ -56,7 +56,7 @@ def test_record(shepherd_up, cli_runner, tmp_path):
 def test_record_ldo_short(shepherd_up, cli_runner, tmp_path):
     store = tmp_path / "out.h5"
     res = cli_runner.invoke(
-        cli, ["-vvv", "record", "-l", "10", "-o", f"{str(store)}", "-c", "2.5"]
+        cli, ["-vvv", "record", "-d", "10", "-o", f"{str(store)}", "-c", "2.5"]
     )
 
     assert res.exit_code == 0
@@ -72,7 +72,7 @@ def test_record_ldo_explicit(shepherd_up, cli_runner, tmp_path):
         [
             "-vvv",
             "record",
-            "-l",
+            "-d",
             "10",
             "-o",
             f"{str(store)}",
@@ -94,7 +94,7 @@ def test_record_ldo_fail(shepherd_up, cli_runner, tmp_path):
         [
             "-vvv",
             "record",
-            "-l",
+            "-d",
             "10",
             "-f",
             "-o",
@@ -111,7 +111,7 @@ def test_record_ldo_fail(shepherd_up, cli_runner, tmp_path):
 def test_record_no_calib(shepherd_up, cli_runner, tmp_path):
     store = tmp_path / "out.h5"
     res = cli_runner.invoke(
-        cli, ["-vvv", "record", "-l", "10", "--no-calib", "-o", f"{str(store)}"]
+        cli, ["-vvv", "record", "-d", "10", "--no-calib", "-o", f"{str(store)}"]
     )
 
     assert res.exit_code == 0
@@ -127,7 +127,7 @@ def test_emulate(shepherd_up, cli_runner, tmp_path, data_h5):
         [
             "-vvv",
             "emulate",
-            "-l",
+            "-d",
             "10",
             "-o",
             f"{str(store)}",
@@ -148,7 +148,7 @@ def test_emulate_ldo_short(shepherd_up, cli_runner, tmp_path, data_h5):
         [
             "-vvv",
             "emulate",
-            "-l",
+            "-d",
             "10",
             "-c",
             "2.5",
@@ -169,7 +169,7 @@ def test_emulate_ldo_fail(shepherd_up, cli_runner, tmp_path, data_h5):
         cli,
         [
             "-vvv" "emulate",
-            "-l",
+            "-d",
             "10",
             "-c",
             "5.0",
