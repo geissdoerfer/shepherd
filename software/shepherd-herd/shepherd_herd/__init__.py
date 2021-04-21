@@ -361,7 +361,7 @@ def reset(ctx):
 
 @cli.command(short_help="Records IV data")
 @click.option(
-    "--output",
+    "--output_path",
     "-o",
     type=click.Path(),
     default="/var/shepherd/recordings",
@@ -374,9 +374,9 @@ def reset(ctx):
     help="Record 'harvesting' or 'load' data",
 )
 @click.option(
-    "--length", "-l", type=float, help="Duration of recording in seconds"
+    "--duration", "-d", type=float, help="Duration of recording in seconds"
 )
-@click.option("--force", "-f", is_flag=True, help="Overwrite existing file")
+@click.option("--force_overwrite", "-f", is_flag=True, help="Overwrite existing file")
 @click.option("--no-calib", is_flag=True, help="Use default calibration values")
 @click.option(
     "--harvesting-voltage",
@@ -410,10 +410,10 @@ def reset(ctx):
 @click.pass_context
 def record(
     ctx,
-    output,
+    output_path,
     mode,
-    length,
-    force,
+    duration,
+    force_overwrite,
     no_calib,
     harvesting_voltage,
     load,
@@ -421,15 +421,15 @@ def record(
     ldo_mode,
     start,
 ):
-    fp_output = Path(output)
+    fp_output = Path(output_path)
     if not fp_output.is_absolute():
-        fp_output = Path("/var/shepherd/recordings") / output
+        fp_output = Path("/var/shepherd/recordings") / output_path
 
     parameter_dict = {
-        "output": str(fp_output),
+        "output_path": str(fp_output),
         "mode": mode,
-        "length": length,
-        "force": force,
+        "duration": duration,
+        "force_overwrite": force_overwrite,
         "no_calib": no_calib,
         "harvesting_voltage": harvesting_voltage,
         "load": load,
@@ -450,17 +450,17 @@ def record(
 
 
 @cli.command(short_help="Emulates IV data read from INPUT hdf5 file")
-@click.argument("input", type=click.Path())
+@click.argument("input_path", type=click.Path())
 @click.option(
-    "--output",
+    "--output_path",
     "-o",
     type=click.Path(),
     help="Dir or file path for resulting hdf5 file with load recordings",
 )
 @click.option(
-    "--length", "-l", type=float, help="Duration of recording in seconds"
+    "--duration", "-d", type=float, help="Duration of recording in seconds"
 )
-@click.option("--force", "-f", is_flag=True, help="Overwrite existing file")
+@click.option("--force_overwrite", "-f", is_flag=True, help="Overwrite existing file")
 @click.option("--no-calib", is_flag=True, help="Use default calibration values")
 @click.option(
     "--load",
@@ -484,35 +484,35 @@ def record(
 @click.pass_context
 def emulate(
     ctx,
-    input,
-    output,
-    length,
-    force,
+    input_path,
+    output_path,
+    duration,
+    force_overwrite,
     no_calib,
     load,
     ldo_voltage,
     start,
 ):
 
-    fp_input = Path(input)
+    fp_input = Path(input_path)
     if not fp_input.is_absolute():
-        fp_input = Path("/var/shepherd/recordings") / input
+        fp_input = Path("/var/shepherd/recordings") / input_path
 
     parameter_dict = {
-        "input": str(fp_input),
-        "force": force,
-        "length": length,
+        "input_path": str(fp_input),
+        "force_overwrite": force_overwrite,
+        "duration": duration,
         "no_calib": no_calib,
         "ldo_voltage": ldo_voltage,
         "load": load,
     }
 
-    if output is not None:
-        fp_output = Path(output)
+    if output_path is not None:
+        fp_output = Path(output_path)
         if not fp_output.is_absolute():
-            fp_output = Path("/var/shepherd/recordings") / output
+            fp_output = Path("/var/shepherd/recordings") / output_path
 
-        parameter_dict["output"] = str(fp_output)
+        parameter_dict["output_path"] = str(fp_output)
 
     configure_shepherd(
         ctx.obj["fab group"],
