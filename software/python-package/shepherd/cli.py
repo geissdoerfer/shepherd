@@ -44,7 +44,6 @@ logger = logging.getLogger("shepherd")
 logger.addHandler(consoleHandler)
 
 # TODO: ditch sudo, add user to allow sys_fs-access and other things
-# TODO: ask kai if parameters can renamed on this level (output_path, input_path, duration (instead of length), force_overwrite)
 
 
 def yamlprovider(file_path: str, cmd_name) -> Dict:
@@ -120,26 +119,26 @@ def run(command, parameters: Dict, verbose):
         raise click.BadParameter(f"parameter-argument is not dict, but {type(parameters)} (last occurred with alpha-version of click-lib)")
 
     if command == "record":
-        if "output" in parameters.keys():
-            parameters["output"] = Path(parameters["output"])
+        if "output_path" in parameters.keys():
+            parameters["output_path"] = Path(parameters["output_path"])
         run_record(**parameters)
     elif command == "emulate":
-        if "output" in parameters.keys():
-            parameters["output"] = Path(parameters["output"])
-        if "input" in parameters.keys():
-            parameters["input"] = Path(parameters["input"])
+        if "output_path" in parameters.keys():
+            parameters["output_path"] = Path(parameters["output_path"])
+        if "input_path" in parameters.keys():
+            parameters["input_path"] = Path(parameters["input_path"])
         run_emulate(**parameters)
     else:
         raise click.BadParameter(f"command {command} not supported")
 
 
 @cli.command(short_help="Record data")
-@click.option("--output", "-o", type=click.Path(), default="/var/shepherd/recordings",
+@click.option("--output_path", "-o", type=click.Path(), default="/var/shepherd/recordings",
     help="Dir or file path for resulting hdf5 file")
 @click.option("--mode", type=click.Choice(["harvesting", "load"]), default="harvesting",
     help="Record 'harvesting' or 'load' data")
-@click.option("--length", "-l", type=float, help="Duration of recording in seconds")
-@click.option("--force", "-f", is_flag=True, help="Overwrite existing file")
+@click.option("--duration", "-d", type=float, help="Duration of recording in seconds")
+@click.option("--force_overwrite", "-f", is_flag=True, help="Overwrite existing file")
 @click.option("--no-calib", is_flag=True, help="Use default calibration values")
 @click.option("--voltage", type=float, help="Set fixed reference voltage for harvesting")
 @click.option("--load", type=click.Choice(["artificial", "node"]), default="artificial",
@@ -152,10 +151,10 @@ def run(command, parameters: Dict, verbose):
     help="Desired start time in unix epoch time")
 @click.option("--warn-only/--no-warn-only", default=True, help="Warn only on errors")
 def record(
-    output,
+    output_path,
     mode,
-    length,
-    force,
+    duration,
+    force_overwrite,
     no_calib,
     voltage,
     load,
@@ -165,10 +164,10 @@ def record(
     warn_only,
 ):
     run_record(
-        output_path=Path(output),
+        output_path=Path(output_path),
         mode=mode,
-        duration=length,
-        force_overwrite=force,
+        duration=duration,
+        force_overwrite=force_overwrite,
         no_calib=no_calib,
         harvesting_voltage=voltage,
         load=load,
@@ -181,11 +180,11 @@ def record(
 
 @cli.command(
     short_help="Emulate data, where INPUT is an hdf5 file containing harvesting data")
-@click.argument("input", type=click.Path(exists=True))
-@click.option("--output", "-o", type=click.Path(),
+@click.argument("input_path", "-i", type=click.Path(exists=True))
+@click.option("--output_path", "-o", type=click.Path(),
     help="Dir or file path for storing the load consumption data",)
-@click.option("--length", "-l", type=float, help="Duration of recording in seconds")
-@click.option("--force", "-f", is_flag=True, help="Overwrite existing file")
+@click.option("--duration", "-d", type=float, help="Duration of recording in seconds")
+@click.option("--force_overwrite", "-f", is_flag=True, help="Overwrite existing file")
 @click.option("--no-calib", is_flag=True, help="Use default calibration values")
 @click.option("--load", type=click.Choice(["artificial", "node"]), default="node",
     help="Choose artificial or sensor node load",)
@@ -195,26 +194,26 @@ def record(
 @click.option("--warn-only/--no-warn-only", default=True, help="Warn only on errors")
 @click_config_file.configuration_option(provider=yamlprovider, implicit=False)
 def emulate(
-    input,
-    output,
-    length,
-    force,
+    input_path,
+    output_path,
+    duration,
+    force_overwrite,
     no_calib,
     load,
     ldo_voltage,
     start_time,
     warn_only,
 ):
-    if output is None:
+    if output_path is None:
         pl_store = None
     else:
-        pl_store = Path(output)
+        pl_store = Path(output_path)
 
     run_emulate(
-        input_path=input,
+        input_path=input_path,
         output_path=pl_store,
-        duration=length,
-        force_overwrite=force,
+        duration=duration,
+        force_overwrite=force_overwrite,
         no_calib=no_calib,
         load=load,
         ldo_voltage=ldo_voltage,
@@ -314,17 +313,17 @@ def read(infofile, calibfile):
 )
 @click.argument("filename", type=click.Path(exists=True))
 @click.option(
-    "--output",
+    "--output_path",
     "-o",
     type=click.Path(),
     help="Path to resulting YAML-formatted calibration data file",
 )
-def make(filename, output):
+def make(filename, output_path):
     cd = CalibrationData.from_measurements(filename)
-    if output is None:
+    if output_path is None:
         print(repr(cd))
     else:
-        with open(output, "w") as f:
+        with open(output_path, "w") as f:
             f.write(repr(cd))
 
 
