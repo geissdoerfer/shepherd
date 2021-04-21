@@ -23,7 +23,7 @@ For the cape and capelets take a look at the `hardware design files <https://git
 The capelets can easily be soldered by hand.
 The shepherd cape has a large number of small components and we suggest to send it to a PCB fab for assembly.
 
-Place a capacitor of desired capacitry on your storage capelets.
+Place a capacitor of desired capacity on your storage capelets.
 The reference layout offers a choice of three footprints allowing to flexibly choose a suitable capacitor and package.
 
 If you don't have the necessary resource or need assistance with getting the hardware manufactured, get in touch with the developers.
@@ -135,4 +135,4 @@ Further playbooks:
     - ``setup-dev-nfs.yml`` establish a local network file system ``/opt/shepherd-dev`` for the nodes to access
     - ``setup-ext-storage.yml`` will format and automount sd-card to ''/var/shepherd/recordings''
     - ``deploy.yml`` offers faster and easier way to test updates in shepherd-code-base
-    - ``dev_rebuild_pru.yml`` hot-swaps pru-firmware by compiling and flashing without restart
+    - ``dev_rebuild_pru.yml`` hot-swaps pru-firmware (& kernel-module & py-package) by compiling and flashing without restart

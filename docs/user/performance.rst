@@ -43,9 +43,9 @@ Some of the values were measured with an early prototype and may not accurately 
     +                            +------------------------+----------------------+
     |                            | Load recorder          | 76.1 mV              |
     +----------------------------+------------------------+----------------------+
-    | GPIO sampling speed        |                        | 580 kHz              |
+    | GPIO sampling speed        |                        | 580 kHz - 5 MHz      |
     +----------------------------+------------------------+----------------------+
     | Power consumption          |                        | 345 mA               |
     +----------------------------+------------------------+----------------------+
-    | Max. Synchronization error |                        | 2.4 us               |
+    | Max. Synchronization error |                        | < 1.0 us             |
     +----------------------------+------------------------+----------------------+
