@@ -315,10 +315,10 @@ class ShepherdDebug(ShepherdIO):
 
 
 def record(
-    output: Path,
+    output_path: Path,
     mode: str = "harvesting",
-    length: float = None,
-    force: bool = False,
+    duration: float = None,
+    force_overwrite: bool = False,
     no_calib: bool = False,
     harvesting_voltage: float = None,
     load: str = "artificial",
@@ -330,12 +330,12 @@ def record(
     """Starts recording.
 
     Args:
-        output (Path): Path of hdf5 file where IV measurements should be
+        output_path (Path): Path of hdf5 file where IV measurements should be
             stored
         mode (str): 'harvesting' for recording harvesting data, 'load' for
             recording load consumption data.
-        length (float): Maximum time duration of emulation in seconds
-        force (bool): True to overwrite existing file under output path,
+        duration (float): Maximum time duration of emulation in seconds
+        force_overwrite (bool): True to overwrite existing file under output path,
             False to store under different name
         no_calib (bool): True to use default calibration values, False to
             read calibration data from EEPROM
@@ -368,14 +368,14 @@ def record(
     if start_time is None:
         start_time = time.time() + 15
 
-    if not output.is_absolute():
+    if not output_path.is_absolute():
         raise ValueError("Output must be absolute path")
-    if output.is_dir():
+    if output_path.is_dir():
         timestamp = datetime.datetime.fromtimestamp(start_time)
         timestamp = timestamp.strftime("%Y-%m-%d_%H-%M-%S")  # closest to ISO 8601, avoid ":"
-        store_path = output / f"rec_{timestamp}.h5"
+        store_path = output_path / f"rec_{timestamp}.h5"
     else:
-        store_path = output
+        store_path = output_path
 
     recorder = Recorder(
         mode=mode,
@@ -385,7 +385,7 @@ def record(
         ldo_mode=ldo_mode,
     )
     log_writer = LogWriter(
-        store_path=store_path, calibration_data=calib, mode=mode, force_overwrite=force
+        store_path=store_path, calibration_data=calib, mode=mode, force_overwrite=force_overwrite
     )
 
     with ExitStack() as stack:
@@ -411,10 +411,10 @@ def record(
         signal.signal(signal.SIGTERM, exit_gracefully)  # TODO: should be inserted earlier
         signal.signal(signal.SIGINT, exit_gracefully)
 
-        if length is None:
+        if duration is None:
             ts_end = sys.float_info.max
         else:
-            ts_end = time.time() + length
+            ts_end = time.time() + duration
 
         while time.time() < ts_end:
             try:
@@ -435,10 +435,10 @@ def record(
 
 
 def emulate(
-    input: Path,
-    output: Path = None,
-    length: float = None,
-    force: bool = False,
+    input_path: Path,
+    output_path: Path = None,
+    duration: float = None,
+    force_overwrite: bool = False,
     no_calib: bool = False,
     load: str = "artificial",
     ldo_voltage: float = None,
@@ -448,12 +448,12 @@ def emulate(
     """ Starts emulation.
 
     Args:
-        input (Path): path of hdf5 file containing recorded
+        input_path (Path): path of hdf5 file containing recorded
             harvesting data
-        output (Path): Path of hdf5 file where load measurements should
+        output_path (Path): Path of hdf5 file where load measurements should
             be stored
-        length (float): Maximum time duration of emulation in seconds
-        force (bool): True to overwrite existing file under output,
+        duration (float): Maximum time duration of emulation in seconds
+        force_overwrite (bool): True to overwrite existing file under output,
             False to store under different name
         no_calib (bool): True to use default calibration values, False to
             read calibration data from EEPROM
@@ -482,34 +482,34 @@ def emulate(
     if start_time is None:
         start_time = time.time() + 15
 
-    if output is not None:
-        if not output.is_absolute():
+    if output_path is not None:
+        if not output_path.is_absolute():
             raise ValueError("Output must be absolute path")
-        if output.is_dir():
+        if output_path.is_dir():
             timestamp = datetime.datetime.fromtimestamp(start_time)
             timestamp = timestamp.strftime("%Y-%m-%d_%H-%M-%S")  # closest to ISO 8601, avoid ":"
-            store_path = output / f"emu_{timestamp}.h5"
+            store_path = output_path / f"emu_{timestamp}.h5"
         else:
-            store_path = output
+            store_path = output_path
 
         log_writer = LogWriter(
             store_path=store_path,
-            force_overwrite=force,
+            force_overwrite=force_overwrite,
             mode="load",
             calibration_data=calib,
         )
 
-    if input is str:
-        input = Path(input)
-    if input is None:
+    if input_path is str:
+        input_path = Path(input_path)
+    if input_path is None:
         raise ValueError("No Input-File configured for emulation")
-    if not input.exists():
+    if not input_path.exists():
         raise ValueError("Input-File does not exist")
 
-    log_reader = LogReader(input, 10_000)
+    log_reader = LogReader(input_path, 10_000)
 
     with ExitStack() as stack:
-        if output is not None:
+        if output_path is not None:
             stack.enter_context(log_writer)
 
         stack.enter_context(log_reader)
@@ -537,10 +537,10 @@ def emulate(
         signal.signal(signal.SIGTERM, exit_gracefully)
         signal.signal(signal.SIGINT, exit_gracefully)
 
-        if length is None:
+        if duration is None:
             ts_end = sys.float_info.max
         else:
-            ts_end = time.time() + length
+            ts_end = time.time() + duration
 
         for hrvst_buf in log_reader.read_buffers(start=64):
             try:
@@ -549,7 +549,7 @@ def emulate(
                 logger.error(
                     f"ShepherdIOException(ID={e.id}, val={e.value}): {str(e)}"
                 )
-                if output is not None:
+                if output_path is not None:
                     err_rec = ExceptionRecord(
                         int(time.time() * 1e9), str(e), e.value
                     )
@@ -558,7 +558,7 @@ def emulate(
                 if not warn_only:
                     raise
 
-            if output is not None:
+            if output_path is not None:
                 log_writer.write_buffer(emu_buf)
 
             emu.return_buffer(idx, hrvst_buf)
@@ -570,7 +570,7 @@ def emulate(
         while True:
             try:
                 idx, emu_buf = emu.get_buffer(timeout=1)
-                if output is not None:
+                if output_path is not None:
                     log_writer.write_buffer(emu_buf)
             except ShepherdIOException as e:
                 # We're done when the PRU has processed all emulation data buffers
