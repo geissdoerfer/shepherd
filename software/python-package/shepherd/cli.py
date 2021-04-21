@@ -165,10 +165,10 @@ def record(
     warn_only,
 ):
     run_record(
-        output_path=Path(output),
+        output=Path(output),
         mode=mode,
-        duration=length,
-        force_overwrite=force,
+        length=length,
+        force=force,
         no_calib=no_calib,
         harvesting_voltage=voltage,
         load=load,
@@ -211,10 +211,10 @@ def emulate(
         pl_store = Path(output)
 
     run_emulate(
-        input_path=input,
-        output_path=pl_store,
-        duration=length,
-        force_overwrite=force,
+        input=input,
+        output=pl_store,
+        length=length,
+        force=force,
         no_calib=no_calib,
         load=load,
         ldo_voltage=ldo_voltage,
