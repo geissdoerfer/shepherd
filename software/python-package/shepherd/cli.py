@@ -180,7 +180,7 @@ def record(
 
 @cli.command(
     short_help="Emulate data, where INPUT is an hdf5 file containing harvesting data")
-@click.argument("input_path", "-i", type=click.Path(exists=True))
+@click.argument("input_path", type=click.Path(exists=True))
 @click.option("--output_path", "-o", type=click.Path(),
     help="Dir or file path for storing the load consumption data",)
 @click.option("--duration", "-d", type=float, help="Duration of recording in seconds")
