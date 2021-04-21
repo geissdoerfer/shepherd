@@ -78,15 +78,18 @@ class Launcher(object):
         press while idle causes system shutdown.
         """
         while True:
-            logger.info("waiting for edge..")
+            logger.info("waiting for falling edge..")
             self.gpio_led.write(True)
-            self.gpio_button.poll()
+            if not self.gpio_button.poll():
+                # note: poll is suspected to exit after ~ 1-2 weeks running -> fills mmc with random measurement
+                # TODO: observe behavior, hopefully this change fixes the bug
+                continue
             self.gpio_led.write(False)
             logger.debug("edge detected")
             if not self.get_state():
                 time.sleep(0.25)
                 if self.gpio_button.poll(timeout=5):
-                    logging.debug("edge detected")
+                    logging.debug("falling edge detected")
                     logging.info("shutdown requested")
                     self.initiate_shutdown()
                     self.gpio_led.write(False)
