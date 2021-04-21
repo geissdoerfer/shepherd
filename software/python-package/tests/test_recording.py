@@ -59,10 +59,10 @@ def test_recorder(log_writer, recorder):
 @pytest.mark.hardware
 @pytest.mark.timeout(40)
 def test_record_fn(tmp_path, shepherd_up):
-    d = tmp_path / "rec.h5"
+    output = tmp_path / "rec.h5"
     start_time = int(time.time() + 10)
     record(
-        output_path=d,
+        output_path=output,
         mode="harvesting",
         duration=10,
         force_overwrite=True,
@@ -74,7 +74,7 @@ def test_record_fn(tmp_path, shepherd_up):
         start_time=start_time,
     )
 
-    with h5py.File(d, "r+") as hf:
+    with h5py.File(output, "r+") as hf:
         n_samples = hf["data"]["time"].shape[0]
         assert 900_000 < n_samples <= 1_100_000
         assert hf["data"]["time"][0] == start_time * 10**9
