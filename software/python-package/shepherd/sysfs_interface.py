@@ -86,9 +86,9 @@ def set_start(start_time: float = None):
         if isinstance(start_time, float):
             start_time = int(start_time)
         if isinstance(start_time, int):
+            logger.debug(f"writing start-time = {start_time} to sysfs")
             f.write(f"{start_time}")
         else:  # unknown type
-            f.write(f"{start_time}")
             logger.debug(f"writing 'start' to sysfs")
             f.write("start")
 

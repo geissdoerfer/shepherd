@@ -443,7 +443,8 @@ class ShepherdIO(object):
             start_time (int): Desired start time in unix time
             wait_blocking (bool): If true, block until start has completed
         """
-        logger.debug(f"asking kernel module for start at {round(start_time, 2)}")
+        if isinstance(start_time, float):
+            logger.debug(f"asking kernel module for start at {round(start_time, 2)}")
         sysfs_interface.set_start(start_time)
         if wait_blocking:
             self.wait_for_start(1_000_000)

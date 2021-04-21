@@ -92,7 +92,7 @@ class CalibrationData(object):
             CalibrationData object with default calibration values.
         """
         calib_dict = dict()
-        for component in cal_component_list[:1]:
+        for component in cal_component_list[:2]:
             calib_dict[component] = dict()
             for channel in cal_channel_list:
                 calib_dict[component][channel] = dict()
@@ -107,7 +107,7 @@ class CalibrationData(object):
                 calib_dict[component][channel]["gain"] = 1.0 / float(gain)
 
         calib_dict["emulation"] = dict()
-        for channel in ["voltage", "current"]:
+        for channel in cal_channel_list:
             calib_dict["emulation"][channel] = dict()
             offset = getattr(calibration_default, f"dac_to_{ channel }")(0)
             gain = (
@@ -153,9 +153,9 @@ class CalibrationData(object):
 
         calib_dict = dict()
 
-        for component in ["harvesting", "load", "emulation"]:
+        for component in cal_component_list:
             calib_dict[component] = dict()
-            for channel in ["voltage", "current"]:
+            for channel in cal_channel_list:
                 calib_dict[component][channel] = dict()
                 sample_points = calib_data["measurements"][component][channel]
                 x = np.empty(len(sample_points))
@@ -178,9 +178,9 @@ class CalibrationData(object):
             Byte string representation of calibration values.
         """
         flattened = list()
-        for component in ["harvesting", "load", "emulation"]:
-            for channel in ["voltage", "current"]:
-                for parameter in ["gain", "offset"]:
+        for component in cal_component_list:
+            for channel in cal_channel_list:
+                for parameter in cal_parameter_list:
                     flattened.append(self._data[component][channel][parameter])
 
         return struct.pack(">dddddddddddd", *flattened)
