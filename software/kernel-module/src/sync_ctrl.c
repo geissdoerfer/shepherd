@@ -165,7 +165,7 @@ enum hrtimer_restart sync_loop_callback(struct hrtimer *timer_for_restart)
         if (ctrl_req.identifier != MSG_SYNC_CTRL_REQ)
         {
             /* Error occurs if something writes over boundaries */
-            printk(KERN_ERR "shprd: Kernel Recv_CtrlRequest -> mem corruption?\n");
+            printk(KERN_ERR "shprd.k: Kernel Recv_CtrlRequest -> mem corruption?\n");
         }
 
         sync_loop(&ctrl_rep, &ctrl_req);
@@ -173,7 +173,7 @@ enum hrtimer_restart sync_loop_callback(struct hrtimer *timer_for_restart)
         if (!pru_comm_send_ctrl_reply(&ctrl_rep))
         {
             /* Error occurs if PRU was not able to handle previous message in time */
-            printk(KERN_WARNING "shprd: Kernel Send_CtrlResponse -> back-pressure\n");
+            printk(KERN_WARNING "shprd.k: Kernel Send_CtrlResponse -> back-pressure\n");
         }
 
         /* resetting to longest sleep period */
@@ -232,7 +232,7 @@ int sync_loop(struct CtrlRepMsg *const ctrl_rep, const struct CtrlReqMsg *const 
 
     if (0)
     {
-        printk(KERN_ERR "shprd.kM: error=%lld, ns_iep=%lld, ns_sys=%lld, errsum=%lld, prev_period=%u, corr=%d\n",
+        printk(KERN_ERR "shprd.k: error=%lld, ns_iep=%lld, ns_sys=%lld, errsum=%lld, prev_period=%u, corr=%d\n",
                 sync_data->error_now,
                 div_s64(ns_iep_to_wrap, 1ul<<30u),
                 ns_sys_to_wrap,

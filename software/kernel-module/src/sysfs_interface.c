@@ -211,7 +211,7 @@ static ssize_t sysfs_state_store(struct kobject *kobj,
 		getnstimeofday(&ts_now);
 		if (tmp < ts_now.tv_sec + 1)
 			return -EINVAL;
-		printk(KERN_INFO "shprd: Setting start_timestamp to %d", tmp);
+		printk(KERN_INFO "shprd.k: Setting start_timestamp to %d", tmp);
 		pru_comm_set_state(STATE_ARMED);
 		pru_comm_schedule_delayed_start(tmp);
 		return count;
@@ -282,7 +282,7 @@ static ssize_t sysfs_mode_store(struct kobject *kobj,
 		return -EINVAL;
 
 	writel(mode, pru_shared_mem_io + kobj_attr_wrapped->val_offset);
-	printk(KERN_INFO "shprd: new mode = %d (%s)", mode, buf);
+	printk(KERN_INFO "shprd.k: new mode = %d (%s)", mode, buf);
 	pru_comm_set_state(STATE_RESET);
 	return count;
 }
@@ -300,7 +300,7 @@ static ssize_t sysfs_harvesting_voltage_store(struct kobject *kobj,
 	kobj_attr_wrapped = container_of(attr, struct kobj_attr_struct_s, attr);
 
 	if (sscanf(buf, "%u", &tmp) == 1) {
-		printk(KERN_INFO "shprd: Setting harvesting voltage to raw %u",
+		printk(KERN_INFO "shprd.k: Setting harvesting voltage to raw %u",
 		       tmp);
 		writel(tmp, pru_shared_mem_io + kobj_attr_wrapped->val_offset);
 
@@ -319,12 +319,12 @@ int sysfs_interface_init(void)
 	kobj_ref = kobject_create_and_add("shepherd", NULL);
 
 	if ((retval = sysfs_create_file(kobj_ref, &attr_state.attr))) {
-		printk(KERN_ERR "Cannot create sysfs state attrib\n");
+		printk(KERN_ERR "shprd.k: Cannot create sysfs state attrib\n");
 		goto r_sysfs;
 	}
 
 	if ((retval = sysfs_create_group(kobj_ref, &attr_group))) {
-		printk(KERN_ERR "shprd: cannot create sysfs attrib group\n");
+		printk(KERN_ERR "shprd.k: cannot create sysfs attrib group\n");
 		goto r_state;
 	};
 
@@ -332,7 +332,7 @@ int sysfs_interface_init(void)
 
 	if ((retval = sysfs_create_group(kobj_mem_ref, &attr_mem_group))) {
 		printk(KERN_ERR
-		       "shprd: cannot create sysfs memory attrib group\n");
+		       "shprd.k: cannot create sysfs memory attrib group\n");
 		goto r_group;
 	};
 
@@ -340,7 +340,7 @@ int sysfs_interface_init(void)
 
 	if ((retval = sysfs_create_group(kobj_sync_ref, &attr_sync_group))) {
 		printk(KERN_ERR
-		       "shprd: cannot create sysfs sync attrib group\n");
+		       "shprd.k: cannot create sysfs sync attrib group\n");
 		goto r_mem;
 	};
 

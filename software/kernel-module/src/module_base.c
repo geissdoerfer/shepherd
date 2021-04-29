@@ -52,7 +52,7 @@ int pru_recvd(void *data, unsigned int len)
 		rpmsg_pru_send(&ctrl_rep, sizeof(struct CtrlRepMsg));
 		break;
 	default:
-		printk(KERN_INFO "shprd: PRU-RPMSG = %s\n", msg);
+		printk(KERN_INFO "shprd.pru: RPMSG = %s\n", msg);
         reset_prev_timestamp(); /* not correct place, but there is no sync-restart-detection yet */
 	}
 	return 0;
@@ -108,7 +108,7 @@ get_shepherd_platform_data(struct platform_device *pdev)
 
 			if (strncmp(tmp_rproc->name, "4a334000.pru", 12) == 0) {
 				printk(KERN_INFO
-				       "shprd: Found PRU0 at phandle 0x%02X",
+				       "shprd.k: Found PRU0 at phandle 0x%02X",
 				       child->phandle);
 
 				pdata->rproc_prus[0] = tmp_rproc;
@@ -117,7 +117,7 @@ get_shepherd_platform_data(struct platform_device *pdev)
 			else if (strncmp(tmp_rproc->name, "4a338000.pru", 12) ==
 				 0) {
 				printk(KERN_INFO
-				       "shprd: Found PRU1 at phandle 0x%02X",
+				       "shprd.k: Found PRU1 at phandle 0x%02X",
 				       child->phandle);
 
 				pdata->rproc_prus[1] = tmp_rproc;
@@ -135,7 +135,7 @@ static int shepherd_drv_probe(struct platform_device *pdev)
 	int i;
 	int ret = 0;
 
-	printk(KERN_INFO "shprd: found shepherd device!!!\n");
+	printk(KERN_INFO "shprd.k: found shepherd device!!!\n");
 
 	pdata = get_shepherd_platform_data(pdev);
 
@@ -153,11 +153,11 @@ static int shepherd_drv_probe(struct platform_device *pdev)
 			"am335x-pru%u-shepherd-fw", i);
 
 		if ((ret = rproc_boot(pdata->rproc_prus[i]))) {
-			printk(KERN_ERR "shprd: Couldn't boot PRU%d", i);
+			printk(KERN_ERR "shprd.k: Couldn't boot PRU%d", i);
 			return ret;
 		}
 	}
-	printk(KERN_INFO "shprd: PRUs started!");
+	printk(KERN_INFO "shprd.k: PRUs started!");
 
 	/* Allow some time for the PRUs to initialize. This is critical! */
 	msleep(500);
@@ -199,7 +199,7 @@ static int shepherd_drv_remove(struct platform_device *pdev)
 	}
 
 	platform_set_drvdata(pdev, NULL);
-	printk(KERN_INFO "shprd: module exited from kernel!!!\n");
+	printk(KERN_INFO "shprd.k: module exited from kernel!!!\n");
 	return 0;
 }
 
