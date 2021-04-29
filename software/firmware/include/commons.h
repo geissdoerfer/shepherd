@@ -13,6 +13,9 @@
  */
 #define HOST_PRU_EVT_TIMESTAMP          (20u)
 
+#define PRU_PRU_EVT_SAMPLE 		(30u)
+#define PRU_PRU_EVT_BLOCK_END 		(31u)
+
 /* The SharedMem struct resides at the beginning of the PRUs shared memory */
 #define PRU_SHARED_MEM_STRUCT_OFFSET    (0x10000u)
 

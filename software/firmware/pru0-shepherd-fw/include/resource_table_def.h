@@ -51,7 +51,7 @@
 /*
  * The feature bitmap for virtio rpmsg
  */
-#define VIRTIO_RPMSG_F_NS   0U //name service notifications
+#define VIRTIO_RPMSG_F_NS   0U // name service notifications
 
 /* This firmware supports name service notifications as one of its features */
 #define RPMSG_PRU_C0_FEATURES (1U << VIRTIO_RPMSG_F_NS)
@@ -61,7 +61,9 @@
 
 /* Mapping sysevts to a channel. Each pair contains a sysevt, channel. */
 struct ch_map pru_intc_map[] = {
-	{ 16, 3 }
+	{ PRU_PRU_EVT_SAMPLE, 1 }, // previous message-system between PRUs, TODO: test of reinsert to find pru-hickups
+	{ PRU_PRU_EVT_BLOCK_END, 1 }, // previous message-system between PRUs
+	{ 16, 3 }  // TODO: what is that for? is it "Interrupt for sync from ARM host"?
 };
 
 #define SIZE_CARVEOUT	(RING_SIZE * sizeof(struct SampleBuffer))
@@ -122,7 +124,7 @@ struct my_resource_table resourceTable = {
                         0x0000,
                         /* Channel-to-host mapping, 255 for unused */
                         HOST_UNUSED,
-                        HOST_UNUSED,
+                        1,
                         HOST_UNUSED,
                         3,
                         HOST_UNUSED,

@@ -32,7 +32,7 @@ static void send_message(const uint32_t msg_id, const uint32_t value)
 	rpmsg_putraw((void *)&msg_out, sizeof(struct DEPMsg));
 }
 
-static uint32_t handle_block_swap(volatile struct SharedMem *const shared_mem, struct RingBuffer *const free_buffers_ptr,
+static uint32_t handle_buffer_swap(volatile struct SharedMem *const shared_mem, struct RingBuffer *const free_buffers_ptr,
 			  struct SampleBuffer *const buffers_far, const uint32_t current_buffer_idx, const uint32_t analog_sample_idx)
 {
 	uint32_t next_buffer_idx;
@@ -165,7 +165,8 @@ void event_loop(volatile struct SharedMem *const shared_mem,
 				if ((shared_mem->shepherd_state == STATE_RUNNING) &&
 				    (shared_mem->shepherd_mode != MODE_DEBUG))
 				{
-					sample_buf_idx = handle_block_swap(shared_mem, free_buffers_ptr, buffers_far, sample_buf_idx, shared_mem->analog_sample_counter);
+					sample_buf_idx = handle_buffer_swap(shared_mem, free_buffers_ptr, buffers_far, sample_buf_idx,
+									    shared_mem->analog_sample_counter);
 					shared_mem->analog_sample_counter = 0;
 					GPIO_TOGGLE(DEBUG_PIN1_MASK); // NOTE: desired user-feedback
 				}
@@ -190,6 +191,10 @@ void event_loop(volatile struct SharedMem *const shared_mem,
 			if (shared_mem->analog_sample_counter > 1)
 				shared_mem->analog_sample_counter = 1;
 			GPIO_TOGGLE(DEBUG_PIN1_MASK);
+
+			// relict from the past, TODO: test if this resolves hickups
+			if (INTC_CHECK_EVENT(PRU_PRU_EVT_BLOCK_END)) INTC_CLEAR_EVENT(PRU_PRU_EVT_BLOCK_END);
+			if (INTC_CHECK_EVENT(PRU_PRU_EVT_SAMPLE)) INTC_CLEAR_EVENT(PRU_PRU_EVT_SAMPLE);
 		}
 	}
 }
