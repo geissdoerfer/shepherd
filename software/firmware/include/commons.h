@@ -126,8 +126,9 @@ struct SharedMem {
 	struct CtrlRepMsg ctrl_rep;
 	/* NOTE: End of region (also) controlled by kernel module */
 
-	/* Used to exchange timestamp of next buffer between PRU1 and PRU0 */
-	uint64_t next_timestamp_ns;
+	/* Used to use/exchange timestamp of last sample taken & next buffer between PRU1 and PRU0 */
+	uint64_t last_sample_timestamp_ns;
+	uint64_t next_buffer_timestamp_ns;
 	/* Protects write access to below gpio_edges structure */
 	simple_mutex_t gpio_edges_mutex;
 	/**

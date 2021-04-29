@@ -56,7 +56,8 @@ static uint32_t handle_buffer_swap(volatile struct SharedMem *const shared_mem, 
 	if (ring_get(free_buffers_ptr, &tmp_idx) > 0) {
 		next_buffer_idx = (uint32_t)tmp_idx;
         	struct SampleBuffer *const next_buffer = buffers_far + next_buffer_idx;
-		next_buffer->timestamp_ns = shared_mem->next_timestamp_ns;
+		next_buffer->timestamp_ns = shared_mem->next_buffer_timestamp_ns;
+		shared_mem->last_sample_timestamp_ns = shared_mem->next_buffer_timestamp_ns;
 		shared_mem->gpio_edges = &next_buffer->gpio_edges;
 		shared_mem->gpio_edges->idx = 0;
 	} else {
@@ -125,19 +126,19 @@ void event_loop(volatile struct SharedMem *const shared_mem,
 		// edge case: sample0 @cnt=0, cmp0&1 trigger, but cmp0 needs to get handled before cmp1
 		while (!(iep_tmr_cmp_sts = iep_get_tmr_cmp_sts())); // read iep-reg -> 12 cycles, 60 ns
 
-		// TODO: this design looks silly, but this relaxes a current racing-condition on pru1 -> event2 must be called before event3!
+		// System to ensure proper execution order on pru1 -> cmp0_event (E2) must be handled before cmp1_event (E3)!
 		if (iep_tmr_cmp_sts & IEP_CMP0_MASK)
 		{
+			/* Clear Timer Compare 0 and forward it to pru1 */
 			shared_mem->cmp0_trigger_for_pru1 = 1;
-			/* Clear Timer Compare 0 */
 			iep_clear_evt_cmp(IEP_CMP0); // CT_IEP.TMR_CMP_STS.bit0
 		}
 
 		// pru1 manages the irq, but pru0 reacts to it directly -> less jitter
 		if (iep_tmr_cmp_sts & IEP_CMP1_MASK)
 		{
+			/* Clear Timer Compare 1 and forward it to pru1 */
 			shared_mem->cmp1_trigger_for_pru1 = 1;
-			/* Clear Timer Compare 1 */
 			iep_clear_evt_cmp(IEP_CMP1); // CT_IEP.TMR_CMP_STS.bit1
 
 			/* The actual sampling takes place here */
@@ -157,7 +158,7 @@ void event_loop(volatile struct SharedMem *const shared_mem,
 
 			if (shared_mem->analog_sample_counter == ADC_SAMPLES_PER_BUFFER)
 			{
-                		// TODO: this still needs sorting -> block end must be called even before a block ends ... to get a valid buffer
+                		// TODO: this still needs sorting -> buffer-swap must be called even before a buffer is full ... to get a valid buffer
 				/* Did the Linux kernel module ask for reset? */
 				if (shared_mem->shepherd_state == STATE_RESET) return;
 
@@ -222,7 +223,8 @@ void main(void)
 	shared_memory->harvesting_voltage = 0;
 	shared_memory->shepherd_mode = MODE_HARVESTING;
 
-	shared_memory->next_timestamp_ns = 0;
+	shared_memory->last_sample_timestamp_ns = 0;
+	shared_memory->next_buffer_timestamp_ns = 0;
 	shared_memory->analog_sample_counter = 0;
 
 	/*

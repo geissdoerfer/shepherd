@@ -88,9 +88,7 @@ static inline bool_ft send_control_request(volatile struct SharedMem *const shar
  * synchronization between the PRUs to avoid inconsistent state, while
  * minimizing sampling delay
  */
-static inline void check_gpio(volatile struct SharedMem *const shared_mem,
-        const uint64_t current_timestamp_ns,
-        const uint32_t last_sample_ticks)
+static inline void check_gpio(volatile struct SharedMem *const shared_mem, const uint32_t last_sample_ticks)
 {
 	static uint32_t prev_gpio_status = 0x00;
 
@@ -120,15 +118,11 @@ static inline void check_gpio(volatile struct SharedMem *const shared_mem,
 
 		/* Ticks since we've taken the last sample */
 		const uint32_t ticks_since_last_sample = CT_IEP.TMR_CNT - last_sample_ticks;
-
-		/* Nanoseconds from current buffer start to last sample */
-		const uint32_t last_sample_ns = SAMPLE_INTERVAL_NS * (shared_mem->analog_sample_counter);
-
 		/* Calculate final timestamp of gpio event */
-		const uint64_t gpio_timestamp = current_timestamp_ns + last_sample_ns + TIMER_TICK_NS * ticks_since_last_sample;
+		const uint64_t gpio_timestamp_ns = shared_mem->last_sample_timestamp_ns + TIMER_TICK_NS * ticks_since_last_sample;
 
 		simple_mutex_enter(&shared_mem->gpio_edges_mutex);
-		shared_mem->gpio_edges->timestamp_ns[cIDX] = gpio_timestamp;
+		shared_mem->gpio_edges->timestamp_ns[cIDX] = gpio_timestamp_ns;
 		shared_mem->gpio_edges->bitmask[cIDX] = (uint8_t)gpio_status;
 		shared_mem->gpio_edges->idx = cIDX + 1;
 		simple_mutex_exit(&shared_mem->gpio_edges_mutex);
@@ -169,7 +163,6 @@ static inline void check_gpio(volatile struct SharedMem *const shared_mem,
 
 int32_t event_loop(volatile struct SharedMem *const shared_mem)
 {
-	uint64_t current_timestamp_ns = 0;
 	uint32_t last_analog_sample_ticks = 0;
 
 	/* Prepare message that will be received and sent to Linux kernel module */
@@ -223,11 +216,12 @@ int32_t event_loop(volatile struct SharedMem *const shared_mem)
 		#endif
 
 		DEBUG_GPIO_STATE_1;
-		    check_gpio(shared_mem, current_timestamp_ns, last_analog_sample_ticks);
+		    check_gpio(shared_mem, last_analog_sample_ticks);
 		DEBUG_GPIO_STATE_0;
 
-		/* [Event1] Check for timer interrupt from Linux host */
-		if (read_r31() & HOST_INT_TIMESTAMP_MASK) {
+		/* [Event1] Check for interrupt from Linux host to take timestamp */
+		if (read_r31() & HOST_INT_TIMESTAMP_MASK)
+		{
 			if (!INTC_CHECK_EVENT(HOST_PRU_EVT_TIMESTAMP)) continue;
 
 			/* Take timestamp of IEP */
@@ -250,7 +244,7 @@ int32_t event_loop(volatile struct SharedMem *const shared_mem)
 		if (shared_mem->cmp0_trigger_for_pru1)
 		{
 			DEBUG_EVENT_STATE_2;
-			// hand-back of cmp-token
+			// reset trigger
 			shared_mem->cmp0_trigger_for_pru1 = 0;
 
 			/* update clock compensation of sample-trigger */
@@ -268,22 +262,26 @@ int32_t event_loop(volatile struct SharedMem *const shared_mem)
 			/* more maintenance */
 			last_analog_sample_ticks = 0;
 
-			/* With wrap, we'll use next timestamp as base for GPIO timestamps */
-			current_timestamp_ns = shared_mem->next_timestamp_ns;
-			// TODO: this is definitely wrong for edge case: buffer already exchanged, timer0 not yet wrapped
-
 			DEBUG_EVENT_STATE_0;
 		}
 
 		/* [Event 3] Timer compare 1 handle -> trigger for analog sample on pru0 */
 		if (shared_mem->cmp1_trigger_for_pru1)
 		{
+			/* prevent a race condition (cmp0_event has to happen before cmp1_event!) */
+			if (shared_mem->cmp0_trigger_for_pru1) continue;
+
 			DEBUG_EVENT_STATE_1;
-			// hand-back of cmp-token
+			// reset trigger
 			shared_mem->cmp1_trigger_for_pru1 = 0;
 
 			// Update Timer-Values
 			last_analog_sample_ticks = iep_get_cmp_val(IEP_CMP1);
+			if (last_analog_sample_ticks > 0) // this assumes sample0 taken on cmp1==0
+			{
+				shared_mem->last_sample_timestamp_ns += SAMPLE_INTERVAL_NS;
+			}
+
 			/* Forward sample timer based on current analog_sample_period*/
 			uint32_t next_cmp_val = last_analog_sample_ticks + analog_sample_period;
 			compensation_counter += compensation_increment; // fixed point magic
@@ -299,7 +297,7 @@ int32_t event_loop(volatile struct SharedMem *const shared_mem)
 			if (receive_control_reply(shared_mem, &ctrl_rep) > 0)
 			{
 				sync_state = IDLE;
-				shared_mem->next_timestamp_ns = ctrl_rep.next_timestamp_ns;
+				shared_mem->next_buffer_timestamp_ns = ctrl_rep.next_timestamp_ns;
 			}
 			DEBUG_EVENT_STATE_0;
 			continue; // for more regular gpio-sampling
