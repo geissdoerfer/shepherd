@@ -367,7 +367,7 @@ def record(
         start_time = time.time() + 15
 
     if not output_path.is_absolute():
-        raise ValueError("Output must be absolute path")
+        output_path = output_path.absolute()
     if output_path.is_dir():
         timestamp = datetime.datetime.fromtimestamp(start_time)
         timestamp = timestamp.strftime("%Y-%m-%d_%H-%M-%S")  # closest to ISO 8601, avoid ":"
@@ -482,7 +482,7 @@ def emulate(
 
     if output_path is not None:
         if not output_path.is_absolute():
-            raise ValueError("Output must be absolute path")
+            output_path = output_path.absolute()
         if output_path.is_dir():
             timestamp = datetime.datetime.fromtimestamp(start_time)
             timestamp = timestamp.strftime("%Y-%m-%d_%H-%M-%S")  # closest to ISO 8601, avoid ":"
@@ -497,7 +497,7 @@ def emulate(
             calibration_data=calib,
         )
 
-    if input_path is str:
+    if isinstance(input_path, str):
         input_path = Path(input_path)
     if input_path is None:
         raise ValueError("No Input-File configured for emulation")

@@ -123,8 +123,8 @@ def run(command, parameters: Dict, verbose):
             parameters["output_path"] = Path(parameters["output_path"])
         run_record(**parameters)
     elif command == "emulate":
-        if "output_path" in parameters.keys():
-            parameters["output_path"] = Path(parameters["output_path"])
+        if ("output_path" in parameters.keys()) and (parameters["output_path"] is not None):
+            store_path = Path(parameters["output_path"])
         if "input_path" in parameters.keys():
             parameters["input_path"] = Path(parameters["input_path"])
         run_emulate(**parameters)
@@ -210,7 +210,7 @@ def emulate(
         pl_store = Path(output_path)
 
     run_emulate(
-        input_path=input_path,
+        input_path=Path(input_path),
         output_path=pl_store,
         duration=duration,
         force_overwrite=force_overwrite,
