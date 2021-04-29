@@ -342,7 +342,7 @@ class ShepherdIO(object):
 
             self._adc_set_power(True)
 
-            logger.debug("Shepherd hardware is powered")
+            logger.debug("Shepherd hardware is powered up")
 
             # If shepherd hasn't been terminated properly
             if sysfs_interface.get_state() != "idle":
