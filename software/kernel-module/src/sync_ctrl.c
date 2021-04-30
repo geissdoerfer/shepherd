@@ -6,8 +6,8 @@
 #include "sync_ctrl.h"
 #include "pru_comm.h"
 
-static int64_t ns_sys_to_wrap;
-static uint64_t next_timestamp_ns;
+static uint32_t sys_ts_over_timer_wrap_ns = 0;
+static uint64_t next_timestamp_ns = 0;
 static uint64_t prev_timestamp_ns = 0; 	/* for plausibility-check */
 
 void reset_prev_timestamp(void)
@@ -18,6 +18,12 @@ void reset_prev_timestamp(void)
 static enum hrtimer_restart trigger_loop_callback(struct hrtimer *timer_for_restart);
 static enum hrtimer_restart sync_loop_callback(struct hrtimer *timer_for_restart);
 static uint32_t trigger_loop_period_ns = 100000000; /* just initial value to avoid div0 */
+/*
+* add pre-trigger, because design previously aimed directly for busy pru_timer_wrap
+* (50% chance that pru takes a less meaningful counter-reading after wrap)
+* 1 ms + 5 us, this should be enough time for the ping-pong-messaging to complete before timer_wrap
+*/
+static const uint32_t ns_pre_trigger = 1005000;
 
 /* Timer to trigger fast sync_loop */
 struct hrtimer trigger_loop_timer;
@@ -79,9 +85,16 @@ int sync_init(uint32_t timer_period_ns)
 
 	div_u64_rem(now_ns_system, timer_period_ns, &ns_over_wrap);
 	if (ns_over_wrap > (timer_period_ns / 2))
-		ns_now_until_trigger = 2 * timer_period_ns - ns_over_wrap;
+    {
+        /* target timer-wrap one ahead */
+	    ns_now_until_trigger = 2 * timer_period_ns - ns_over_wrap - ns_pre_trigger;
+    }
 	else
-		ns_now_until_trigger = timer_period_ns - ns_over_wrap;
+    {
+        /* target next timer-wrap */
+	    ns_now_until_trigger = timer_period_ns - ns_over_wrap - ns_pre_trigger;
+    }
+
 
 	hrtimer_start(&trigger_loop_timer,
 		      ns_to_ktime(now_ns_system + ns_now_until_trigger),
@@ -108,41 +121,37 @@ int sync_reset(void)
 enum hrtimer_restart trigger_loop_callback(struct hrtimer *timer_for_restart)
 {
 	struct timespec ts_now;
-	uint64_t now_ns_system;
-	uint32_t ns_over_wrap;
+	uint64_t ts_now_system_ns;
 	uint64_t ns_now_until_trigger;
-    /*
-    * add pretrigger, because design aimed directly for busy pru_timer_wrap
-    * (50% chance that pru takes a less meaningful counter-reading after wrap)
-    * 1 ms + 5 us, this should be enough time for the ping-pong to complete before timer_wrap
-    */
-    static const uint32_t ns_pre_trigger = 1005000;
-
 
 	/* Raise Interrupt on PRU, telling it to timestamp IEP */
 	pru_comm_trigger(HOST_PRU_EVT_TIMESTAMP);
 
 	/* Timestamp system clock */
 	getnstimeofday(&ts_now);
-	now_ns_system = (uint64_t)timespec_to_ns(&ts_now);
+	ts_now_system_ns = (uint64_t)timespec_to_ns(&ts_now);
 
 	/*
      * Get distance of system clock from timer wrap.
      * Is negative, when interrupt happened before wrap, positive when after
      */
-    div_u64_rem(now_ns_system, trigger_loop_period_ns, &ns_over_wrap);
-    if (ns_over_wrap > (trigger_loop_period_ns / 2))
+    div_u64_rem(ts_now_system_ns, trigger_loop_period_ns, &sys_ts_over_timer_wrap_ns);
+    next_timestamp_ns = ts_now_system_ns + trigger_loop_period_ns - sys_ts_over_timer_wrap_ns;
+
+    if (sys_ts_over_timer_wrap_ns > (trigger_loop_period_ns / 2))
     {
-        /* normal use case (from now on) - marks beginning of next buffer*/
-        ns_sys_to_wrap = ((int64_t)ns_over_wrap - trigger_loop_period_ns);
-        next_timestamp_ns = now_ns_system + 1 * trigger_loop_period_ns - ns_over_wrap;
-        ns_now_until_trigger = 2 * trigger_loop_period_ns - ns_over_wrap - ns_pre_trigger;
+        /* normal use case (with pre-trigger) */
+        /* self regulating formula that results in ~ trigger_loop_period_ns */
+        ns_now_until_trigger = 2 * trigger_loop_period_ns - sys_ts_over_timer_wrap_ns - ns_pre_trigger;
     } else
     {
-        ns_sys_to_wrap = ((int64_t)ns_over_wrap);
-        next_timestamp_ns = now_ns_system + trigger_loop_period_ns - ns_over_wrap;
-        ns_now_until_trigger = trigger_loop_period_ns - ns_over_wrap - ns_pre_trigger;
+        printk(KERN_ERR "shprd.k: module missed a sync-trigger! -> last timestamp is now probably used twice by PRU\n");
+        ns_now_until_trigger = trigger_loop_period_ns - sys_ts_over_timer_wrap_ns - ns_pre_trigger;
+        sys_ts_over_timer_wrap_ns = 0u; /* invalidate this measurement */
 	}
+
+    // TODO: write next_timestamp_ns directly into shared mem
+    // TODO: sys_ts_over_timer_wrap_ns is now correct (inverted to before)
 
 	hrtimer_forward(timer_for_restart, timespec_to_ktime(ts_now),
 			ns_to_ktime(ns_now_until_trigger));
@@ -156,6 +165,7 @@ enum hrtimer_restart sync_loop_callback(struct hrtimer *timer_for_restart)
     struct CtrlReqMsg ctrl_req;
     struct CtrlRepMsg ctrl_rep;
     struct timespec ts_now;
+    uint64_t ts_now_system_ns;
     static unsigned int step_pos = 0;
     /* Timestamp system clock */
     getnstimeofday(&ts_now);
@@ -192,31 +202,31 @@ enum hrtimer_restart sync_loop_callback(struct hrtimer *timer_for_restart)
 
 int sync_loop(struct CtrlRepMsg *const ctrl_rep, const struct CtrlReqMsg *const ctrl_req)
 {
-	int64_t ns_iep_to_wrap;
-	uint64_t ns_per_tick;
+	uint32_t iep_ts_over_timer_wrap_ns;
+	uint64_t ns_per_tick_n30;   /* n30 means a fixed point shift left by 30 bits */
 
 	/*
      * Based on the previous IEP timer period and the nominal timer period
      * we can estimate the real nanoseconds passing per tick
      * We operate on fixed point arithmetics by shifting by 30 bit
      */
-	ns_per_tick = div_u64(((uint64_t)trigger_loop_period_ns << 30u),
+    ns_per_tick_n30 = div_u64(((uint64_t)trigger_loop_period_ns << 30u),
             sync_data->previous_period);
 
-	/*
-     * Get distance of IEP clock at interrupt from timer wrap
-     * negative, if interrupt happened before wrap, positive after
-     */
-	ns_iep_to_wrap = ((int64_t)ctrl_req->ticks_iep) * ns_per_tick;
-    /* 29 in next line is correct, if ns_iep is over the half it is shorter to go the other direction */
-    if (ns_iep_to_wrap > ((uint64_t)trigger_loop_period_ns << 29u))
+	/* Get distance of IEP clock at interrupt from last timer wrap */
+	if (sys_ts_over_timer_wrap_ns > 0u)
     {
-        ns_iep_to_wrap -= ((uint64_t)trigger_loop_period_ns << 30u);
+        iep_ts_over_timer_wrap_ns = (uint32_t)((((uint64_t)ctrl_req->ticks_iep) * ns_per_tick_n30)>>30u);
     }
-
+	else
+    {
+        /* (also) invalidate this measurement */
+	    iep_ts_over_timer_wrap_ns = 0u;
+    }
+    
 	/* Difference between system clock and IEP clock phase */
     sync_data->error_pre = sync_data->error_now; // TODO: new D (of PID) is not in sysfs yet
-    sync_data->error_now = div_s64(ns_iep_to_wrap, 1ul<<30u) - ns_sys_to_wrap; // TODO: could save some divs
+    sync_data->error_now = (int64_t)iep_ts_over_timer_wrap_ns - (int64_t)sys_ts_over_timer_wrap_ns;
     sync_data->error_dif = sync_data->error_now - sync_data->error_pre;
     sync_data->error_sum += sync_data->error_now; // integral should be behind controller, because current P-value is twice in calculation
 
@@ -232,10 +242,10 @@ int sync_loop(struct CtrlRepMsg *const ctrl_rep, const struct CtrlReqMsg *const 
 
     if (0)
     {
-        printk(KERN_ERR "shprd.k: error=%lld, ns_iep=%lld, ns_sys=%lld, errsum=%lld, prev_period=%u, corr=%d\n",
+        printk(KERN_ERR "shprd.k: error=%lld, ns_iep=%u, ns_sys=%u, errsum=%lld, prev_period=%u, corr=%d\n",
                 sync_data->error_now,
-                div_s64(ns_iep_to_wrap, 1ul<<30u),
-                ns_sys_to_wrap,
+                iep_ts_over_timer_wrap_ns,
+                sys_ts_over_timer_wrap_ns,
                 sync_data->error_sum,
                 sync_data->previous_period,
                 sync_data->clock_corr);
