@@ -263,6 +263,7 @@ int32_t event_loop(volatile struct SharedMem *const shared_mem)
 			last_analog_sample_ticks = 0;
 
 			DEBUG_EVENT_STATE_0;
+			continue; // for more regular gpio-sampling
 		}
 
 		/* [Event 3] Timer compare 1 handle -> trigger for analog sample on pru0 */
