@@ -107,11 +107,6 @@
             P9_41B(MUX_MODE7 | RX_ACTIVE) /* gpio3[20] */
             P9_42B(MUX_MODE7) /* gpio3[18] */
 
-            /* SPI1-Test */
-            /*P9_17(MUX_MODE0) /* spi0_cs0 */ /* Collision with I2C1 */
-            /*P9_18(MUX_MODE0) /* spi0_d1 */
-            P9_21(MUX_MODE0) /* spi0_d0 */
-            P9_22(MUX_MODE0) /* spi0_sck */
             >;
          };
       };
