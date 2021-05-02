@@ -223,7 +223,7 @@ class SharedMem(object):
         if diff_ms < 95:
             logger.error(f"TOO SMALL timestamp-jump detected after recv it from PRU -> {diff_ms} ms")
         if diff_ms > 105:
-            logger.error(f"Forwards  timestamp-jump detected after recv it from PRU -> {diff_ms} ms")
+            logger.error(f"FORWARDS  timestamp-jump detected after recv it from PRU -> {diff_ms} ms")
         prev_timestamp = buffer_timestamp
 
         # Each buffer contains (n=) samples_per_buffer values. We have 2 variables
