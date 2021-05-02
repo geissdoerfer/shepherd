@@ -148,11 +148,6 @@ void event_loop(volatile struct SharedMem *const shared_mem,
 				sample(buffers_far + sample_buf_idx, shared_mem->analog_sample_counter, shepherd_mode);
 				GPIO_OFF(DEBUG_PIN0_MASK);
 			}
-			else
-			{
-				// even if offline, this should simulate a (short) sampling-action
-				__delay_cycles(4000 / 5);
-			}
 
 			shared_mem->analog_sample_counter++;
 
