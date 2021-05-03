@@ -299,5 +299,5 @@ int sync_loop(struct CtrlRepMsg *const ctrl_rep, const struct CtrlReqMsg *const 
     if ((ctrl_rep->analog_sample_period > SAMPLE_PERIOD + 10) || (ctrl_rep->analog_sample_period < SAMPLE_PERIOD - 10))
         printk(KERN_ERR "shprd.k: analog_sample_period out of limits (%u instead of ~2000)", ctrl_rep->analog_sample_period);
 
-	return 0;
+    return 0;
 }
