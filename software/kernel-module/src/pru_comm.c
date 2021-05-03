@@ -55,7 +55,8 @@ delayed_start_callback(struct hrtimer *timer_for_restart)
 
 	now_ns_system = (uint64_t)timespec_to_ns(&ts_now);
 
-	printk(KERN_INFO "shprd: Triggered delayed start @ %llu", now_ns_system);
+	printk(KERN_INFO "shprd.k: Triggered delayed start  @ %llu (now)", now_ns_system);
+
 	return HRTIMER_NORESTART;
 }
 
@@ -76,7 +77,7 @@ int pru_comm_schedule_delayed_start(unsigned int start_time_second)
 
 	trigger_timer_time_ns = ktime_to_ns(trigger_timer_time);
 
-	printk(KERN_INFO "shprd: Delayed start timer set to %llu",
+	printk(KERN_INFO "shprd.k: Delayed start timer set to %llu",
 	       trigger_timer_time_ns);
 
 	hrtimer_start(&delayed_start_timer, trigger_timer_time,
