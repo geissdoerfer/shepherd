@@ -296,7 +296,7 @@ int sync_loop(struct CtrlRepMsg *const ctrl_rep, const struct CtrlReqMsg *const 
 
     if ((ctrl_rep->buffer_block_period > TIMER_BASE_PERIOD + 80000) || (ctrl_rep->buffer_block_period < TIMER_BASE_PERIOD - 80000))
         printk(KERN_ERR "shprd.k: buffer_block_period out of limits (%u instead of ~20M)", ctrl_rep->buffer_block_period);
-    if ((ctrl_rep->analog_sample_period > SAMPLE_PERIOD + 10) || (ctrl_rep->buffer_block_period < SAMPLE_PERIOD - 10))
+    if ((ctrl_rep->analog_sample_period > SAMPLE_PERIOD + 10) || (ctrl_rep->analog_sample_period < SAMPLE_PERIOD - 10))
         printk(KERN_ERR "shprd.k: analog_sample_period out of limits (%u instead of ~2000)", ctrl_rep->analog_sample_period);
 
 	return 0;
