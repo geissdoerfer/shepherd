@@ -2,7 +2,7 @@ import os
 from setuptools import setup
 
 requirements = [
-    "click",
+    "click==7.1.2",
     "click-config-file",
     "numpy",
     "python-periphery==1.1.2",
