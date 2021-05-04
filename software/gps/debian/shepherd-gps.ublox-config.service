@@ -1,9 +1,11 @@
 [Unit]
-Description=Upload config file to ublox GPS
+Description=Enable GALILEO on ublox GPS device
+After=gpsd.service
 
 [Service]
 Type=oneshot
-ExecStart=/usr/local/bin/ubx-serial -vvv -p /dev/ttyO2 -c /etc/shepherd/ublox_config.ubx
+ExecStartPre=/bin/sleep 30
+ExecStart=/usr/bin/ubxtool -e GALILEO
 
 [Install]
 WantedBy=multi-user.target

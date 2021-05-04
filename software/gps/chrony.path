@@ -3,7 +3,7 @@
 Description= Triggers chrony service when PPS device appears
 
 [Path]
-PathExists=/dev/pps0
+PathExists=/dev/hwpps
 
 [Install]
 WantedBy=multi-user.target

@@ -3,95 +3,127 @@
   command: uname --kernel-release
   register: kernelrelease
   changed_when: False
+  tags: gps
+
+- name: Add shepherd repository to aptitude
+  apt_repository:
+    repo: deb [trusted=yes] https://shepherd.nes-lab.org ubuntu/
+    state: present
+  tags: gps
 
 - name: install required packages
   apt:
-    name: ['gpsd', 'gpsd-clients', 'chrony', 'pps-tools', 'python3-pip', 'linux-headers-{{ kernelrelease.stdout.strip() }}']
+    name:
+      [
+        "gpsd",
+        "gpsd-clients",
+        "chrony",
+        "pps-tools",
+        "linux-headers-{{ kernelrelease.stdout.strip() }}",
+      ]
     state: present
+    update_cache: yes
+  tags: gps
 
 - name: configure chrony and gpsd
   template:
-    src: '{{ gps_path }}/{{ item }}.conf'
-    dest: '/etc/shepherd/'
+    src: "{{ gps_path }}/{{ item }}.conf"
+    dest: "/etc/shepherd/"
     mode: 0644
   with_items:
-   - chrony
-   - gpsd
-  tags: conf
+    - chrony
+    - gpsd
+  tags:
+    - gps
+    - conf
 
 - name: Disable factory enabled capes
   lineinfile:
-    dest: '{{ uEnv }}'
-    regexp: '{{ item.regexp }}'
-    line: '{{ item.line }}'
+    dest: "{{ uEnv }}"
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
     state: present
   with_items:
-   - { line: 'disable_uboot_overlay_video=1', regexp: '#?disable_uboot_overlay_video=1' }
-   - { line: 'disable_uboot_overlay_adc=1', regexp: '#?disable_uboot_overlay_adc=1' }
-   - { line: 'disable_uboot_overlay_audio=1', regexp: '#?disable_uboot_overlay_audio=1' }
-   - { line: 'disable_uboot_overlay_wireless=1', regexp: '#?disable_uboot_overlay_wireless=1' }
-   - { line: '#enable_uboot_cape_universal=1', regexp: '#?enable_uboot_cape_universal=1' }
+    - {
+        line: "disable_uboot_overlay_video=1",
+        regexp: "#?disable_uboot_overlay_video=1",
+      }
+    - {
+        line: "disable_uboot_overlay_adc=1",
+        regexp: "#?disable_uboot_overlay_adc=1",
+      }
+    - {
+        line: "disable_uboot_overlay_audio=1",
+        regexp: "#?disable_uboot_overlay_audio=1",
+      }
+    - {
+        line: "disable_uboot_overlay_wireless=1",
+        regexp: "#?disable_uboot_overlay_wireless=1",
+      }
+    - {
+        line: "#enable_uboot_cape_universal=1",
+        regexp: "#?enable_uboot_cape_universal=1",
+      }
+  tags: gps
 
 - name: Set enabled capes
   lineinfile:
-    dest: '{{ uEnv }}'
-    regexp: '#?uboot_overlay_addr1=\/lib\/firmware\/(<file8>|BB-GPS-00A0).dtbo'
-    line: 'uboot_overlay_addr1=/lib/firmware/BB-GPS-00A0.dtbo'
+    dest: "{{ uEnv }}"
+    regexp: '#?uboot_overlay_addr1=\/lib\/firmware\/(<file1>|BB-GPS-00A0).dtbo'
+    line: "uboot_overlay_addr1=/lib/firmware/BB-GPS-00A0.dtbo"
     state: present
+  notify: restart device
+  tags: gps
 
 - name: Copy pps-gmtimer code
   synchronize:
-    src: '{{ pps_gmtimer_path }}'
+    src: "{{ pps_gmtimer_path }}"
     dest: /opt/pps-gmtimer
-  tags: pps
+  tags:
+    - gps
+    - pps
 
 - name: Build and install pps-gmtimer module
   make:
     chdir: /opt/pps-gmtimer
     target: install
-  tags: pps
+  tags:
+    - gps
+    - pps
 
 - name: Copy pps-gmtimer code
   synchronize:
-    src: '{{ gps_path }}'
+    src: "{{ gps_path }}"
     dest: /opt/gps
+  tags:
+    - gps
+    - pps
 
 - name: Build and install device tree overlay
   make:
     chdir: "/opt/gps"
     target: install
+  notify: restart device
   tags:
+    - gps
     - device-tree
 
-- name: make system find kernel-modul
-  command: depmod -ae
-
-- name: Install ubx-serial
-  pip:
-    name: ubxserial
-    state: present
-    executable: pip3
-
-- name: Copy ublox config file
+- name: Add udev rule for hw pps device
   copy:
-    src: '{{ gps_path }}/ublox_config.ubx'
-    dest: /etc/shepherd/
+    src: "91-hw-pps.rules"
+    dest: "/etc/udev/rules.d/"
+  tags:
+    - gps
+    - conf
+
+- name: make system find kernel-module
+  command: depmod -ae
+  tags:
+    - gps
+    - conf
 
 - include_tasks: systemd.yml
   tags:
-   - conf
-   - systemd
-
-- name: restart device
-  shell: sleep 2 && shutdown -r now "Ansible restart"
-  async: 1
-  poll: 0
-  ignore_errors: true
-
-
-- name: waiting to come back
-  wait_for_connection:
-    delay: 15
-    timeout: 300
-  become: no
-
+    - gps
+    - conf
+    - systemd

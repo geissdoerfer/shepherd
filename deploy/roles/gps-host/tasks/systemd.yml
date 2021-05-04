@@ -1,18 +1,18 @@
 ---
 - name: Prepare paths for service override
   file:
-    path: '/etc/systemd/system/{{ item }}.service.d'
+    path: "/etc/systemd/system/{{ item }}.service.d"
     state: directory
     recurse: yes
   with_items:
-   - gpsd
-   - chrony
+    - gpsd
+    - chrony
   tags: conf
 
 - name: Override service configs
   copy:
-    src: '{{ gps_path }}/{{ item }}.override.conf'
-    dest: '/etc/systemd/system/{{ item }}.service.d/'
+    src: "{{ gps_path }}/{{ item }}.override.conf"
+    dest: "/etc/systemd/system/{{ item }}.service.d/"
   with_items:
     - chrony
     - gpsd
@@ -20,26 +20,33 @@
 
 - name: Add config systemd service
   template:
-    src: '{{ gps_path }}/debian/shepherd-gps.ublox-config.service'
-    dest: '/etc/systemd/system/ublox-config.service'
+    src: "{{ gps_path }}/debian/shepherd-gps.ublox-config.service"
+    dest: "/etc/systemd/system/ublox-config.service"
   tags: conf
 
 # services not started at boot, but after respective file exists
 - name: Add service path activation
   copy:
-    src: '{{ gps_path }}/chrony.path'
-    dest: '/etc/systemd/system/chrony.path'
+    src: "{{ gps_path }}/chrony.path"
+    dest: "/etc/systemd/system/chrony.path"
+  tags: conf
+
+- name: Disable systemd-timesyncd
+  systemd:
+    name: systemd-timesyncd
+    state: stopped
+    masked: yes
+    daemon_reload: yes
   tags: conf
 
 - name: Enable services
   systemd:
-    name: '{{ item.name }}'
-    state: '{{ item.state }}'
-    enabled: '{{ item.enabled }}'
+    name: "{{ item.name }}"
+    state: "{{ item.state }}"
+    enabled: "{{ item.enabled }}"
     daemon_reload: yes
   with_items:
-   - { name: gpsd.service, enabled: yes, state: restarted }
-   - { name: chrony.service, enabled: no, state: restarted }
-   - { name: chrony.path, enabled: yes, state: restarted }
-   - { name: ublox-config.service, enabled: yes, state: stopped }
+    - { name: chrony.service, enabled: no, state: restarted }
+    - { name: chrony.path, enabled: yes, state: restarted }
+    - { name: ublox-config.service, enabled: yes, state: stopped }
   tags: conf

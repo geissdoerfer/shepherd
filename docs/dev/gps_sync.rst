@@ -40,7 +40,7 @@ In addtion the standard config of the receiver leads to the following behaviour:
 - NMEA messages are enabled for the UART link which connects to the BeagleBone.
 
 Note: Recent versions of gpsd include a tool `ubxtool`, allowing convenient configuration of ublox receivers:
- - Poll GNSS config: `ubxtool -p GNSS-CFG`
+ - Poll GNSS config: `ubxtool -p CFG-GNSS`
  - Enable Galileo: `ubxtool -e GALILEO`
  - Enable binary messages: `ubxtool -e BINARY`
  - Disable NMEA messages: `ubxtool -d NMEA`
