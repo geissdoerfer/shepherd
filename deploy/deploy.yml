@@ -1,7 +1,25 @@
 ---
 - hosts: sheep
   roles:
-     - ptp-slave
-     - dev-host
-     - sheep
+    - dev-host
+    - sheep
+    - gps-host
+    - ptp-slave
+  handlers:
+    - name: restart device
+      shell: sleep 2 && shutdown -r now "Ansible restart"
+      async: 1
+      poll: 0
+      ignore_errors: true
+      become: yes
+      listen: "restart device"
   become: yes
+
+  pre_tasks:
+    - name: Get time and date from ansible controller
+      local_action: command date -u +"%Y-%m-%dT%H:%M:%SZ"
+      register: local_time
+      become: no
+
+    - name: Set correct time before apt update
+      command: "date -s {{ local_time.stdout }}"

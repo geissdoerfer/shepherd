@@ -4,65 +4,63 @@
   vars:
     mount_path: /opt/shepherd-dev
   tasks:
+    - name: Get full path of repository
+      local_action: "shell realpath {{ playbook_dir }}/.."
+      register: repo_dir
 
-  - name: Get full path of repository
-    local_action: 'shell realpath {{ playbook_dir }}/..'
-    register: repo_dir
+    - name: Fetch local facts
+      local_action: setup
+      register: local_facts
 
-  - name: Fetch local facts
-    local_action: setup
-    register: local_facts
+    - name: Confirm setting up of NFS share
+      pause: prompt='Confirm that you really want to configure an NFS share on your local machine. This is a security risk! Press return to continue. Press Ctrl+c and then "a" to abort'
 
-  - name: Confirm setting up of NFS share
-    pause: prompt='Confirm that you really want to configure an NFS share on your local machine. This is a security risk! Press return to continue. Press Ctrl+c and then "a" to abort'
+    - name: Install nfs server - pacman (requires openss-askpass)
+      local_action:
+        module: package
+        name: nfs-utils
+        state: present
+        use: pacman
+      become: yes
+      when: local_facts.ansible_facts.ansible_pkg_mgr == "pacman"
 
-  - name: Install nfs server - pacman
-    local_action:
-      module: package
-      name: nfs-utils
-      state: present
-      use: pacman
-    become: yes
-    when: local_facts.ansible_facts.ansible_pkg_mgr == "pacman"
+    - name: Install nfs server - apt (requires askpass)
+      local_action:
+        module: package
+        name: nfs-kernel-server
+        state: present
+        use: apt
+      become: yes
+      when: local_facts.ansible_facts.ansible_pkg_mgr == "apt"
 
-  - name: Install nfs server - apt
-    local_action:
-      module: package
-      name: nfs-kernel-server
-      state: present
-      use: apt
-    become: yes
-    when: local_facts.ansible_facts.ansible_pkg_mgr == "apt"
+    - name: Adding the path for nfs on localhost
+      local_action:
+        module: lineinfile
+        dest: "/etc/exports"
+        line: "{{ repo_dir.stdout }}	*(rw,sync,no_subtree_check,all_squash,anonuid=1000,anongid=1000)"
+        insertafter: "EOF"
+        state: present
+      become: yes
 
-  - name: Adding the path for nfs on localhost
-    local_action:
-      module: lineinfile
-      dest: '/etc/exports'
-      line: '{{ repo_dir.stdout }}	*(rw,sync,no_subtree_check,all_squash,anonuid=1000,anongid=1000)'
-      insertafter: 'EOF'
-      state: present
-    become: yes
+    - name: Start nfs on localhost
+      local_action:
+        module: systemd
+        name: "nfs-server.service"
+        state: restarted
+      become: yes
 
-  - name: Enable nfs on localhost
-    local_action:
-      module: systemd
-      name: 'nfs-server.service'
-      enabled: yes
-      state: restarted
-    become: yes
+    - name: Install required packages
+      apt:
+        name: "nfs-common"
+        state: present
+        update_cache: yes
+      become: yes
 
-  - name: Install required packages
-    apt:
-      name: 'nfs-common'
-      state: present
-      update_cache: yes
-    become: yes
-
-  - name: Mount nfs share
-    mount:
-      path: '{{ mount_path }}'
-      src: '{{ local_facts.ansible_facts.ansible_default_ipv4.address }}:{{ repo_dir.stdout }}'
-      fstype: nfs
-      opts: v3,auto,user,exec,_netdev
-      state: mounted
-    become: yes
+    - name: Mount nfs share
+      mount:
+        path: "{{ mount_path }}"
+        src: "{{ local_facts.ansible_facts.ansible_default_ipv4.address }}:{{ repo_dir.stdout }}"
+        fstype: nfs
+        opts: v3,auto,user,exec,_netdev
+        state: mounted
+      become: yes

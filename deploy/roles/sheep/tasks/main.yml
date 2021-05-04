@@ -1,22 +1,52 @@
 ---
 - name: Disable most factory enabled capes, only keep essentials
   lineinfile:
-    dest: '/boot/uEnv.txt'
-    regexp: '{{ item.regexp }}'
-    line: '{{ item.line }}'
+    dest: "/boot/uEnv.txt"
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
     state: present
   with_items:
-   - { line: 'disable_uboot_overlay_video=1', regexp: '#?disable_uboot_overlay_video=1' }
-   - { line: 'disable_uboot_overlay_audio=1', regexp: '#?disable_uboot_overlay_audio=1' }
-   - { line: 'disable_uboot_overlay_wireless=1', regexp: '#?disable_uboot_overlay_wireless=1' }
-   - { line: 'disable_uboot_overlay_adc=1', regexp: '#?disable_uboot_overlay_adc=1' }
-   - { line: '#enable_uboot_cape_universal=1', regexp: '#?enable_uboot_cape_universal=1' }
-   - { line: 'enable_uboot_overlays=1', regexp: '#?enable_uboot_overlays=1'}
-   - { line: '#uboot_overlay_pru=/lib/firmware/AM335X-PRU-RPROC-4-14-TI-00A0.dtbo', regexp: '#?uboot_overlay_pru=\/lib\/firmware\/AM335X-PRU-RPROC-4-14-TI-00A0.dtbo' }
-   - { line: 'uboot_overlay_pru=/lib/firmware/AM335X-PRU-RPROC-4-19-TI-00A0.dtbo', regexp: '#?uboot_overlay_pru=\/lib\/firmware\/AM335X-PRU-RPROC-4-19-TI-00A0.dtbo' }
-   - { line: '#uboot_overlay_pru=/lib/firmware/AM335X-PRU-UIO-00A0.dtbo', regexp: '#?uboot_overlay_pru=\/lib\/firmware\/AM335X-PRU-UIO-00A0.dtbo' }
-   - { line: 'uboot_overlay_addr3=/lib/firmware/BB-UART1-00A0.dtbo', regexp: '#?uboot_overlay_addr3=\/lib\/firmware\S*' }
-   - { line: 'uboot_overlay_addr4=/lib/firmware/BB-I2C1-00A0.dtbo', regexp: '#?uboot_overlay_addr4=\/lib\/firmware\S*' }
+    - {
+        line: "disable_uboot_overlay_video=1",
+        regexp: "#?disable_uboot_overlay_video=1",
+      }
+    - {
+        line: "disable_uboot_overlay_audio=1",
+        regexp: "#?disable_uboot_overlay_audio=1",
+      }
+    - {
+        line: "disable_uboot_overlay_wireless=1",
+        regexp: "#?disable_uboot_overlay_wireless=1",
+      }
+    - {
+        line: "disable_uboot_overlay_adc=1",
+        regexp: "#?disable_uboot_overlay_adc=1",
+      }
+    - {
+        line: "#enable_uboot_cape_universal=1",
+        regexp: "#?enable_uboot_cape_universal=1",
+      }
+    - { line: "enable_uboot_overlays=1", regexp: "#?enable_uboot_overlays=1" }
+    - {
+        line: "#uboot_overlay_pru=/lib/firmware/AM335X-PRU-RPROC-4-14-TI-00A0.dtbo",
+        regexp: '#?uboot_overlay_pru=\/lib\/firmware\/AM335X-PRU-RPROC-4-14-TI-00A0.dtbo',
+      }
+    - {
+        line: "uboot_overlay_pru=/lib/firmware/AM335X-PRU-RPROC-4-19-TI-00A0.dtbo",
+        regexp: '#?uboot_overlay_pru=\/lib\/firmware\/AM335X-PRU-RPROC-4-19-TI-00A0.dtbo',
+      }
+    - {
+        line: "#uboot_overlay_pru=/lib/firmware/AM335X-PRU-UIO-00A0.dtbo",
+        regexp: '#?uboot_overlay_pru=\/lib\/firmware\/AM335X-PRU-UIO-00A0.dtbo',
+      }
+    - {
+        line: "uboot_overlay_addr3=/lib/firmware/BB-UART1-00A0.dtbo",
+        regexp: '#?uboot_overlay_addr3=\/lib\/firmware\S*',
+      }
+    - {
+        line: "uboot_overlay_addr4=/lib/firmware/BB-I2C1-00A0.dtbo",
+        regexp: '#?uboot_overlay_addr4=\/lib\/firmware\S*',
+      }
   become: yes
   notify:
     - restart device
@@ -25,9 +55,9 @@
 
 - name: Enable shepherd overlay
   lineinfile:
-    dest: '/boot/uEnv.txt'
+    dest: "/boot/uEnv.txt"
     regexp: '#?dtb_overlay=\/lib\/firmware\S*'
-    line: 'dtb_overlay=/lib/firmware/BB-SHPRD-00A0.dtbo'
+    line: "dtb_overlay=/lib/firmware/BB-SHPRD-00A0.dtbo"
     state: present
   when: virtcap | default(False) == False
   become: yes
@@ -38,9 +68,9 @@
 
 - name: Enable shepherd virtcap overlay
   lineinfile:
-    dest: '/boot/uEnv.txt'
+    dest: "/boot/uEnv.txt"
     regexp: '#?dtb_overlay=\/lib\/firmware\S*'
-    line: 'dtb_overlay=/lib/firmware/BB-SHPRDVCAP-00A0.dtbo'
+    line: "dtb_overlay=/lib/firmware/BB-SHPRDVCAP-00A0.dtbo"
     state: present
   when: virtcap | default(False) == True
   become: yes
@@ -56,23 +86,25 @@
 
 - name: Install required packages
   apt:
-    name: [
-      'linux-headers-{{ kernelrelease.stdout.strip() }}',
-      'linux-firmware',
-      'zlib1g-dev',
-      'libjpeg-dev',
-      'python3-numpy',
-      'python3-scipy',
-      'python3-zmq',
-      'python3-gevent',
-      'python3-h5py',
-      'python3-pip',
-      'python3-virtualenv']
+    name:
+      [
+        "linux-headers-{{ kernelrelease.stdout.strip() }}",
+        "linux-firmware",
+        "zlib1g-dev",
+        "libjpeg-dev",
+        "python3-numpy",
+        "python3-scipy",
+        "python3-zmq",
+        "python3-gevent",
+        "python3-h5py",
+        "python3-pip",
+        "python3-virtualenv",
+      ]
     state: present
     update_cache: yes
 
 - name: Get full path of repository
-  local_action: 'shell realpath {{ role_path }}/../../..'
+  local_action: "shell realpath {{ role_path }}/../../.."
   register: repo_dir
   become: no
   tags:
@@ -83,22 +115,22 @@
 
 - name: Create paths for shepherd
   file:
-    path: '{{ item }}'
+    path: "{{ item }}"
     state: directory
-    owner: '{{ ansible_user }}'
-    group: '{{ ansible_user }}'
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
   with_items:
-   - '{{ shepherd_install_path }}'
-   - '{{ shepherd_data_path }}'
-   - '{{ shepherd_config_path }}'
+    - "{{ shepherd_install_path }}"
+    - "{{ shepherd_data_path }}"
+    - "{{ shepherd_config_path }}"
   tags:
     - source-code
     - python
 
 - name: Synchronize shepherd dir to target
   synchronize:
-    src: '{{ repo_dir.stdout }}/'
-    dest: '{{ shepherd_install_path }}'
+    src: "{{ repo_dir.stdout }}/"
+    dest: "{{ shepherd_install_path }}"
     delete: yes
     owner: no
     group: no
@@ -112,7 +144,7 @@
 - name: Install shepherd python package
   command: python3 setup.py install --force
   args:
-    chdir: '{{ shepherd_install_path }}/software/python-package'
+    chdir: "{{ shepherd_install_path }}/software/python-package"
   tags:
     - install
     - python
@@ -140,7 +172,7 @@
 # TODO: part of these jobs can be done by the deb-scripts, try to avoid code duplication
 - name: Make Shepherd Module permanent
   lineinfile:
-    dest: '/etc/modules'
-    regexp: '#?shepherd'
-    line: 'shepherd'
+    dest: "/etc/modules"
+    regexp: "#?shepherd"
+    line: "shepherd"
     state: present
