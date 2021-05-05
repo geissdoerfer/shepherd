@@ -45,11 +45,7 @@
         "P9.31", /* SPI CS DAC */
         "P9.41", /* SWDIO */
         "P9.42", /* SWDCLK */
-        /* SPI0-Test */
-        /* "P9.17",*/
-        /* "P9.18",*/
-        "P9.21",
-        "P9.22",
+
         /* Realtime Units */
         "pru0",
         "pru1";
