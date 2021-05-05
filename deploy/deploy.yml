@@ -4,7 +4,7 @@
     - dev-host
     - sheep
     - gps-host
-    - ptp-slave
+    - ptp-host
   handlers:
     - name: restart device
       shell: sleep 2 && shutdown -r now "Ansible restart"
@@ -13,13 +13,32 @@
       ignore_errors: true
       become: yes
       listen: "restart device"
-  become: yes
-
   pre_tasks:
     - name: Get time and date from ansible controller
       local_action: command date -u +"%Y-%m-%dT%H:%M:%SZ"
       register: local_time
       become: no
 
-    - name: Set correct time before apt update
+    - name: Set correct time
       command: "date -s {{ local_time.stdout }}"
+  become: yes
+
+- hosts: ptp_clients
+  roles:
+    - ptp-client
+  become: yes
+
+- hosts: ntp_clients
+  roles:
+    - ntp-client
+  become: yes
+
+- hosts: gps_clients
+  roles:
+    - gps-client
+  become: yes
+
+- hosts: ptp_servers
+  roles:
+    - ptp-server
+  become: yes

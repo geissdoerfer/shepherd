@@ -1,0 +1,38 @@
+---
+- name: Configure PTP for slave-only mode
+  lineinfile:
+    dest: "/etc/linuxptp/ptp4l.conf"
+    regexp: "slaveOnly\\s*(0|1)"
+    line: "slaveOnly  1"
+    state: present
+  tags:
+    - ptp
+    - conf
+
+- name: Disable GPS and NTP services
+  systemd:
+    name: "{{ item }}"
+    state: stopped
+    enabled: no
+    daemon_reload: yes
+  with_items:
+    - chrony.service
+    - gpsd.service
+    - gpsd.socket
+    - systemd-timesyncd.service
+  tags:
+    - ptp
+    - conf
+
+- name: Enable ptp services
+  systemd:
+    name: "{{ item }}"
+    state: restarted
+    enabled: yes
+    daemon_reload: yes
+  with_items:
+    - phc2sys.service
+    - ptp4l.service
+  tags:
+    - ptp
+    - conf

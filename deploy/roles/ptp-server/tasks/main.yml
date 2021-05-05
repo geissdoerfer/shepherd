@@ -1,0 +1,47 @@
+---
+- name: Configure PTP for master mode
+  lineinfile:
+    dest: "/etc/linuxptp/ptp4l.conf"
+    regexp: "slaveOnly\\s*(0|1)"
+    line: "slaveOnly  0"
+    state: present
+  tags:
+    - ptp
+    - conf
+
+- name: Disable NTP service
+  systemd:
+    name: systemd-timesyncd
+    state: stopped
+    enabled: no
+    daemon_reload: yes
+  tags:
+    - ptp
+    - conf
+
+- name: Disable GPS services
+  systemd:
+    name: "{{ item }}"
+    state: stopped
+    enabled: no
+    daemon_reload: yes
+  with_items:
+    - gpsd.socket
+    - chrony.service
+  when: '"gps_clients" not in group_names'
+  tags:
+    - ptp
+    - conf
+
+- name: Enable PTP services
+  systemd:
+    name: "{{ item }}"
+    state: restarted
+    enabled: yes
+    daemon_reload: yes
+  with_items:
+    - phc2sys.service
+    - ptp4l.service
+  tags:
+    - ptp
+    - conf

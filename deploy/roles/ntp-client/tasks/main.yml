@@ -1,0 +1,25 @@
+- name: Disable GPS and PTP services
+  systemd:
+    name: "{{ item }}"
+    state: stopped
+    enabled: no
+    daemon_reload: yes
+  with_items:
+    - chrony.service
+    - gpsd.service
+    - gpsd.socket
+    - phc2sys.service
+    - ptp4l.service
+  tags:
+    - ptp
+    - conf
+
+- name: Enable NTP service
+  systemd:
+    name: systemd-timesyncd
+    state: restarted
+    enabled: yes
+    daemon_reload: yes
+  tags:
+    - ptp
+    - conf
