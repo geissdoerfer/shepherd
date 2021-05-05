@@ -7,7 +7,7 @@
 
 - name: Add shepherd repository to aptitude
   apt_repository:
-    repo: deb [trusted=yes] https://shepherd.nes-lab.org ubuntu/
+    repo: deb [trusted=yes] https://shepherd.nes-lab.org gps/
     state: present
   tags: gps
 

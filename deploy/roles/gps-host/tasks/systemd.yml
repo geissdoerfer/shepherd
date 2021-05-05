@@ -7,7 +7,6 @@
   with_items:
     - gpsd
     - chrony
-  tags: conf
 
 - name: Override service configs
   copy:
@@ -16,37 +15,27 @@
   with_items:
     - chrony
     - gpsd
-  tags: conf
 
 - name: Add config systemd service
   template:
     src: "{{ gps_path }}/debian/shepherd-gps.ublox-config.service"
     dest: "/etc/systemd/system/ublox-config.service"
-  tags: conf
 
 # services not started at boot, but after respective file exists
 - name: Add service path activation
   copy:
     src: "{{ gps_path }}/chrony.path"
     dest: "/etc/systemd/system/chrony.path"
-  tags: conf
 
-- name: Disable systemd-timesyncd
+- name: Disable services
   systemd:
-    name: systemd-timesyncd
+    name: "{{ item }}"
     state: stopped
-    masked: yes
-    daemon_reload: yes
-  tags: conf
-
-- name: Enable services
-  systemd:
-    name: "{{ item.name }}"
-    state: "{{ item.state }}"
-    enabled: "{{ item.enabled }}"
+    enabled: no
     daemon_reload: yes
   with_items:
-    - { name: chrony.service, enabled: no, state: restarted }
-    - { name: chrony.path, enabled: yes, state: restarted }
-    - { name: ublox-config.service, enabled: yes, state: stopped }
-  tags: conf
+    - gpsd.socket
+    - gpsd.service
+    - chrony.service
+    - chrony.path
+    - ublox-config.service
