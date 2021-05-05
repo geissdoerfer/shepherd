@@ -6,6 +6,7 @@ from pathlib import Path
 import click
 from scipy.signal import decimate
 import downsampling
+from datetime import datetime
 
 
 def ds_to_phys(dataset: h5py.Dataset):
@@ -59,6 +60,9 @@ def cli(directory, filename, sampling_rate, limit):
         data = extract_hdf(hdf_file, ds_factor=ds_factor)
         axes[0].plot(data["time"] - data["time"][0], data["voltage"])
         axes[1].plot(data["time"] - data["time"][0], data["current"] * 1e6)
+        rt_start = datetime.fromtimestamp(data["time"][0])
+        rt_end = datetime.fromtimestamp(data["time"][-1])
+        print(f"from {rt_start} to {rt_end}")
     else:
         data = dict()
         pl_dir = Path(directory)
@@ -81,6 +85,10 @@ def cli(directory, filename, sampling_rate, limit):
         ts_start = min([data[hostname]["time"][0] for hostname in active_nodes])
 
         for hostname in active_nodes:
+            rt_start = datetime.fromtimestamp(data[hostname]["time"][0])
+            rt_end = datetime.fromtimestamp(data[hostname]["time"][-1])
+
+            print(f"{hostname}: from {rt_start} to {rt_end}")
             axes[0].plot(
                 data[hostname]["time"] - ts_start,
                 data[hostname]["voltage"],
