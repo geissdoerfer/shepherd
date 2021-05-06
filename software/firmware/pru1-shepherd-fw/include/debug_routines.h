@@ -6,23 +6,25 @@
 #define DEBUG_EVENT_EN  1   // state1=Event1, s2=e2, s3=e3 (expensive part)
 #define DEBUG_LOOP_EN   0
 
-// Debug Code, state-changes add ~7 ticks (s0 -  s2), ~6 ticks (s3)
+// Debug Code, state-changes add ~2 ticks (s1 & 2), ~1 ticks (s0 & s3)
 #define DEBUG_STATE_0       write_r30(read_r30() & ~(DEBUG_PIN0_MASK | DEBUG_PIN1_MASK))
 #define DEBUG_STATE_1       write_r30((read_r30() | DEBUG_PIN0_MASK) & ~DEBUG_PIN1_MASK)
 #define DEBUG_STATE_2       write_r30((read_r30() | DEBUG_PIN1_MASK) & ~DEBUG_PIN0_MASK)
 #define DEBUG_STATE_3       write_r30(read_r30() | (DEBUG_PIN0_MASK | DEBUG_PIN1_MASK))
 
-#if DEBUG_GPIO_EN > 0
+#if (DEBUG_GPIO_EN > 0)
 #define DEBUG_GPIO_STATE_0  DEBUG_STATE_0
 #define DEBUG_GPIO_STATE_1  DEBUG_STATE_1
 #define DEBUG_GPIO_STATE_2  DEBUG_STATE_2
+#define DEBUG_GPIO_STATE_3  DEBUG_STATE_3
 #else
 #define DEBUG_GPIO_STATE_0
 #define DEBUG_GPIO_STATE_1
 #define DEBUG_GPIO_STATE_2
+#define DEBUG_GPIO_STATE_3
 #endif
 
-#if DEBUG_EVENT_EN > 0
+#if (DEBUG_EVENT_EN > 0)
 #define DEBUG_EVENT_STATE_0  DEBUG_STATE_0
 #define DEBUG_EVENT_STATE_1  DEBUG_STATE_1
 #define DEBUG_EVENT_STATE_2  DEBUG_STATE_2
@@ -34,7 +36,7 @@
 #define DEBUG_EVENT_STATE_3
 #endif
 
-#if DEBUG_LOOP_EN > 0
+#if (DEBUG_LOOP_EN > 0)
 // "print" number by toggling debug pins bitwise, lowest bitvalue first
 static void inline shift_gpio(const uint32_t number)
 {
