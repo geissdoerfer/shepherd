@@ -190,7 +190,7 @@ int32_t event_loop(volatile struct SharedMem *const shared_mem)
 	uint32_t last_analog_sample_ticks = 0;
 
 	/* Prepare message that will be received and sent to Linux kernel module */
-	struct CtrlReqMsg ctrl_req = { .identifier = MSG_SYNC_CTRL_REQ, .msg_unread = 1 };
+	struct CtrlReqMsg ctrl_req = { .identifier = MSG_SYNC_CTRL_REQ, .msg_unread = 0u };
 	struct CtrlRepMsg ctrl_rep = {
 		.buffer_block_period = TIMER_BASE_PERIOD,
 		.analog_sample_period = TIMER_BASE_PERIOD / ADC_SAMPLES_PER_BUFFER,
