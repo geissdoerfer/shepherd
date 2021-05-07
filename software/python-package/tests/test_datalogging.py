@@ -9,6 +9,7 @@ from itertools import product
 from shepherd import LogReader
 from shepherd import LogWriter
 from shepherd import CalibrationData
+from shepherd.calibration import cal_parameter_list, cal_channel_list
 
 from shepherd.shepherd_io import DataBuffer
 from shepherd.datalog import GPIOEdges
@@ -61,7 +62,7 @@ def test_create_logwriter_with_force(tmp_path, calibration_data):
     stat = d.stat()
     time.sleep(0.1)
 
-    h = LogWriter(store_path=d, calibration_data=calibration_data, force=False)
+    h = LogWriter(store_path=d, calibration_data=calibration_data, force_overwrite=False)
     h.__enter__()
     h.__exit__()
     # This should have created the following alternative file:
@@ -69,7 +70,7 @@ def test_create_logwriter_with_force(tmp_path, calibration_data):
     assert h.store_path == d_altered
     assert d_altered.exists()
 
-    h = LogWriter(store_path=d, calibration_data=calibration_data, force=True)
+    h = LogWriter(store_path=d, calibration_data=calibration_data, force_overwrite=True)
     h.__enter__()
     h.__exit__()
     new_stat = d.stat()
@@ -104,9 +105,7 @@ def test_calibration_logging(mode, tmp_path, calibration_data):
 
     h5store = h5py.File(d, "r")
 
-    for channel, parameter in product(
-        ["voltage", "current"], ["gain", "offset"]
-    ):
+    for channel, parameter in product(cal_channel_list, cal_parameter_list):
         assert (
             h5store["data"][channel].attrs[parameter]
             == calibration_data["load"][channel][parameter]

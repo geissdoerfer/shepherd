@@ -1,0 +1,151 @@
+---
+- name: Bring Kernel to defined Version and remove Clutter
+  hosts: all
+  become: true
+
+  vars:
+    # shepherd firmware expects a certain branch!
+    default_kernel_branch: lts-4_19
+    timezone: Europe/Berlin
+    # potentially dangerous / improve security:
+    non_essential_packages_a: ['dnsmasq', 'dnsmasq-*', 'nginx', 'nginx-*']
+    # old kernel data
+    non_essential_packages_b: ['linux-image-4.15.*', 'linux-image-4.14.*']
+    non_essential_packages_c: ['linux-headers-4.15.*', 'linux-headers-4.14.*']
+    # todo: soon add linux-*-4.19.*
+    # not needed drivers / packages Todo: rf-drivers could become important later
+    non_essential_packages_d: ['alsa-utils', 'wireless-*', 'wpasupplicant', 'ofono', 'bluez', 'bluetooth', 'rfkill']
+    non_essential_packages_e: ['seeed-modules-*', 'rtl8723bu-*', 'rtl8821cu-*', 'can-utils', 'libasound*']
+    non_essential_packages_f: ['ti-sgx-*', 'eject', 'iw', 'vpdma-*', 'libx11*', 'rfkill']
+    # todo: vpdma maybe my fault, manual install, there is much more cluttering up the system,
+
+  vars_prompt:
+    # these can be also passed as argument:  -e "update_kernel=True" -> automatically skips these prompts
+    - name: update_kernel
+      prompt: "Do you want to update the Kernel? [yesNO]"
+      private: no
+      default: "no"
+
+    - name: update_bootloader
+      prompt: "Do you want to update the Bootloader? [yesNO]"
+      private: no
+      default: "no"
+
+  tasks:
+
+  - name: GIT - Update "boot-scripts" from RoberCNelson
+    git:
+      repo: https://github.com/RobertCNelson/boot-scripts
+      dest: /opt/scripts
+      update: yes
+      version: master
+
+  - name: SCRIPT - Switch to newest release of Kernel Branch "{{ default_kernel_branch }}"
+    shell: /opt/scripts/tools/update_kernel.sh --{{ default_kernel_branch }}
+    when: update_kernel|bool
+    # TODO: this script gets recommended, but apt should be also just fine, should be cleaner
+
+  - name: SYS - Restart device
+    shell: sleep 2 && shutdown -r now "Ansible restart"
+    async: 1
+    poll: 0
+    ignore_errors: true
+    when: update_kernel|bool
+  - name: SYS - Waiting to come back
+    wait_for_connection:
+      delay: 15
+      timeout: 300
+    become: no
+    when: update_kernel|bool
+
+  - name: SCRIPT - Update Bootloader
+    shell: yes | /opt/scripts/tools/developers/update_bootloader.sh
+    when: update_bootloader|bool
+
+  - name: Uname - Get Kernel-Version
+    command: uname --kernel-release
+    register: kernelrelease
+    changed_when: False
+
+  # TODO: this is a copy of an entry in install.yml
+  - name: APT - Install matching Kernel-Headers for running Kernel
+    apt:
+      name: 'linux-headers-{{ kernelrelease.stdout.strip() }}'
+      update_cache: yes
+
+  - name: APT - Update Cache
+    apt:
+      update_cache: yes
+
+  - name: APT - Combine Package-List
+    set_fact:
+      non_essential_pckgs: "{{ non_essential_packages_a +
+                               non_essential_packages_b +
+                               non_essential_packages_c +
+                               non_essential_packages_d +
+                               non_essential_packages_e +
+                               non_essential_packages_f }}"
+  # TODO: kernel / header that comes with image are somehow not in apt -> dpkgs
+
+  # keep non_essential_pckgs in divided steps for now, better debug
+  - name: APT - Uninstall non-essential Packages (Part A)
+    apt:
+      name: "{{ non_essential_packages_a }}"
+      state: absent
+      purge: yes
+  - name: APT - Uninstall non-essential Packages (Part B)
+    apt:
+      name: "{{ non_essential_packages_b }}"
+      state: absent
+      purge: yes
+  - name: APT - Uninstall non-essential Packages (Part C)
+    apt:
+      name: "{{ non_essential_packages_c }}"
+      state: absent
+      purge: yes 
+  - name: APT - Uninstall non-essential Packages (Part D)
+    apt:
+      name: "{{ non_essential_packages_d }}"
+      state: absent
+      purge: yes
+  - name: APT - Uninstall non-essential Packages (Part E)
+    apt:
+      name: "{{ non_essential_packages_e }}"
+      state: absent
+      purge: yes
+  - name: APT - Uninstall non-essential Packages (Part F)
+    apt:
+      name: "{{ non_essential_packages_f }}"
+      state: absent
+      purge: yes
+
+  - name: APT - Remove Dependencies that are no longer required
+    apt:
+      autoremove: yes
+      
+  - name: APT - Remove useless Packages from the Cache
+    apt:
+      autoclean: yes
+
+  - name: APT - Upgrade all packages to the latest version
+    apt:
+      upgrade: dist
+      update_cache: yes
+
+  - name: CFG - Set timezone to "{{ timezone }}"
+    timezone:
+      name: "{{ timezone }}"
+
+  - name: SYS - Restart Device
+    shell: sleep 2 && shutdown -r now "Ansible restart"
+    async: 1
+    poll: 0
+    ignore_errors: true
+  - name: SYS - Waiting to come back
+    wait_for_connection:
+      delay: 15
+      timeout: 300
+    become: no
+
+#  - name: CFG - Set CPU Governor to more relaxed state (powersave)
+#    shell: 

@@ -3,6 +3,9 @@
 
 #include "commons.h"
 
+/* helper fn for plausibility-check */
+void reset_prev_timestamp(void);
+
 /**
  * Initializes snychronization procedure between our Linux clock and PRU0
  *
@@ -32,7 +35,7 @@ int sync_reset(void);
  * @param ctrl_rep Buffer to store the result of the control loop
  * @param ctrl_req Control request that was received from PRU0
  */
-int sync_loop(struct CtrlRepMsg *ctrl_rep, struct CtrlReqMsg *ctrl_req);
+int sync_loop(struct CtrlRepMsg *ctrl_rep, const struct CtrlReqMsg *ctrl_req);
 
 /**
  * Synchronization data structure
@@ -41,9 +44,12 @@ int sync_loop(struct CtrlRepMsg *ctrl_rep, struct CtrlReqMsg *ctrl_req);
  * allow users to track state.
  */
 struct sync_data_s {
-	int64_t err_sum;
-	int64_t err;
+    int64_t error_now;
+    int64_t error_pre;
+    int64_t error_dif;
+    int64_t error_sum;
 	int32_t clock_corr;
+    uint32_t previous_period;
 };
 
 extern struct sync_data_s *sync_data;

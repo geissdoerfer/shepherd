@@ -18,7 +18,7 @@
 
 - name: Download PRU Code Generation tools installer
   get_url:
-    url: http://software-dl.ti.com/codegen/esd/cgt_public_sw/PRU/2.3.1/ti_cgt_pru_2.3.1_armlinuxa8hf_busybox_installer.sh
+    url: '{{ pru_cgt_installer }}'
     dest: /tmp/
     timeout: 45
   register: get_url_ret

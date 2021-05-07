@@ -10,6 +10,8 @@ functionality to a command line user.
 :copyright: (c) 2019 Networked Embedded Systems Lab, TU Dresden.
 :license: MIT, see LICENSE for more details.
 """
+from typing import Dict
+
 import click
 import time
 import pathlib
@@ -41,8 +43,10 @@ consoleHandler = logging.StreamHandler()
 logger = logging.getLogger("shepherd")
 logger.addHandler(consoleHandler)
 
+# TODO: ditch sudo, add user to allow sys_fs-access and other things
 
-def yamlprovider(file_path, cmd_name):
+
+def yamlprovider(file_path: str, cmd_name) -> Dict:
     logger.info(f"reading config from {file_path}")
     with open(file_path, "r") as config_data:
         full_config = yaml.safe_load(config_data)
@@ -53,8 +57,12 @@ def yamlprovider(file_path, cmd_name):
 @click.option("-v", "--verbose", count=True, default=1)
 @click.pass_context
 def cli(ctx, verbose):
-    "Shepherd: Synchronized Energy Harvesting Emulator and Recorder"
+    """ "Shepherd: Synchronized Energy Harvesting Emulator and Recorder"
 
+    :param ctx:
+    :param verbose:
+    :return:
+    """
     if verbose == 0:
         logger.setLevel(logging.ERROR)
     elif verbose == 1:
@@ -93,9 +101,9 @@ def targetpower(on, voltage):
     "--command", default="record", type=click.Choice(["record", "emulate"])
 )
 @click.option("--parameters", default=dict())
-@click.option("-v", "--verbose", count=True)
 @click_config_file.configuration_option(provider=yamlprovider, implicit=False)
-def run(command, parameters, verbose):
+@click.option("-v", "--verbose", count=True)
+def run(command, parameters: Dict, verbose):
 
     if verbose is not None:
         if verbose == 0:
@@ -107,75 +115,46 @@ def run(command, parameters, verbose):
         elif verbose > 2:
             logger.setLevel(logging.DEBUG)
 
+    if not isinstance(parameters, Dict):
+        raise click.BadParameter(f"parameter-argument is not dict, but {type(parameters)} (last occurred with alpha-version of click-lib)")
+
     if command == "record":
-        if "output" in parameters.keys():
-            parameters["output"] = Path(parameters["output"])
+        if "output_path" in parameters.keys():
+            parameters["output_path"] = Path(parameters["output_path"])
         run_record(**parameters)
     elif command == "emulate":
-        if "output" in parameters.keys():
-            parameters["output"] = Path(parameters["output"])
-        if "input" in parameters.keys():
-            parameters["input"] = Path(parameters["input"])
+        if ("output_path" in parameters.keys()) and (parameters["output_path"] is not None):
+            parameters["output_path"] = Path(parameters["output_path"])
+        if "input_path" in parameters.keys():
+            parameters["input_path"] = Path(parameters["input_path"])
         run_emulate(**parameters)
     else:
         raise click.BadParameter(f"command {command} not supported")
 
 
 @cli.command(short_help="Record data")
-@click.option(
-    "--output",
-    "-o",
-    type=click.Path(),
-    default="/var/shepherd/recordings",
-    help="Dir or file path for resulting hdf5 file",
-)
-@click.option(
-    "--mode",
-    type=click.Choice(["harvesting", "load"]),
-    default="harvesting",
-    help="Record 'harvesting' or 'load' data",
-)
-@click.option(
-    "--length", "-l", type=float, help="Duration of recording in seconds"
-)
-@click.option("--force", "-f", is_flag=True, help="Overwrite existing file")
+@click.option("--output_path", "-o", type=click.Path(), default="/var/shepherd/recordings",
+    help="Dir or file path for resulting hdf5 file")
+@click.option("--mode", type=click.Choice(["harvesting", "load"]), default="harvesting",
+    help="Record 'harvesting' or 'load' data")
+@click.option("--duration", "-d", type=float, help="Duration of recording in seconds")
+@click.option("--force_overwrite", "-f", is_flag=True, help="Overwrite existing file")
 @click.option("--no-calib", is_flag=True, help="Use default calibration values")
-@click.option(
-    "--voltage", type=float, help="Set fixed reference voltage for harvesting"
-)
-@click.option(
-    "--load",
-    type=click.Choice(["artificial", "node"]),
-    default="artificial",
-    help="Choose artificial or sensor node load",
-)
-@click.option(
-    "--ldo-voltage",
-    "-c",
-    type=float,
-    default=2.1,
-    help="Set voltage of variable LDO regulator",
-)
-@click.option(
-    "--ldo-mode",
-    type=click.Choice(["pre-charge", "continuous"]),
-    default="pre-charge",
-    help="Select if LDO should just pre-charge capacitor or run continuously",
-)
-@click.option(
-    "--start-time",
-    "-s",
-    type=float,
-    help="Desired start time in unix epoch time",
-)
-@click.option(
-    "--warn-only/--no-warn-only", default=True, help="Warn only on errors"
-)
+@click.option("--voltage", type=float, help="Set fixed reference voltage for harvesting")
+@click.option("--load", type=click.Choice(["artificial", "node"]), default="artificial",
+    help="Choose artificial or sensor node load")
+@click.option("--ldo-voltage", "-c", type=float, default=2.1,
+    help="Set voltage of variable LDO regulator")
+@click.option("--ldo-mode", type=click.Choice(["pre-charge", "continuous"]), default="pre-charge",
+    help="Select if LDO should just pre-charge capacitor or run continuously")
+@click.option("--start-time", "-s", type=float,
+    help="Desired start time in unix epoch time")
+@click.option("--warn-only/--no-warn-only", default=True, help="Warn only on errors")
 def record(
-    output,
+    output_path,
     mode,
-    length,
-    force,
+    duration,
+    force_overwrite,
     no_calib,
     voltage,
     load,
@@ -185,87 +164,61 @@ def record(
     warn_only,
 ):
     run_record(
-        Path(output),
-        mode,
-        length,
-        force,
-        no_calib,
-        voltage,
-        load,
-        ldo_voltage,
-        ldo_mode,
-        start_time,
-        warn_only,
+        output_path=Path(output_path),
+        mode=mode,
+        duration=duration,
+        force_overwrite=force_overwrite,
+        no_calib=no_calib,
+        harvesting_voltage=voltage,
+        load=load,
+        ldo_voltage=ldo_voltage,
+        ldo_mode=ldo_mode,
+        start_time=start_time,
+        warn_only=warn_only,
     )
 
 
 @cli.command(
-    short_help="Emulate data, where INPUT is an hdf5 file containing harvesting data"
-)
-@click.argument("input", type=click.Path(exists=True))
-@click.option(
-    "--output",
-    "-o",
-    type=click.Path(),
-    help="Dir or file path for storing the load consumption data",
-)
-@click.option(
-    "--length", "-l", type=float, help="Duration of recording in seconds"
-)
-@click.option("--force", "-f", is_flag=True, help="Overwrite existing file")
+    short_help="Emulate data, where INPUT is an hdf5 file containing harvesting data")
+@click.argument("input_path", type=click.Path(exists=True))
+@click.option("--output_path", "-o", type=click.Path(),
+    help="Dir or file path for storing the load consumption data",)
+@click.option("--duration", "-d", type=float, help="Duration of recording in seconds")
+@click.option("--force_overwrite", "-f", is_flag=True, help="Overwrite existing file")
 @click.option("--no-calib", is_flag=True, help="Use default calibration values")
-@click.option(
-    "--load",
-    type=click.Choice(["artificial", "node"]),
-    default="node",
-    help="Choose artificial or sensor node load",
-)
-@click.option(
-    "--ldo-voltage",
-    "-c",
-    help="Pre-charge capacitor to this voltage before starting emulation",
-    type=float,
-    default=2.1,
-)
-@click.option(
-    "--start-time", type=float, help="Desired start time in unix epoch time"
-)
-@click.option(
-    "--virtcap",
-    help="Use virtcap, it can emulate any energy harvesting power supply chain by the given virtcap model parameters",
-)
-@click.option(
-    "--warn-only/--no-warn-only", default=True, help="Warn only on errors"
-)
+@click.option("--load", type=click.Choice(["artificial", "node"]), default="node",
+    help="Choose artificial or sensor node load",)
+@click.option("--ldo-voltage", "-c", type=float, default=2.1,
+    help="Pre-charge capacitor to this voltage before starting emulation")
+@click.option("--start-time", type=float, help="Desired start time in unix epoch time")
+@click.option("--warn-only/--no-warn-only", default=True, help="Warn only on errors")
 @click_config_file.configuration_option(provider=yamlprovider, implicit=False)
 def emulate(
-    input,
-    output,
-    length,
-    force,
+    input_path,
+    output_path,
+    duration,
+    force_overwrite,
     no_calib,
     load,
     ldo_voltage,
     start_time,
-    virtcap,
     warn_only,
 ):
-    if output is None:
+    if output_path is None:
         pl_store = None
     else:
-        pl_store = Path(output)
+        pl_store = Path(output_path)
 
     run_emulate(
-        input,
-        pl_store,
-        length,
-        force,
-        no_calib,
-        load,
-        ldo_voltage,
-        start_time,
-        virtcap,
-        warn_only,
+        input_path=Path(input_path),
+        output_path=pl_store,
+        duration=duration,
+        force_overwrite=force_overwrite,
+        no_calib=no_calib,
+        load=load,
+        ldo_voltage=ldo_voltage,
+        start_time=start_time,
+        warn_only=warn_only,
     )
 
 
@@ -278,31 +231,14 @@ def eeprom():
 
 
 @eeprom.command(short_help="Write data to EEPROM")
-@click.option(
-    "--infofile",
-    "-i",
-    type=click.Path(exists=True),
-    help="YAML-formatted file with cape info",
-)
-@click.option(
-    "--version",
-    "-v",
-    type=str,
-    help="Cape version number, e.g. 00A0",
-    default="00A0",
-)
-@click.option(
-    "--serial_number",
-    "-s",
-    type=str,
-    help="Cape serial number, e.g. 3219AAAA0001",
-)
-@click.option(
-    "--calibfile",
-    "-c",
-    type=click.Path(exists=True),
-    help="YAML-formatted file with calibration data",
-)
+@click.option("--infofile", "-i", type=click.Path(exists=True),
+    help="YAML-formatted file with cape info")
+@click.option("--version", "-v", type=str, default="00A0",
+    help="Cape version number, e.g. 00A0")
+@click.option("--serial_number", "-s", type=str,
+    help="Cape serial number, e.g. 3219AAAA0001")
+@click.option("--calibfile", "-c", type=click.Path(exists=True),
+    help="YAML-formatted file with calibration data")
 @click.option("--no-calib", is_flag=True, help="Use default calibration data")
 def write(infofile, version, serial_number, calibfile, no_calib):
     if infofile is not None:
@@ -377,17 +313,17 @@ def read(infofile, calibfile):
 )
 @click.argument("filename", type=click.Path(exists=True))
 @click.option(
-    "--output",
+    "--output_path",
     "-o",
     type=click.Path(),
     help="Path to resulting YAML-formatted calibration data file",
 )
-def make(filename, output):
+def make(filename, output_path):
     cd = CalibrationData.from_measurements(filename)
-    if output is None:
+    if output_path is None:
         print(repr(cd))
     else:
-        with open(output, "w") as f:
+        with open(output_path, "w") as f:
             f.write(repr(cd))
 
 

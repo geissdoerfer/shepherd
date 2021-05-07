@@ -47,6 +47,9 @@
         line: "uboot_overlay_addr4=/lib/firmware/BB-I2C1-00A0.dtbo",
         regexp: '#?uboot_overlay_addr4=\/lib\/firmware\S*',
       }
+
+    # NOTE: keep these in synch with /software/firmware/debian/postinst
+
   become: yes
   notify:
     - restart device
@@ -59,20 +62,6 @@
     regexp: '#?dtb_overlay=\/lib\/firmware\S*'
     line: "dtb_overlay=/lib/firmware/BB-SHPRD-00A0.dtbo"
     state: present
-  when: virtcap | default(False) == False
-  become: yes
-  notify:
-    - restart device
-  tags:
-    - device-tree
-
-- name: Enable shepherd virtcap overlay
-  lineinfile:
-    dest: "/boot/uEnv.txt"
-    regexp: '#?dtb_overlay=\/lib\/firmware\S*'
-    line: "dtb_overlay=/lib/firmware/BB-SHPRDVCAP-00A0.dtbo"
-    state: present
-  when: virtcap | default(False) == True
   become: yes
   notify:
     - restart device
@@ -127,7 +116,7 @@
     - source-code
     - python
 
-- name: Synchronize shepherd dir to target
+- name: Synchronize host shepherd dir to target
   synchronize:
     src: "{{ repo_dir.stdout }}/"
     dest: "{{ shepherd_install_path }}"
@@ -147,6 +136,19 @@
     chdir: "{{ shepherd_install_path }}/software/python-package"
   tags:
     - install
+    - python
+
+- name: Install shepherd meta-package
+  synchronize:
+    src: "{{ repo_dir.stdout }}/software/meta-package/"
+    dest: "{{ shepherd_config_path }}"
+    delete: yes
+    owner: no
+    group: no
+    rsync_opts:
+      - "--exclude=debian"
+  tags:
+    - source-code
     - python
 
 - name: Link to shepherd-sheep for compatibility with deb package

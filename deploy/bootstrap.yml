@@ -3,22 +3,19 @@
   hosts: all
   become: true
   gather_facts: no
+
   vars:
     default_user: ubuntu
     default_password: temppwd
+    apt_upgrade: true
 
   tasks:
 
   - set_fact:
       new_user: "{{ ansible_user }}"
-
-  - set_fact:
+      # special internal variables:
       ansible_user: "{{ default_user }}"
-
-  - set_fact:
       ansible_password: "{{ default_password }}"
-
-  - set_fact:
       ansible_become_password: "{{ default_password }}"
 
   - name: Set hostname
@@ -39,7 +36,7 @@
       groups: sudo
       append: yes
 
-  - name: Set authorized key from local file
+  - name: enable and setup password-less ssh-login via authorized key from local file (prereq is run of ssh-keygen)
     authorized_key:
       user: "{{ item }}"
       state: present
@@ -101,4 +98,4 @@
     apt:
       upgrade: dist
       update_cache: yes
-    when: upgrade|default(false)|bool == true
+    when: apt_upgrade|bool

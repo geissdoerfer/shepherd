@@ -37,7 +37,12 @@ def extract_hdf(hdf_file: Path, ds_factor: int = 1):
         data["time"] = data["time"][:data_len]
         data["current"] = data["current"][:data_len]
         data["voltage"] = data["voltage"][:data_len]
-        print("HDF extracted..")
+        # detect and warn about unusual time-jumps (hints to bugs or data-corruption)
+        time_diff = hf["data"]["time"][1:data_len] - hf["data"]["time"][0:data_len-1]
+        diff_count = np.asarray(np.unique(time_diff, return_counts = True))  # time_diff.count()
+        if diff_count.size > 2: # array contains tuple of (value, count)
+            print(f"WARNING: time-delta seems to be changing \n{diff_count}")
+        print(f"HDF extracted -> resulting in {data_len} (downsampled) entries ..")
 
     return data
 

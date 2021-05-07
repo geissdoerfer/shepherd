@@ -41,7 +41,7 @@ Also, instead of using the inventory file option, we specify hosts and ssh user 
 
 .. code-block:: bash
 
-    shepherd-herd -i sheep0,sheep1, -u jane record -l 30 --harvesting-voltage 0.6 -o rec_v_fixed.h5
+    shepherd-herd -i sheep0,sheep1, -u jane record -d 30 --harvesting-voltage 0.6 -o rec_v_fixed.h5
 
 To retrieve the recordings from the shepherd nodes and store them locally on your machine under the `recordings/` directory:
 

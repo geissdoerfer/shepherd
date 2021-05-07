@@ -1,5 +1,6 @@
 /dts-v1/;
 /plugin/;
+#include "am335x_pinctrl.h"
 
 /*
 // future-reference, gpio.h contains: BONE_P8_03, etc
@@ -10,7 +11,7 @@
 
 
 / {
-   // note: (older) "ti,beaglebone" types seem to working as well for v4.19.x-ti
+   // note: (older) "ti,beaglebone" types seem to be working as well for v4.19.x-ti, but this is more future-proof
    compatible = "ti,am335x-bone", "ti,am335x-bone-black", "ti,am335x-bone-green";
 
    part-number = "BB-SHPRD";
@@ -44,6 +45,8 @@
         "P9.31", /* SPI CS DAC */
         "P9.41", /* SWDIO */
         "P9.42", /* SWDCLK */
+
+        /* Realtime Units */
         "pru0",
         "pru1";
    /* Check Table 9-60 in am335x TRM */
@@ -59,7 +62,7 @@
 
          chosen {
             overlays {
-               BB-SHPRD-00A0 = "12345678";
+               BB-SHPRD-00A0 = __TIMESTAMP__;
             };
          };
       };
@@ -71,36 +74,35 @@
       __overlay__ {
          bb_shprd_pins: pinmux_bb_shprd_pins {
             pinctrl-single,pins = <
-            /* TODO: could be translated to format (better human readable)
-                AM33XX_IOPAD(0x0834, PIN_OUTPUT_PULLDOWN | INPUT_EN | MUX_MODE7)
-                BONE_P8_11 MUX_MODE6
-            0x034 0x06  /* P8.11, pr1_pru0_pru_r30_15 */
-            0x030 0x06  /* P8.12, pr1_pru0_pru_r30_14 */
-            0x024 0x07  /* P8.13, gpio0[23] */
-            0x0e8 0x07	/* P8.28, gpio2[24] */
-            0x0ec 0x07	/* P8.30, gpio2[25] */
-            0x0d4 0x07	/* P8.33, gpio0[9] */
-            0x0cc 0x37	/* P8.34, gpio2[17] */
-            0x0c8 0x07	/* P8.36, gpio2[16] */
-            0x0b0 0x05	/* P8.41, pr1_pru1_pru_r30_4 */
-            0x0b4 0x05	/* P8.42, pr1_pru1_pru_r30_5 */
-            0x0a8 0x26	/* P8.43, pr1_pru1_pru_r31_2 */
-            0x0ac 0x26	/* P8.44, pr1_pru1_pru_r31_3 */
-            0x0a0 0x26	/* P8.45, pr1_pru1_pru_r31_0 */
-            0x0a4 0x26	/* P8.46, pr1_pru1_pru_r31_1 */
 
-            0x070 0x07	/* P9_11, gpio0[30] */
-            0x078 0x07	/* P9_12, gpio1[28] */
-            0x040 0x07	/* P9_15, gpio1[16] */
-            0x04c 0x07	/* P9_16, gpio1[19] */
-            0x1ac 0x05	/* P9_25, pr1_pru0_pru_r30_7 */
-            0x1a4 0x26	/* P9_27, pr1_pru0_pru_r31_5 */
-            0x19c 0x05	/* P9_28, pr1_pru0_pru_r30_3 */
-            0x194 0x2F	/* P9_29, gpio3[15], high imp */
-            0x198 0x05	/* P9_30, pr1_pru0_pru_r30_2 */
-            0x190 0x05	/* P9_31, pr1_pru0_pru_r30_0 */
-            0x1a8 0x27	/* P9_41B, gpio3[20] */
-            0x1a0 0x07	/* P9_42B, gpio3[18] */
+            P8_11(MUX_MODE6) /* pr1_pru0_pru_r30_15 */
+            P8_12(MUX_MODE6) /* pr1_pru0_pru_r30_14 */
+            P8_13(MUX_MODE7) /* gpio0[23] */
+            P8_28(MUX_MODE7) /* gpio2[24] */
+            P8_30(MUX_MODE7) /* gpio2[25] */
+            P8_33(MUX_MODE7) /* gpio0[9] */
+            P8_34(MUX_MODE7 | RX_ACTIVE | PULL_UP) /* gpio2[17] */
+            P8_36(MUX_MODE7) /* gpio2[16] */
+            P8_41(MUX_MODE5) /* pr1_pru1_pru_r30_4 */
+            P8_42(MUX_MODE5) /* pr1_pru1_pru_r30_5 */
+            P8_43(MUX_MODE6 | RX_ACTIVE) /* pr1_pru1_pru_r31_2 */
+            P8_44(MUX_MODE6 | RX_ACTIVE) /* pr1_pru1_pru_r31_3 */
+            P8_45(MUX_MODE6 | RX_ACTIVE) /* pr1_pru1_pru_r31_0 */
+            P8_46(MUX_MODE6 | RX_ACTIVE) /* pr1_pru1_pru_r31_1 */
+
+            P9_11(MUX_MODE7) /* gpio0[30] */
+            P9_12(MUX_MODE7) /* gpio1[28] */
+            P9_15(MUX_MODE7) /* gpio1[16] */
+            P9_16(MUX_MODE7) /* gpio1[19] */
+            P9_25(MUX_MODE5) /* pr1_pru0_pru_r30_7 */
+            P9_27(MUX_MODE6 | RX_ACTIVE) /* pr1_pru0_pru_r31_5 */
+            P9_28(MUX_MODE5) /* pr1_pru0_pru_r30_3 */
+            P9_29(MUX_MODE7 | RX_ACTIVE | PULL_DISABLE) /* gpio3[15], high imp */
+            P9_30(MUX_MODE5) /* pr1_pru0_pru_r30_2 */
+            P9_31(MUX_MODE5) /* pr1_pru0_pru_r30_0 */
+            P9_41B(MUX_MODE7 | RX_ACTIVE) /* gpio3[20] */
+            P9_42B(MUX_MODE7) /* gpio3[18] */
+
             >;
          };
       };

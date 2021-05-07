@@ -2,6 +2,7 @@ import pytest
 import logging
 import h5py
 import time
+import numpy as np
 
 from shepherd import LogWriter
 from shepherd import Recorder
@@ -20,7 +21,7 @@ def log_writer(tmp_path, mode):
     with LogWriter(
         mode=mode,
         calibration_data=calib,
-        force=True,
+        force_overwrite=True,
         store_path=tmp_path / "test.h5",
     ) as lw:
         yield lw
@@ -52,19 +53,19 @@ def test_recorder(log_writer, recorder):
     for _ in range(100):
         idx, buf = recorder.get_buffer()
         log_writer.write_buffer(buf)
-        recorder.release_buffer(idx)
+        recorder.return_buffer(idx)
 
 
 @pytest.mark.hardware
-@pytest.mark.timeout(30)
+@pytest.mark.timeout(40)
 def test_record_fn(tmp_path, shepherd_up):
-    d = tmp_path / "rec.h5"
+    output = tmp_path / "rec.h5"
     start_time = int(time.time() + 10)
     record(
-        output=d,
+        output_path=output,
         mode="harvesting",
-        length=10,
-        force=True,
+        duration=10,
+        force_overwrite=True,
         no_calib=True,
         harvesting_voltage=None,
         load="artificial",
@@ -73,7 +74,13 @@ def test_record_fn(tmp_path, shepherd_up):
         start_time=start_time,
     )
 
-    with h5py.File(d, "r+") as hf:
+    with h5py.File(output, "r+") as hf:
         n_samples = hf["data"]["time"].shape[0]
         assert 900_000 < n_samples <= 1_100_000
-        assert hf["data"]["time"][0] == start_time * 1e9
+        assert hf["data"]["time"][0] == start_time * 10**9
+        # test for equidistant timestamps
+        time_series = hf["data"]["time"]
+        diff_series = time_series[1:] - time_series[:-1]
+        unique = np.unique(diff_series)
+        assert len(unique) == 1
+

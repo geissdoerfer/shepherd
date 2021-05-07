@@ -3,6 +3,13 @@
   hosts: all
   become: true
 
+  vars_prompt:
+    # these can be also passed as argument:  -e "ptp=True" -> automatically skips these prompts
+    - name: ptp
+      prompt: "Do you want to install ptp? Useful for synching several shepherd nodes. [yesNo]"
+      private: no
+      default: "no"
+
   tasks:
 
   - name: Get kernel version
@@ -30,7 +37,7 @@
     apt:
       name: shepherd-ptp
       state: latest
-    when: ptp|default(false)|bool == true
+    when: ptp|default(false)|bool
 
   - name: restart device
     shell: sleep 2 && shutdown -r now "Ansible restart"

@@ -1,21 +1,21 @@
 #ifndef RINGBUFFER_H_
 #define RINGBUFFER_H_
 
-#define RING_SIZE 64
+#include "stdint_fast.h"
 
-#define BUF_EMPTY -1
+#define RING_SIZE   (64U)
 
 struct RingBuffer
 {
-	char ring[RING_SIZE];
-	int start;
-	int end;
-	int active;
+	uint8_t ring[RING_SIZE];
+	uint32_t start; // TODO: these can be smaller, at least in documentation
+	uint32_t end;
+	uint32_t active;
 };
 
-void init_ring(struct RingBuffer * buf);
-int ring_put(struct RingBuffer * buf, char element);
-int ring_get(struct RingBuffer * buf, char * element);
-int ring_empty(struct RingBuffer * buf);
+void ring_init(struct RingBuffer* const buf);
+void ring_put(struct RingBuffer * buf, uint8_t element);
+bool_ft ring_get(struct RingBuffer * buf, uint8_t * element);
+bool_ft ring_empty(const struct RingBuffer * buf);
 
 #endif

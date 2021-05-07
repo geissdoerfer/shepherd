@@ -1,4 +1,4 @@
-shepherd-openocd (0.2.2) unstable; urgency=medium
+shepherd-openocd (0.2.6) unstable; urgency=medium
 
   * Initial package.
 

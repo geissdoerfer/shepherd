@@ -15,6 +15,7 @@ import dbus
 import time
 import logging
 import os
+from typing import NoReturn
 from periphery import GPIO
 
 logger = logging.getLogger(__name__)
@@ -69,7 +70,7 @@ class Launcher(object):
         self.gpio_led.close()
         self.gpio_button.close()
 
-    def run(self):
+    def run(self) -> NoReturn:
         """Infinite loop waiting for button presses.
 
         Waits for falling edge on configured button pin. On detection of the
@@ -77,15 +78,18 @@ class Launcher(object):
         press while idle causes system shutdown.
         """
         while True:
-            logger.info("waiting for edge..")
+            logger.info("waiting for falling edge..")
             self.gpio_led.write(True)
-            self.gpio_button.poll()
+            if not self.gpio_button.poll():
+                # note: poll is suspected to exit after ~ 1-2 weeks running -> fills mmc with random measurement
+                # TODO: observe behavior, hopefully this change fixes the bug
+                continue
             self.gpio_led.write(False)
             logger.debug("edge detected")
             if not self.get_state():
                 time.sleep(0.25)
                 if self.gpio_button.poll(timeout=5):
-                    logging.debug("edge detected")
+                    logging.debug("falling edge detected")
                     logging.info("shutdown requested")
                     self.initiate_shutdown()
                     self.gpio_led.write(False)
@@ -94,7 +98,7 @@ class Launcher(object):
             self.set_service(not self.get_state())
             time.sleep(10)
 
-    def get_state(self, timeout: float = 10):
+    def get_state(self, timeout: float = 10) -> bool:
         """Queries systemd for state of shepherd service.
 
         Args:
@@ -127,11 +131,11 @@ class Launcher(object):
             return False
         raise Exception(f"Unknown state { systemd_state }")
 
-    def set_service(self, requested_state: str):
+    def set_service(self, requested_state: bool):
         """Changes state of shepherd service.
 
         Args:
-            requested_state (str): Target state of service
+            requested_state (bool): Target state of service
         """
         active_state = self.get_state()
 
@@ -155,8 +159,8 @@ class Launcher(object):
 
         return new_state
 
-    def initiate_shutdown(self, timeout: int = 5):
-        """Initiates system shutdown.
+    def initiate_shutdown(self, timeout: int = 5) -> NoReturn:
+        """ Initiates system shutdown.
 
         Args:
             timeout (int): Number of seconds to wait before powering off
