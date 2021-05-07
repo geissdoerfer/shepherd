@@ -1,11 +1,12 @@
 import os
 from setuptools import setup
 
+# Note: there is a second requirement-install-list in ./debian/postinst
 requirements = [
-    "click",
+    "click<8.0.0",
     "click-config-file",
     "numpy",
-    "python-periphery==1.1.2",
+    "python-periphery<2.0.0",
     "scipy",
     "zerorpc",
     "invoke",
@@ -21,8 +22,8 @@ if not os.getenv("READTHEDOCS"):
 
 setup(
     name="shepherd",
-    version="0.2.2",
-    description=("Synchronized Energy Harvesting" "Emulator and Recorder"),
+    version="0.2.6",
+    description="Synchronized Energy Harvesting Emulator and Recorder",
     packages=["shepherd"],
     classifiers=[
         # How mature is this project? Common values are

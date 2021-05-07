@@ -80,4 +80,18 @@ int pru_comm_set_state(enum ShepherdState state);
  */
 unsigned int pru_comm_get_buffer_period_ns(void);
 
+/**
+ * Receives Ctrl-Messages from PRU1
+ * @param ctrl_request
+ * @return success = 1, error = 0
+ */
+unsigned char pru_comm_get_ctrl_request(struct CtrlReqMsg *const ctrl_request);
+/**
+ * Sends Ctrl-Messages to PRU1
+ * @param ctrl_reply
+ * @return success = 1, error = 0
+ */
+unsigned char pru_comm_send_ctrl_reply(struct CtrlRepMsg *const ctrl_reply);
+
+
 #endif /* PRU_COMM_H_ */

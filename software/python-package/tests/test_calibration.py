@@ -7,14 +7,14 @@ from shepherd import CalibrationData
 @pytest.fixture
 def data_meas_example_yml():
     here = Path(__file__).absolute()
-    name = "calib_meas_example.yml"
+    name = "example_calib_meas.yml"
     return here.parent / name
 
 
 @pytest.fixture
 def data_example_yml():
     here = Path(__file__).absolute()
-    name = "calib_example.yml"
+    name = "example_calib.yml"
     return here.parent / name
 
 

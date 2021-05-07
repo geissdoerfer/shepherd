@@ -81,7 +81,7 @@ int rpmsg_pru_init(
 
 
 	if ((ret = register_rpmsg_driver(&rpmsg_pru_client))) {
-		printk(KERN_ERR "shprd: Unable to register rpmsg driver");
+		printk(KERN_ERR "shprd.k: Unable to register rpmsg driver");
 		return ret;
 	}
 

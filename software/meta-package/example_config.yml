@@ -3,9 +3,9 @@
 command: record
 parameters:
   no_calib: false
-  force: false
+  force_overwrite: false
   ldo_voltage: 2.0
   load: artificial
   mode: harvesting
-  output: /var/shepherd/recordings
+  output_path: /var/shepherd/recordings
 verbose: 2

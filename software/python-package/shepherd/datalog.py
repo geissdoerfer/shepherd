@@ -13,6 +13,7 @@ HDF5 files.
 
 import logging
 import time
+from typing import NoReturn
 import numpy as np
 from pathlib import Path
 import h5py
@@ -53,7 +54,7 @@ class LogWriter(object):
             values. We need calibration data in order to convert to physical
             units later.
         mode (str): Indicates if this is data from recording or emulation
-        force (bool): Overwrite existing file with the same name
+        force_overwrite (bool): Overwrite existing file with the same name
         samples_per_buffer (int): Number of samples contained in a single
             shepherd buffer
         buffer_period_ns (int): Duration of a single shepherd buffer in
@@ -61,19 +62,22 @@ class LogWriter(object):
 
     """
 
-    complevel = 1
-    compalg = "lzf"
+    # choose lossless compression filter
+    # - gzip: good compression, moderate speed, select level from 1-9, default is 4
+    # - lzf: low to moderate compression, very fast, no options
+    compression_level = 1
+    compression_algo = "lzf"
 
     def __init__(
         self,
         store_path: Path,
         calibration_data: CalibrationData,
         mode: str = "harvesting",
-        force: bool = False,
+        force_overwrite: bool = False,
         samples_per_buffer: int = 10_000,
         buffer_period_ns: int = 100_000_000,
     ):
-        if force or not store_path.exists():
+        if force_overwrite or not store_path.exists():
             self.store_path = store_path
         else:
             base_dir = store_path.resolve().parents[0]
@@ -118,7 +122,8 @@ class LogWriter(object):
             maxshape=(None,),
             # This makes writing more efficient, see HDF5 docs
             chunks=self.chunk_shape,
-            compression=LogWriter.compalg,
+            compression=LogWriter.compression_algo,
+            #compression_opts=LogWriter.compression_level,
         )
         self.data_grp["time"].attrs["unit"] = f"system time in nano seconds"
 
@@ -129,7 +134,8 @@ class LogWriter(object):
             dtype="u4",
             maxshape=(None,),
             chunks=self.chunk_shape,
-            compression=LogWriter.compalg,
+            compression=LogWriter.compression_algo,
+            #compression_opts=LogWriter.compression_level,
         )
         self.data_grp["current"].attrs["unit"] = "A"
         self.data_grp.create_dataset(
@@ -138,16 +144,13 @@ class LogWriter(object):
             dtype="u4",
             maxshape=(None,),
             chunks=self.chunk_shape,
-            compression=LogWriter.compalg,
+            compression=LogWriter.compression_algo,
+            #compression_opts=LogWriter.compression_level,
         )
         self.data_grp["voltage"].attrs["unit"] = "V"
         # Refer to shepherd/calibration.py for the format of calibration data
-        for variable, attr in product(
-            ["voltage", "current"], ["gain", "offset"]
-        ):
-            self.data_grp[variable].attrs[attr] = self.calibration_data[
-                self.mode
-            ][variable][attr]
+        for channel, parameter in product(["voltage", "current"], ["gain", "offset"]):
+            self.data_grp[channel].attrs[parameter] = self.calibration_data[self.mode][channel][parameter]
 
         # Create group for exception logs
         self.log_grp = self._h5file.create_group("log")
@@ -157,7 +160,8 @@ class LogWriter(object):
             dtype="u8",
             maxshape=(None,),
             chunks=self.chunk_shape,
-            compression=LogWriter.compalg,
+            compression=LogWriter.compression_algo,
+            #compression_opts=LogWriter.compression_level,
         )
         self.log_grp["time"].attrs["unit"] = f"system time in nano seconds"
         # Every log entry consists of a timestamp, a message and a value
@@ -176,7 +180,8 @@ class LogWriter(object):
             (0,),
             dtype="u8",
             maxshape=(None,),
-            compression=LogWriter.compalg,
+            compression=LogWriter.compression_algo,
+            #compression_opts=LogWriter.compression_level,
         )
         self.gpio_grp["time"].attrs["unit"] = f"system time in nano seconds"
         self.gpio_grp.create_dataset(
@@ -184,7 +189,8 @@ class LogWriter(object):
             (0,),
             dtype="u1",
             maxshape=(None,),
-            compression=LogWriter.compalg,
+            compression=LogWriter.compression_algo,
+            #compression_opts=LogWriter.compression_level,
         )
 
         return self
@@ -194,7 +200,7 @@ class LogWriter(object):
         self._h5file.flush()
         self._h5file.close()
 
-    def write_buffer(self, buffer: DataBuffer):
+    def write_buffer(self, buffer: DataBuffer) -> NoReturn:
         """Writes data from buffer to file.
         
         Args:
@@ -202,45 +208,41 @@ class LogWriter(object):
         """
 
         # First, we have to resize the corresponding datasets
-        current_length = self.data_grp["time"].shape[0]
-        new_length = current_length + len(buffer)
+        old_set_length = self.data_grp["time"].shape[0]
+        new_set_length = old_set_length + len(buffer)
 
-        self.data_grp["time"].resize((new_length,))
-        self.data_grp["time"][current_length:] = (
+        self.data_grp["time"].resize((new_set_length,))
+        self.data_grp["time"][old_set_length:] = (
             buffer.timestamp_ns
             + self.sampling_interval * np.arange(len(buffer))
         )
 
         for variable in ["voltage", "current"]:
-            self.data_grp[variable].resize((new_length,))
-            self.data_grp[variable][current_length:] = getattr(buffer, variable)
+            self.data_grp[variable].resize((new_set_length,))
+            self.data_grp[variable][old_set_length:] = getattr(buffer, variable)
 
         if len(buffer.gpio_edges) > 0:
-            gpio_current_length = self.gpio_grp["time"].shape[0]
-            gpio_new_length = gpio_current_length + len(buffer.gpio_edges)
+            gpio_old_set_length = self.gpio_grp["time"].shape[0]
+            gpio_new_set_length = gpio_old_set_length + len(buffer.gpio_edges)
 
-            self.gpio_grp["time"].resize((gpio_new_length,))
-            self.gpio_grp["value"].resize((gpio_new_length,))
-            self.gpio_grp["time"][
-                gpio_current_length:
-            ] = buffer.gpio_edges.timestamps_ns
-            self.gpio_grp["value"][
-                gpio_current_length:
-            ] = buffer.gpio_edges.values
+            self.gpio_grp["time"].resize((gpio_new_set_length,))
+            self.gpio_grp["value"].resize((gpio_new_set_length,))
+            self.gpio_grp["time"][gpio_old_set_length:] = buffer.gpio_edges.timestamps_ns
+            self.gpio_grp["value"][gpio_old_set_length:] = buffer.gpio_edges.values
 
-    def write_exception(self, exception: ExceptionRecord):
+    def write_exception(self, exception: ExceptionRecord) -> NoReturn:
         """Writes an exception to the hdf5 file.
 
         Args:
             exception (ExceptionRecord): The exception to be logged
         """
-        current_length = self.log_grp["time"].shape[0]
-        self.log_grp["time"].resize((current_length + 1,))
-        self.log_grp["time"][current_length] = exception.timestamp
-        self.log_grp["value"].resize((current_length + 1,))
-        self.log_grp["value"][current_length] = exception.value
-        self.log_grp["message"].resize((current_length + 1,))
-        self.log_grp["message"][current_length] = exception.message
+        dataset_length = self.log_grp["time"].shape[0]
+        self.log_grp["time"].resize((dataset_length + 1,))
+        self.log_grp["time"][dataset_length] = exception.timestamp
+        self.log_grp["value"].resize((dataset_length + 1,))
+        self.log_grp["value"][dataset_length] = exception.value
+        self.log_grp["message"].resize((dataset_length + 1,))
+        self.log_grp["message"][dataset_length] = exception.message
 
     def __setitem__(self, key, item):
         """Offer a convenient interface to store any relevant key-value data"""
@@ -295,12 +297,12 @@ class LogReader(object):
             logger.debug(
                 (
                     f"Reading datablock with {self.samples_per_buffer} samples "
-                    f"from netcdf took { time.time()-ts_start }"
+                    f"from netcdf took { round(1e3 * (time.time()-ts_start), 2) } ms"
                 )
             )
             yield db
 
-    def get_calibration_data(self):
+    def get_calibration_data(self) -> CalibrationData:
         """Reads calibration data from hdf5 file.
 
         Returns:
@@ -308,9 +310,6 @@ class LogReader(object):
         """
         nested_dict = lambda: defaultdict(nested_dict)
         calib = nested_dict()
-        for var, attr in product(["voltage", "current"], ["gain", "offset"]):
-
-            calib["harvesting"][var][attr] = self._h5file["data"][var].attrs[
-                attr
-            ]
+        for channel, parameter in product(["voltage", "current"], ["gain", "offset"]):
+            calib["harvesting"][channel][parameter] = self._h5file["data"][channel].attrs[parameter]
         return CalibrationData(calib)

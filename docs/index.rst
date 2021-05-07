@@ -27,7 +27,6 @@ User Guide
    user/data_format
    user/api
    user/performance
-   user/virtcap
 
 Developer Guide
 ---------------------
@@ -39,7 +38,6 @@ Developer Guide
    dev/data_handling
    dev/sysfs
    dev/gps_sync
-   dev/virtcap
 
 Indices and tables
 ==================

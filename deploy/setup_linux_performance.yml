@@ -1,0 +1,38 @@
+---
+- name: Apply performance enhancing Changes (use less ram, boot faster)
+  hosts: all
+  become: true
+
+  tasks:
+
+  - name: CFG - Improve SSH-Speed
+    lineinfile:
+      dest: /etc/ssh/sshd_config
+      regexp: "{{ item.regex }}"
+      line: "{{ item.line }}"
+      state: present
+    with_items:
+      - {regex: '^.*UseDNS.*$', line: 'UseDNS no'}
+      - {regex: '^.*Compression.*$', line: 'Compression no'}
+
+  - name: CFG - Adapt default Target to multi-user
+    command: systemctl set-default multi-user
+    # check with: sudo systemctl get-default
+
+  - name: CFG - Disable Graphical.target
+    #command: systemctl disable graphical.target
+    systemd:
+      name: graphical.target
+      enabled: no
+      state: stopped
+      daemon_reload: yes
+
+  - name: Uname - Get Kernel-Version
+    command: uname --kernel-release
+    register: kernelrelease
+    changed_when: False
+
+  - name: CFG - Optimize Boot by removing outdated initrd
+    file:
+      path: '/boot/initrd.img-{{ kernelrelease.stdout.strip() }}'
+      state: absent
