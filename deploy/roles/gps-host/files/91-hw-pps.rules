@@ -1,1 +1,1 @@
-SUBSYSTEM=="pps", ATTRS{name}=="timer4", SYMLINK+="hwpps"
+SUBSYSTEM=="pps", ATTRS{name}=="timer4", SYMLINK+="hwpps", TAG+="systemd"

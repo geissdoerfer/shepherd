@@ -21,12 +21,6 @@
     src: "{{ gps_path }}/debian/shepherd-gps.ublox-config.service"
     dest: "/etc/systemd/system/ublox-config.service"
 
-# services not started at boot, but after respective file exists
-- name: Add service path activation
-  copy:
-    src: "{{ gps_path }}/chrony.path"
-    dest: "/etc/systemd/system/chrony.path"
-
 - name: Disable services
   systemd:
     name: "{{ item }}"
@@ -37,5 +31,4 @@
     - gpsd.socket
     - gpsd.service
     - chrony.service
-    - chrony.path
     - ublox-config.service
