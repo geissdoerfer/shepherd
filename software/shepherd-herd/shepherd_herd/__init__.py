@@ -105,7 +105,8 @@ def configure_shepherd(
 
 
 def start_shepherd(
-    group: Group, hostnames: dict,
+    group: Group,
+    hostnames: dict,
 ):
     """Starts shepherd service on the group of hosts.
 
@@ -376,7 +377,9 @@ def reset(ctx):
 @click.option(
     "--duration", "-d", type=float, help="Duration of recording in seconds"
 )
-@click.option("--force_overwrite", "-f", is_flag=True, help="Overwrite existing file")
+@click.option(
+    "--force_overwrite", "-f", is_flag=True, help="Overwrite existing file"
+)
 @click.option("--no-calib", is_flag=True, help="Use default calibration values")
 @click.option(
     "--harvesting-voltage",
@@ -460,7 +463,9 @@ def record(
 @click.option(
     "--duration", "-d", type=float, help="Duration of recording in seconds"
 )
-@click.option("--force_overwrite", "-f", is_flag=True, help="Overwrite existing file")
+@click.option(
+    "--force_overwrite", "-f", is_flag=True, help="Overwrite existing file"
+)
 @click.option("--no-calib", is_flag=True, help="Use default calibration values")
 @click.option(
     "--load",
@@ -596,7 +601,7 @@ def retrieve(ctx, filename, outdir, rename, delete, stop):
                 f"{ctx.obj['hostnames'][cnx.host]} to local {local_path}"
             )
         )
-        cnx.get(filepath, local=local_path)
+        cnx.get(filepath, local=str(local_path))
         if delete:
             logger.info(
                 f"deleting {filepath} from remote {ctx.obj['hostnames'][cnx.host]}"
