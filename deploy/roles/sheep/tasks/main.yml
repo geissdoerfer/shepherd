@@ -138,18 +138,14 @@
     - install
     - python
 
-- name: Install shepherd meta-package
-  synchronize:
-    src: "{{ repo_dir.stdout }}/software/meta-package/"
-    dest: "{{ shepherd_config_path }}"
-    delete: yes
-    owner: no
-    group: no
-    rsync_opts:
-      - "--exclude=debian"
+- name: Deploy example configuration
+  template:
+    src: "{{ repo_dir.stdout }}/software/meta-package/example_config.yml"
+    dest: "/etc/shepherd/"
   tags:
     - source-code
     - python
+    - conf
 
 - name: Link to shepherd-sheep for compatibility with deb package
   file:
