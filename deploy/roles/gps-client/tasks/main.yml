@@ -18,7 +18,7 @@
   with_items:
     - phc2sys.service
     - ptp4l.service
-  when: '"ptp_clients" not in group_names'
+  when: '"ptp_clients" not in group_names and "ptp_servers" not in group_names'
   tags:
     - gps
     - conf
