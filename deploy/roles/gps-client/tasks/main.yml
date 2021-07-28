@@ -9,6 +9,12 @@
     - gps
     - conf
 
+- name: Disable connman automatic time update
+  shell: busctl --system call net.connman / net.connman.Clock SetProperty sv "TimeUpdates" s "manual"
+  tags:
+    - gps
+    - conf
+
 - name: Disable PTP services
   systemd:
     name: "{{ item }}"

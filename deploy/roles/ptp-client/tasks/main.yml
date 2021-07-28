@@ -24,6 +24,12 @@
     - ptp
     - conf
 
+- name: Disable connman automatic time update
+  shell: busctl --system call net.connman / net.connman.Clock SetProperty sv "TimeUpdates" s "manual"
+  tags:
+    - ptp
+    - conf
+
 - name: Enable ptp services
   systemd:
     name: "{{ item }}"
