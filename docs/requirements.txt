@@ -23,7 +23,7 @@ invoke==1.2.0
 Jinja2==2.10.1
 MarkupSafe==1.1.1
 msgpack==0.6.1
-numpy==1.16.4
+numpy==1.22.0
 packaging==19.0
 paramiko==2.6.0
 pbr==5.4.0
