@@ -2,6 +2,8 @@
 
 [![Build Status](https://travis-ci.org/geissdoerfer/shepherd.svg?branch=master)](https://travis-ci.org/geissdoerfer/shepherd)
 
+DEPRECATION NOTICE:
+This repository has been deprecated in favor of [the next generation of Shepherd](https://github.com/orgua/shepherd).
 
 Batteryless sensor nodes depend on harvesting energy from their environment.
 Developing solutions involving groups of batteryless nodes requires a tool to analyze, understand and replicate spatio-temporal harvesting conditions.
